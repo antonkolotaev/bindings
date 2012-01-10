@@ -1,0 +1,5 @@
+import sys
+sys.path.append("%PREMIA_DLL%")
+from pypremia import *
+
+init("%PREMIA_DATA%")

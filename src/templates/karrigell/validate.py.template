@@ -1,0 +1,174 @@
+from HTMLTags import *
+
+Include('import.py')
+
+def extlist(lst,size):
+    if len(lst) < size:
+        lst.extend((size - len(lst)) * [lst[len(lst) - 1]])
+
+def enum(n,e):
+    L = SELECT(name = n, onchange="submit();").from_list(e._labels.values())
+    L.select(value=e._labels.keys().index(e._value.key()))
+    return L
+    
+def setEnumValueByIdx(e,idx):
+    e._value = e._labels.keys()[int(idx)]
+
+def enum_submit_mod(n,names,v):
+    L = SELECT(name = n, onchange="submit();").from_list(names)
+    L.select(value=names.index(v))
+    return L
+
+def enum_submit(n,classes,v):
+    names = [x.__name__ for x in classes]
+    L = SELECT(name = n, onchange="submit();").from_list(names)
+    L.select(value=names.index(v))
+    return L
+
+def pricing_options(model_name, family_name):
+    return eval('pricings.' + model_name + '.' + model_name + '_' + family_name + '.methods_for_options()').keys()
+
+model_size_mode = False
+number_of_companies_mode = False
+
+run_computation = True
+
+if 'a' not in REQUEST:
+  _a = 'equity_Black_Scholes_type'
+
+mod_colors = ['lightgreen','white']
+opt_colors = ['#FFFFC0', 'white']
+met_colors = ['lightblue','white']
+res_colors = ['lightgray', 'white']
+
+def clr(color_table,idx): return color_table[idx%%len(color_table)]
+
+#print assets.asset_models().keys(), "asset_type = ", _asset_type
+
+g_table = TABLE(Class="content")
+
+g_err_table = TABLE(Class="content")
+g_errors = []
+
+def add_error(s): 
+    g_err_table <= TR(TD(s), bgcolor='#C00000')
+    g_errors.append(s)
+
+table_model = TABLE(Class="content")
+table = table_model
+
+if 'asset_type' in REQUEST:
+   new_asset_type = assets.all()[int(_asset_type)].__name__
+   if _a <> new_asset_type:
+      _a = new_asset_type
+      _model = 0
+      _family = 0
+      _option = 0
+      _pricing_method = 0
+      run_computation = True
+
+table <= (TR(TD((B('Asset Type:')),align='right') + TD(enum_submit('asset_type', assets.all(), _a))+TD(),bgcolor=mod_colors[0]))
+
+clridx = 1
+
+if 'model' in REQUEST:
+   new_model = eval('assets.' + _a + '.models()')[int(_model)].ID()
+   if _m <> new_model:
+      _m = new_model
+      _family = 0
+      _option = 0
+      _pricing_method = 0
+      run_computation = True
+
+Include(r'/premia/mod/'+ _m + '/model.py')
+
+table_option = TABLE(Class="content")
+table = table_option
+
+if 'family' in REQUEST:
+   new_family = model.families()[int(_family)]
+   if new_family <> _f:
+      _f = new_family
+      _option = 0
+      _pricing_method = 0
+      run_computation = False
+
+if 'option' in REQUEST:
+   new_opt = pricing_options(_m,_f)[int(_option)].__name__
+   if new_opt <> _o:
+      _o = new_opt
+      _pricing_method = 0
+      run_computation = False
+
+clridx = 0
+
+Include(r'/premia/opt/' + _f + '/' + _o + '.py')
+
+table_method = TABLE(Class="content")
+table = table_method
+
+if 'pricing_method' in REQUEST:
+        new_meth = [x for x in eval('pricings.' + _m + '.' + _m + '_' + _f + '.all()') if type(opt) in x.options()][int(_pricing_method)].__name__
+        if _meth <> new_meth:
+            _meth = new_meth
+            run_computation = False
+
+clridx = 0
+
+Include(r'/premia/mod/' + _m + '/' + _m + '_' + _f + '/' + _meth + '.py')
+
+
+res = None
+
+def n_elem(lst):
+    acc = 0
+    for i in lst:
+        acc += REQUEST.has_key(i)
+    return acc
+
+import traceback
+
+if g_errors <> []:
+    run_computation = False
+
+if 'Compute' not in REQUEST:
+   run_computation = False
+
+if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
+    try:
+        res = method(opt,model)
+
+    except Exception, exc:
+        print "exception caught:"
+        print traceback.format_exc()
+        add_error(exc)
+
+if res <> None:
+    idx = 1
+    table_method <= TR(TD(B("Result:"),align='right') + TD(B("")))
+    for k,v in res:
+        idx = idx + 1
+        if type(v) == list:
+            table_method <= TR(TD(k, align='right',rowspan=len(v)) + TD(v[0]),bgcolor=clr(res_colors,idx))
+            for i in range(1, len(v)):
+                table_method <= TR(TD(v[i]),bgcolor=clr(res_colors,idx))
+        else:
+            table_method <= TR(TD(k,align='right') + TD(v),bgcolor=clr(res_colors,idx))
+
+form = FORM(action='/validate?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth,method="post")
+
+if model_size_mode:
+    table_method <= table_model_size_mode
+    table_method <= BR()+INPUT(Type="submit",value="Continue")
+else:
+    table_method <= TR(TD() + TD(INPUT(Type="submit",name="Compute",value="Compute")))
+    
+if len(g_errors) > 0:
+    form <= TR(TD(g_err_table))
+
+g_table <= TR(TD(table_model,valign='top') + TD(table_option,valign='top') + TD(table_method,valign='top'))
+
+form <= g_table
+
+print form
+
