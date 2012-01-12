@@ -47,15 +47,15 @@ namespace python {
 			        "def __init__(self):", 
 			        +call(boost::bind(print::Initializers, _1, p.second.params)), "",
 			        "def key(self): return %ID%", "",
-			        foreach(p.second.params, boost::bind(print::PropertyEx, _1, _2, boost::cref(p.second.params))),
+			        foreach_x(p.second.params, boost::bind(print::PropertyEx, _1, _2, boost::cref(p.second.params))),
 			        "def export(self):", +(seq,
 			            "from premia import interop",
 			            "interop.write_enum(%ID%)",
-			            foreach(p.second.params, print::copy_param)), "",
+			            foreach_x(p.second.params, print::copy_param)), "",
 			        "def export_ignoring(self):", +(seq,
 			            "from premia import interop",
 			            "interop.ignore_enum(%ID%)",
-			            foreach(p.second.params, print::ignore_param)), "",
+			            foreach_x(p.second.params, print::ignore_param)), "",
 			        "def __repr__(self): return '%LABEL%'"));
         }		
 	}
@@ -68,7 +68,7 @@ namespace python {
 		         "from premia.common import *", "",
 				 "class %CLASS%:", +(seq,
 					"_labels = {", +(
-						foreach(e.members, print::Ini)),
+						foreach_x(e.members, print::Ini)),
 					"}",
 					"def __init__(self, newval): self._value = newval", "",
 					"",
@@ -76,16 +76,16 @@ namespace python {
 					"",
 					"def export(self): self._value.export()",
 					"",
-					foreach(e.members, print::Prop)), "",
+					foreach_x(e.members, print::Prop)), "",
 				//"class Base(object):", +(seq,
 				//    "@staticmethod",
     			//	"def choices():", +(seq, 
-    			//	    "return [", +foreach(e.members, print::Label), "]")),
-				foreach(e.members, print::Choice)
+    			//	    "return [", +foreach_x(e.members, print::Label), "]")),
+				foreach_x(e.members, print::Choice)
 			);
 			
 			
-		ctx.out(2) << "   " << e.label << std::endl;
+		/* ctx.out(2) << "   " << e.label << std::endl; */
 
 		return ctx;
 	}

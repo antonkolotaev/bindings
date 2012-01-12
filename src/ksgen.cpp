@@ -7,7 +7,6 @@
 namespace fs = boost::filesystem;
 typedef fs::path  path_t;
 
-#include <premia/import.h>
 #include <premia/generator/utils/symbols.h>
 #include <premia/generator/utils/formatter.h>
 #include <premia/generator/utils/formatter_dsl.h>
@@ -16,6 +15,7 @@ typedef fs::path  path_t;
 typedef boost::format fmt;
 namespace lm = boost::lambda;
 using namespace boost::adaptors;
+#include <premia/import.h>
 
 const std::string premia_lib_name = "premia";
 

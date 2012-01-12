@@ -20,9 +20,9 @@ namespace karrigell {
 				"%OBJ% = pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME%()", "",
 				"if run_computation:", +(seq,
 				    "pass",
-				    foreach(met.members, print::Ini)),
+				    foreach_x(met.members, print::Ini)),
 				"table <= (TR(TD((B('Pricing method:')),align='right') + TD(enum_submit('pricing_method', [x for x in pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.all() if type(opt) in x.options()],'%METHOD_NAME%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				foreach(met.members, print::Table)
+				foreach_x(met.members, print::Table)
 			);
 	}
 
@@ -37,7 +37,7 @@ namespace karrigell {
 		out("METHOD_NAME", method.name) 
 			<< (seq, 
 				"table <= TR(TD('%METHOD_NAME%:',align='right') \\", 
-					+foreach(method.compatible_options, printCompatibleOption),
+					+foreach_x(method.compatible_options, printCompatibleOption),
 				")",
 				"");
 	}
@@ -55,7 +55,7 @@ namespace karrigell {
 				"from HTMLTags import *",
 				"print H3('Methods of the pricing %MODEL_ID%_%FAMILY_NAME%')",
 				"table = TABLE(Class=\"content\")",
-				foreach(p.methods, printRefsToMethod),
+				foreach_x(p.methods, printRefsToMethod),
 				"print table"
 			);
 	}

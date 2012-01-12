@@ -15,7 +15,7 @@ namespace python {
 			"class %ASSET_NAME%(object):", +(seq, 
 				"@staticmethod",
 				"def models(): ", +(seq, 
-					"return [", +foreach(a.models, printAssetModel), "]"), ""
+					"return [", +foreach_x(a.models, printAssetModel), "]"), ""
 			));
 	}
 
@@ -30,8 +30,8 @@ namespace python {
 		Formatter f(ctx.assetsPy());
 		f << (seq, 
 			"from models import *", "",
-			foreach(a.assets, printAsset),
-			"def all(): return [", +foreach(a.assets, printAssetName), "]" 
+			foreach_x(a.assets, printAsset),
+			"def all(): return [", +foreach_x(a.assets, printAssetName), "]" 
 		);
 
 		return ctx;

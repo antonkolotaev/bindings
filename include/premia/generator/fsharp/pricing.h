@@ -71,7 +71,7 @@ namespace fsharp {
 					"member x.makeCurrent() = ", +(seq,
 						"setCurrentAsset(%ASSET_ID%)",
 						"setCurrentMethod(%PRICING_ID%, %METHOD_ID%)",
-						foreach(method.members, print::copy_param_fs),
+						foreach_x(method.members, print::copy_param_fs),
 						"stopWriteParameters()"
 				)), "");
 		}
@@ -85,7 +85,7 @@ namespace fsharp {
 				"member private x.compute'(opt : #IPremiaObj, model : #IPremiaObj) = ", +(seq,
 					"Util.premiaCompute(model, opt, x)", 
 					block("{}",
-						foreach(zip(method.results, boost::irange(0u, results_size)), print::ResElementEx)
+						foreach_x(zip(method.results, boost::irange(0u, results_size)), print::ResElementEx)
 					)));
 		}
 
@@ -94,7 +94,7 @@ namespace fsharp {
 		{
 			makeCurrent(out, method);
 			computeGeneric(out, method);
-			out << foreach(method.compatible_options, print::compute);
+			out << foreach_x(method.compatible_options, print::compute);
 		}
 
 		/// prints import clauses 
@@ -111,7 +111,7 @@ namespace fsharp {
 		{
 			out << (seq, 
 				"and %CLASS%_Result = ", 
-					+block("{}", foreach(method.results, print::ResElementDecl))
+					+block("{}", foreach_x(method.results, print::ResElementDecl))
 				);
 		}
 	}
@@ -151,10 +151,10 @@ namespace fsharp {
 					"namespace FsPremia.Types.mods.%MODEL_NAME%.%FAMILY_NAME%", "", +(seq, 
 						call(print::imports),
 						"type %CLASS% = ", +(seq, 
-							block("{}", foreach(method.members, print::memberDecl)),  
+							block("{}", foreach_x(method.members, print::memberDecl)),  
 							call(boost::bind(print::common, _1, boost::ref(method))),
 							"static member Create() = ",  
-								+block("{}", foreach(method.members, print::memberIni))),
+								+block("{}", foreach_x(method.members, print::memberIni))),
 							call(boost::bind(print::result, _1, boost::ref(method)))));
 		}
 		return ctx;
@@ -181,7 +181,7 @@ namespace fsharp {
 				("FAMILY_NAME", p.family->name) << (seq, 
 					"namespace FsPremia.methods.%MODEL_NAME%", +(seq, "",
 						"module %FAMILY_NAME% = ", 
-							+foreach(p.methods, print::methodUsing)));
+							+foreach_x(p.methods, print::methodUsing)));
 
 			ctx.out(2) << "   " << p.model->name << "_" << p.family->name << std::endl;
 		}

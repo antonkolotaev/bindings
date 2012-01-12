@@ -21,16 +21,16 @@ namespace fsharp {
 				"namespace FsPremia.Types.opt.%FAMILY_NAME%", "", +(seq, 
 					"open FsPremia", "open FsPremia.Interop", "open FsPremia.Util", "",
 					"type %NAME% = ", +(seq, 
-						block("{}", foreach(opt.vars, print::memberDecl)),  
+						block("{}", foreach_x(opt.vars, print::memberDecl)),  
 						"with", "interface IPremiaObj with", +(seq, 
 							"member x.makeCurrent() = ", +(seq,
  								"setCurrentAsset(%ASSET_ID%)",
  								"setCurrentOption(%FAMILY_ID%, %OPTION_ID%)",
-								foreach(opt.vars, print::copy_param_fs),
+								foreach_x(opt.vars, print::copy_param_fs),
 								"stopWriteParameters()"
  						)), "",
 						"static member Create() = ",
-							+block("{}", foreach(opt.vars, print::memberIni)))));
+							+block("{}", foreach_x(opt.vars, print::memberIni)))));
 
 		return ctx;
 	}
@@ -53,7 +53,7 @@ namespace fsharp {
 		ff	("FAMILY", f.name) << (seq, 
 				"namespace FsPremia.opt", +(seq, "",
 					"module %FAMILY% = ", 
-						+foreach(f.options, print::optionUsing)));
+						+foreach_x(f.options, print::optionUsing)));
 
 		ctx.out(2) << "   " << f.name << std::endl;
 

@@ -137,10 +137,10 @@ namespace python {
 					"from premia import interop",
 					"interop.setCurrentAsset(%ASSET_ID%)",
 					"interop.setCurrentModel(%MODEL_ID%)",
-					foreach(vars, boost::bind(print::copy_or_ignore_param, &vr, _1, _2)),
+					foreach_x(vars, boost::bind(print::copy_or_ignore_param, &vr, _1, _2)),
 					"interop.stopWriteParameters()",
 					"interop.readCurrentModel()",
-					foreach(vars, print::load_param),
+					foreach_x(vars, print::load_param),
 					"interop.stopReadParameters()")
 					;
 			}
@@ -226,7 +226,7 @@ namespace python {
 		inline Formatter & Initializers (Formatter & out, VarList const & vars)
 		{
 			if (vars.empty())	out << "pass";
-			else				out << foreach(vars, print::initializer);
+			else				out << foreach_x(vars, print::initializer);
 
 			return out;
 		}

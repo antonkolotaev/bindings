@@ -18,16 +18,16 @@ namespace fsharp {
 				"namespace FsPremia.Types.mods.%NAME%", "", +(seq, 
 					"open FsPremia", "open FsPremia.Interop", "open FsPremia.Util", "",
 					"type Model = ", +(seq, 
-						block("{}", foreach(m.members, print::memberDecl)),  
+						block("{}", foreach_x(m.members, print::memberDecl)),  
 						"with", "interface IPremiaObj with", +(seq, 
 							"member x.makeCurrent() = ", +(seq,
 								"setCurrentAsset(%ASSET_ID%)",
 								"setCurrentModel(%MODEL_ID%)",
-								foreach(m.members, print::copy_param_fs),
+								foreach_x(m.members, print::copy_param_fs),
 								"stopWriteParameters()"
 						)), "",
 						"static member Create() = ",  
-							+block("{}", foreach(m.members, print::memberIni)))));
+							+block("{}", foreach_x(m.members, print::memberIni)))));
 
 		ctx.out(2) << "   " << m.name << std::endl;
 
@@ -56,7 +56,7 @@ namespace fsharp {
 		f << (seq, 
 			"namespace FsPremia", +(seq, "",
 				"module models = ", 
-					+foreach(m.models, print::modelUsing)
+					+foreach_x(m.models, print::modelUsing)
 				)
 			);
 

@@ -29,7 +29,7 @@ namespace fsharp{
 			("CLASS", e.label) << (seq,
 				"namespace FsPremia", "", +(seq,
 				"type %CLASS% = ", 
-					+foreach(e.members, print::Ini)));
+					+foreach_x(e.members, print::Ini)));
 
 		ctx.out(2) << "   " << e.label << std::endl;
 

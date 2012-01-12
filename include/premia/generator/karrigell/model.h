@@ -19,9 +19,9 @@ namespace karrigell {
 			("BGCOLOR_BASE","mod_colors")
 			<< (seq, 
 				"%OBJ% = models.%MODEL_NAME%()", "",
-				foreach(m.members, print::Ini),
+				foreach_x(m.members, print::Ini),
 				"table <= (TR(TD((B('Model:')),align='right') + TD(enum_submit('model', model.assetType().models(), '%MODEL_LABEL%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				foreach(m.members, print::Table)
+				foreach_x(m.members, print::Table)
 			);
 	}
 
@@ -33,7 +33,7 @@ namespace karrigell {
 	inline void printPricingsForModel(Formatter & out, Model const * m)
 	{
 		out("MODEL_NAME", m->name)("MODEL_ID", m->ID()) 
-			<< (seq, "table <= TR(TD('%MODEL_NAME%:') \\", +foreach(m->pricings, printPricingForModel), ")");
+			<< (seq, "table <= TR(TD('%MODEL_NAME%:') \\", +foreach_x(m->pricings, printPricingForModel), ")");
 	}
 
 
@@ -50,7 +50,7 @@ namespace karrigell {
 	{
 		out("ASSET", a.source->name) << (seq, 
 			"table <= TR(TD(H4('%ASSET%')))", 
-			foreach(a.models, printPricingsForModel)
+			foreach_x(a.models, printPricingsForModel)
 			);
 	}
 
@@ -61,7 +61,7 @@ namespace karrigell {
 				"from HTMLTags import *", 
 				"print H3('Available models')",
 				"table = TABLE()", 
-				foreach(assets.assets, printModelsForAsset), 
+				foreach_x(assets.assets, printModelsForAsset), 
 				"print table");
 
 		return ctx;

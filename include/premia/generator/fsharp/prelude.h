@@ -40,7 +40,7 @@ namespace fsharp {
 		{
 			Formatter f(ctx.fsprojName()) ;
 			(f	  .process_file(ctx.templateDir() / "FsPremia.fsproj.template")
-				<< foreach(ctx.generatedFilesList(), print::FsProjFile))
+				<< foreach_x(ctx.generatedFilesList(), print::FsProjFile))
 				  .process_file(ctx.templateDir() / "FsPremia_end.fsproj.template");
 
 			return ctx;

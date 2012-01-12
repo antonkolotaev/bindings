@@ -29,7 +29,7 @@ namespace karrigell {
 	                << (seq, 
 	                "if e == %IDX%:", +(seq, 
 	                    "%OBJ%._%VAR_NAME%.set_%LABEL%()",
-	                    foreach(em.second.params, enumParams)));
+	                    foreach_x(em.second.params, enumParams)));
 	            ++idx;
 	        }
 	    } 
@@ -195,7 +195,7 @@ namespace karrigell {
 			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
-			    out << (seq, "labels = [", +foreach(e.type->members, printEnumChoices), "]");  
+			    out << (seq, "labels = [", +foreach_x(e.type->members, printEnumChoices), "]");  
 			    
 			    bool has_params = false;
 			    

@@ -17,18 +17,18 @@ namespace python {
 				"class %NAME%(object):", +(seq, "",
 					"def __init__(self):", 
 						+call(boost::bind(print::Initializers, _1, boost::ref(opt.vars))), "", 
-					foreach(opt.vars, boost::bind(print::PropertyEx, _1, _2, boost::cref(opt.vars))), "", 
+					foreach_x(opt.vars, boost::bind(print::PropertyEx, _1, _2, boost::cref(opt.vars))), "", 
 					"def __repr__(self): return getRepr(self, 'Option')", 
  					"def makeCurrent(self):", +(seq,
 						"from premia import interop",
  						"interop.setCurrentAsset(%ASSET_ID%)",
  						"interop.setCurrentOption(%FAMILY_ID%, %OPTION_ID%)",
-						foreach(opt.vars, print::copy_param),
+						foreach_x(opt.vars, print::copy_param),
 						"interop.stopWriteParameters()"
  					), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 
-						"return [", +foreach(opt.vars, print::member), "]")
+						"return [", +foreach_x(opt.vars, print::member), "]")
 					))
 			;
 
@@ -60,10 +60,10 @@ namespace python {
 		// creating family's option listing
 		Formatter ff(ctx.filename(f));
 		ff << (seq, 
-			foreach(f.options, print::OptionUsing), "", 
-			"def all(): return [", +foreach(f.options, print::OptType), "]");
+			foreach_x(f.options, print::OptionUsing), "", 
+			"def all(): return [", +foreach_x(f.options, print::OptType), "]");
 
-		ctx.out(2) << "   " << f.name << std::endl;
+		/* ctx.out(2) << "   " << f.name << std::endl; */
 
 		return ctx;
 	}
@@ -94,10 +94,10 @@ namespace python {
 
 		Formatter f(ctx.optionsPy());
 		f << (seq, 
-			foreach(fs.names | map_keys, print::importFamily), "", 
-			"def all(): return [", +foreach(fs.names | map_keys, print::family), "]");
+			foreach_x(fs.names | map_keys, print::importFamily), "", 
+			"def all(): return [", +foreach_x(fs.names | map_keys, print::family), "]");
 
-		ctx.out(1) << "ok!" << std::endl;
+		/* ctx.out(1) << "ok!" << std::endl; */
 
 		return ctx;
 	}

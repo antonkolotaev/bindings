@@ -59,13 +59,13 @@ namespace python {
 			"class %CLASS%(object):", +(seq, 
 				"def __init__(self):", 
 					+call(boost::bind(print::Initializers, _1, boost::ref(method.members))), "", 
-				foreach(method.members, boost::bind(print::PropertyEx, _1, _2, boost::cref(method.members))), "", 
+				foreach_x(method.members, boost::bind(print::PropertyEx, _1, _2, boost::cref(method.members))), "", 
 				"def __repr__(self): return getRepr(self, 'Pricing Method')", "" 
  				"def makeCurrent(self):", +(seq,
 					"from premia import interop",
  					"interop.setCurrentAsset(%ASSET_ID%)",
  					"interop.setCurrentMethod(%PRICING_ID%, %METHOD_ID%)",
-					foreach(method.members, print::copy_param),
+					foreach_x(method.members, print::copy_param),
  					"interop.stopWriteParameters()"
  					), "",
  				"def compute(self, opt, mod):", +(seq,
@@ -75,17 +75,17 @@ namespace python {
  					"self.makeCurrent()",
 					"interop.compute_3()",
 					"return [", 
-						+foreach(zip(method.results, boost::irange(0u, results_size)), print::ResElementEx),
+						+foreach_x(zip(method.results, boost::irange(0u, results_size)), print::ResElementEx),
 					"]"), "",
 
 				"@staticmethod",
 				"def parameters(): ", +(seq, 
-					"return [", +foreach(method.members, print::member), "]"), "",
+					"return [", +foreach_x(method.members, print::member), "]"), "",
 				"@staticmethod",
 				"def model(): return %MODEL_NAME%", ""
 				"@staticmethod",
 				"def options():", +(seq, 
-					"return [", +foreach(method.compatible_options, print::Compatible), "]"), "",
+					"return [", +foreach_x(method.compatible_options, print::Compatible), "]"), "",
 				"def __call__(self, option, model): return self.compute(option, model)"
 			));
 
@@ -114,7 +114,7 @@ namespace python {
 
 		void MethodsForOptions(Formatter & out, std::pair<Option const *, std::list<PricingMethod*> > const & p)
 		{
-			out("OPT_NAME", p.first->name) << (seq, "%OPT_NAME% : [", +foreach(p.second, pMethod), "],");
+			out("OPT_NAME", p.first->name) << (seq, "%OPT_NAME% : [", +foreach_x(p.second, pMethod), "],");
 		}
 	}
 
@@ -130,12 +130,12 @@ namespace python {
 		Formatter f(ctx.filename(p));
 		f	("FAMILY_NAME",p.family->name) << (seq, 
 
-			foreach(p.methods, print::importMethod), "",
+			foreach_x(p.methods, print::importMethod), "",
 			"from ....opt.%FAMILY_NAME%.%FAMILY_NAME% import *", "",
-			"def all(): return [", +foreach(p.methods, print::Method), "]", "",
-			"def methods_for_options(): return {", +foreach(p.methods_for_options, print::MethodsForOptions), "}");
+			"def all(): return [", +foreach_x(p.methods, print::Method), "]", "",
+			"def methods_for_options(): return {", +foreach_x(p.methods_for_options, print::MethodsForOptions), "}");
 
-		ctx.out(2) << "   " << (*p.source)->ID << std::endl;
+		/* ctx.out(2) << "   " << (*p.source)->ID << std::endl; */
 
 		return ctx;
 	}
@@ -145,7 +145,7 @@ namespace python {
 	{
 		ctx.out(1) << "Generating pricing methods:...";
 		for_each(p.pricings, boost::ref(ctx) << lm::_1);
-		ctx.out(1) << "ok!" << std::endl;
+		/* ctx.out(1) << "ok!" << std::endl; */
 		return ctx;
 	}
 }}}

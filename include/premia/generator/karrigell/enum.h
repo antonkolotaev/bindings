@@ -21,7 +21,7 @@ namespace karrigell {
 	inline void generateEnum (Ctx const & ctx, Enum const & e)
 	{
 		Formatter f(ctx.filename(e));
-		f << foreach(e.members, print::enumOption);
+		f << foreach_x(e.members, print::enumOption);
 	}
 
 	inline Ctx& operator << (Ctx & ctx, Enums const & enums)

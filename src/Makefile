@@ -1,23 +1,27 @@
-BOOST_ROOT = ~/boost_1_47_0
+BOOST_ROOT = /opt/local/include/
 PREMIA_ROOT = ../..
-KARRIGELL_WWW = /home/kolotaev/Karrigell-3.1.1/www
+KARRIGELL_WWW = /usr/local/src/Karrigell-3.1.1/www
+
+PYTHON_DIR=`python2.7 -c 'import sys; print sys.prefix'`
+PYTHON_INCLUDE=$(PYTHON_DIR)/include/python2.7
+PYTHON_LIB=$(PYTHON_DIR)/lib
+
+
 
 I_BOOST =  -I $(BOOST_ROOT) \
-           -I /usr/include/python2.7
+           -I $(PYTHON_INCLUDE)
 
 # for the moment i don't know how to tell the library loader to look into this directory
 # so all boost libraries should be put also to LD_LIBRARY_PATH (e.g. /usr/lib)           
-L_BOOST = -L $(BOOST_ROOT)/stage/lib
-           
+L_BOOST = -L/opt/local/lib \
+		-L$(PYTHON_LIB) -lpython2.7 -lstdc++ -lboost_system
 
-I_PREMIA = -I $(PREMIA_ROOT)/Src/common \
-           -I $(PREMIA_ROOT)/Src \
-           -I $(PREMIA_ROOT)/Src/libpnl/src/include \
+
+I_PREMIA = -I $(PREMIA_ROOT)/include \
            -I $(PREMIA_ROOT)/bindings/include
 
 L_PREMIA = -lpremia -lpnl \
-           -L $(PREMIA_ROOT)/Src/.libs \
-           -L $(PREMIA_ROOT)/Src/libpnl/src/.libs
+           -L$(PREMIA_ROOT)/lib
 
 all: python karrigell fsharp
 install-all: install-python install-karrigell install-fsharp
@@ -52,7 +56,7 @@ install-python: python
 
 install-karrigell: install-python ksgen 
 	./ksgen --output-dir=$(KARRIGELL_WWW)
-	
+
 install-fsharp: fsharp
 	./fsgen --output-dir=../fsharp/premia
 

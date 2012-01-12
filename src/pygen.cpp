@@ -1,3 +1,4 @@
+
 #include <istream>
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptors.hpp>
@@ -7,7 +8,6 @@
 namespace fs = boost::filesystem;
 typedef fs::path  path_t;
 
-#include <premia/import.h>
 #include <premia/generator/utils/symbols.h>
 #include <premia/generator/utils/formatter.h>
 #include <premia/generator/utils/formatter_dsl.h>
@@ -16,6 +16,7 @@ typedef fs::path  path_t;
 typedef boost::format fmt;
 namespace lm = boost::lambda;
 using namespace boost::adaptors;
+#include <premia/import.h>
 
 const std::string premia_lib_name = "premia";
 
@@ -32,7 +33,9 @@ typedef std::logic_error premia_exception;
 #include <premia/generator/python/pricing.h>
 
 #include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
+/* #include <boost/foreach.hpp> */
+
+
 
 using premia::pygen::formatter_dsl::Formatter;
 

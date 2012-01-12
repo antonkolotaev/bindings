@@ -57,35 +57,35 @@ namespace python {
 					"@staticmethod",
 					"def families():", +(seq,
 					    "from premia import options",
-						"return [", +foreach(m.pricings, print::ModelFamilies), "]"
+						"return [", +foreach_x(m.pricings, print::ModelFamilies), "]"
 					), "",
-					foreach(m.members, boost::bind(print::PropertyEx, _1, _2, boost::cref(m.members))), 
+					foreach_x(m.members, boost::bind(print::PropertyEx, _1, _2, boost::cref(m.members))), 
 					"def __repr__(self): return getRepr(self, 'Model')", "", 
  					"def makeCurrent(self):", +(seq,
 						"from premia import interop",
  						"interop.setCurrentAsset(%ASSET_ID%)",
  						"interop.setCurrentModel(%MODEL_ID%)",
-						foreach(m.members, print::copy_param),
+						foreach_x(m.members, print::copy_param),
 						"interop.stopWriteParameters()"
  						), "",
  					"def sync(self):", +(seq,
 						"from premia import interop",
 						"self.makeCurrent()",
 						"interop.readCurrentModel()",
-						foreach(m.members, print::load_param),
+						foreach_x(m.members, print::load_param),
 						"interop.stopReadParameters()"
  						), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 
-						"return [", +foreach(m.members, print::member), "]")
+						"return [", +foreach_x(m.members, print::member), "]")
 				));
 
 		Formatter ff(ctx.modelPricingsName(m));
 		ff	("MODEL_ID", m.ID()) << (seq, 
-			foreach(m.pricings, print::importModelPricings), "", 
-			"def all(): return [", +foreach(m.pricings, print::PricingType_2), "]");
+			foreach_x(m.pricings, print::importModelPricings), "", 
+			"def all(): return [", +foreach_x(m.pricings, print::PricingType_2), "]");
 
-		ctx.out(2) << "   " << m.ID() << std::endl;
+		/* ctx.out(2) << "   " << m.ID() << std::endl; */
 
 		return ctx;
 	}
@@ -130,14 +130,14 @@ namespace python {
 		// creating list of all models
 		Formatter f(ctx.modelsPy());
 		f << (seq,
-			foreach(m.models, print::ModelUsing), "",
-			"def all(): return [", +foreach(m.models, print::ModelType), "]");
+			foreach_x(m.models, print::ModelUsing), "",
+			"def all(): return [", +foreach_x(m.models, print::ModelType), "]");
 
 		// creating list of all pricings
 		Formatter ff(ctx.pricingsPy()) ;
 		ff << (seq,
-			foreach(m.models, print::PricingUsing), "",
-			"def all(): return [", +foreach(m.models, print::PricingType), "]");
+			foreach_x(m.models, print::PricingUsing), "",
+			"def all(): return [", +foreach_x(m.models, print::PricingType), "]");
 
 		ctx.out(1) << "ok!" << std::endl;
 

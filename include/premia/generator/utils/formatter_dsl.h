@@ -140,7 +140,7 @@ namespace pygen {
 		};
 
 		/// creates a ForEach generator
-		template <class Range, class Func> ForEach<Range,Func> foreach(Range const & rng, Func f)
+		template <class Range, class Func> ForEach<Range,Func> foreach_x(Range const & rng, Func f)
 		{
 			return ForEach<Range,Func>(rng, f);
 		}
@@ -184,6 +184,6 @@ namespace pygen {
 
 	using formatter_dsl::block;
 	using formatter_dsl::call;
-	using formatter_dsl::foreach;
+	using formatter_dsl::foreach_x;
 	using formatter_dsl::seq;
 }}

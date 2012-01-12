@@ -19,7 +19,7 @@ namespace karrigell {
 			<< (seq, 
 				"from HTMLTags import *",
 				"print H4('%MODEL_NAME%') + BR()", 
-				foreach(r.second, printMethodForOption));
+				foreach_x(r.second, printMethodForOption));
 	}
 
 
@@ -32,11 +32,11 @@ namespace karrigell {
 			("BGCOLOR_BASE","opt_colors")
 			<< (seq, 
 				"%OBJ% = options.%FAMILY_NAME%.%OPT_NAME%()", "",
-				foreach(opt.vars, print::Ini),
+				foreach_x(opt.vars, print::Ini),
 				"table <= (TR(TD((B('Family:')),align='right') + TD(enum_submit_mod('family', model.families(), '%FAMILY_NAME%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				"clridx = clridx + 1",
 				"table <= (TR(TD((B('Option:')),align='right') + TD(enum_submit('option', pricing_options(model.ID(), '%FAMILY_NAME%'),'%OPT_NAME%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				foreach(opt.vars, print::Table)
+				foreach_x(opt.vars, print::Table)
 			);
 
 		Formatter ff(ctx.methodsFile(opt));
@@ -45,7 +45,7 @@ namespace karrigell {
 			<< (seq, 
 				"from HTMLTags import *",
 				"print H3('Pricings methods available for %OPT_NAME%')",
-				foreach(opt.methods_for_models, generateAllMethodsForOption));
+				foreach_x(opt.methods_for_models, generateAllMethodsForOption));
 
 	}
 
@@ -65,7 +65,7 @@ namespace karrigell {
 		ff	("FAMILY_NAME", f.name)
 			<< (seq, 
 				"from HTMLTags import *", 
-				foreach(f.options, printRefToOption)
+				foreach_x(f.options, printRefToOption)
 			);
 	}
 
@@ -73,7 +73,7 @@ namespace karrigell {
 	{
 		out("FAMILY_NAME", f.name) << (seq, 
 			"print H4(\"%FAMILY_NAME%\") + BR()",
-			foreach(f.options, printRefToOption)
+			foreach_x(f.options, printRefToOption)
 			);
 	}
 
@@ -84,7 +84,7 @@ namespace karrigell {
 		for_each(f.families, boost::bind(generateFamily, boost::ref(ctx), _1));
 
 		Formatter ff(ctx.opt() / "all.py");
-		ff	<< (seq, "from HTMLTags import *", "print H3('Available instruments')", foreach(f.families, printRefToFamily));
+		ff	<< (seq, "from HTMLTags import *", "print H3('Available instruments')", foreach_x(f.families, printRefToFamily));
 
 		return ctx;
 	}
