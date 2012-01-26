@@ -34,7 +34,9 @@ pypremia.lo: pypremia.cpp
 	libtool --mode=compile gcc -g -O -c $(I_PREMIA) -I$(PYTHON_INCLUDE) pypremia.cpp
 
 pypremia.so: pypremia.lo
-	libtool --mode=link gcc --shared -lboost_python -lpython2.6 -o pypremia.so pypremia.lo ../../Src/libpremia.la
+	libtool --mode=link gcc --shared -module -lboost_python -lpython2.6 -o pypremia.so pypremia.lo ../../Src/libpremia.la
+	mkdir -p ../python/premia
+	cp .libs/pypremia.so ../python/premia
 
 pygen.lo: pygen.cpp
 	libtool --mode=compile gcc -g -O -c $(I_PREMIA) pygen.cpp

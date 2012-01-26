@@ -64,9 +64,13 @@ int main(int argc, char *argv[])
     
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);   
+    po::notify(vm); 
     
+    fs::copy_file(dll_dir / "pypremia.so", output_path / "pypremia.so", fs::copy_option::overwrite_if_exists);  
+    
+    // making them absolute
     dll_dir = !dll_dir.root_directory().empty() ? dll_dir : fs::current_path() / dll_dir;
+    data_dir = !data_dir.root_directory().empty() ? data_dir : fs::current_path() / data_dir;
 
 	python::PyCtx ctx(data_dir, dll_dir, template_dir, output_path, verbosity);
     
