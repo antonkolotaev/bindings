@@ -1,9 +1,9 @@
-BOOST_ROOT = /opt/local/include/
+BOOST_ROOT = /usr/include/
 PREMIA_ROOT = ../..
 KARRIGELL_WWW = /usr/local/src/Karrigell-3.1.1/www
 
-PYTHON_DIR=`python2.7 -c 'import sys; print sys.prefix'`
-PYTHON_INCLUDE=$(PYTHON_DIR)/include/python2.7
+PYTHON_DIR=`python2.6 -c 'import sys; print sys.prefix'`
+PYTHON_INCLUDE=$(PYTHON_DIR)/include/python2.6
 PYTHON_LIB=$(PYTHON_DIR)/lib
 
 
@@ -14,7 +14,7 @@ I_BOOST =  -I $(BOOST_ROOT) \
 # for the moment i don't know how to tell the library loader to look into this directory
 # so all boost libraries should be put also to LD_LIBRARY_PATH (e.g. /usr/lib)           
 L_BOOST = -L/opt/local/lib \
-		-L$(PYTHON_LIB) -lpython2.7 -lstdc++ -lboost_system
+		-L$(PYTHON_LIB) -lpython2.6 -lstdc++ -lboost_system
 
 
 I_PREMIA = -I $(PREMIA_ROOT)/include \
