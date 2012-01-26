@@ -30,15 +30,18 @@ python: pypremia.so pygen
 karrigell: python ksgen
 fsharp: fspremia.so fsgen
 
-pypremia.o: pypremia.cpp
-	gcc -O -fPIC -c $(I_BOOST) $(I_PREMIA)   pypremia.cpp
+pypremia.lo: pypremia.cpp
+	libtool --mode=compile gcc -g -O -c $(I_PREMIA) -I$(PYTHON_INCLUDE) pypremia.cpp
 
-pypremia.so: pypremia.o
-	gcc -shared  -lboost_python $(L_PREMIA) $(L_BOOST) -o pypremia.so pypremia.o 
+pypremia.so: pypremia.lo
+	libtool --mode=link gcc --shared -lboost_python -lpython2.6 -o pypremia.so pypremia.lo ../../Src/libpremia.la
 
-pygen: pygen.cpp
-	gcc -O -o pygen -lboost_filesystem -lboost_program_options $(L_BOOST) $(I_BOOST) $(I_PREMIA) $(L_PREMIA) pygen.cpp
+pygen.lo: pygen.cpp
+	libtool --mode=compile gcc -g -O -c $(I_PREMIA) pygen.cpp
 
+pygen: pygen.lo
+	libtool --mode=link gcc -O -o pygen pygen.lo -lboost_filesystem -lboost_program_options ../../Src/libpremia.la
+	
 ksgen: ksgen.cpp
 	gcc -O -o ksgen -lboost_filesystem -lboost_program_options $(L_BOOST) $(I_BOOST) $(I_PREMIA) $(L_PREMIA) ksgen.cpp
 
@@ -52,7 +55,7 @@ fsgen: fsgen.cpp
 	gcc -O -o fsgen -lboost_filesystem -lboost_program_options $(L_BOOST) $(I_BOOST) $(I_PREMIA) $(L_PREMIA) fsgen.cpp
 
 install-python: python
-	./pygen --output-dir=../python/premia
+	./pygen --output-dir=../python/premia --dll-dir=.libs
 
 install-karrigell: install-python ksgen 
 	./ksgen --output-dir=$(KARRIGELL_WWW)
@@ -63,6 +66,7 @@ install-fsharp: fsharp
 clean: 
 	rm *.o
 	rm *.so
+	rm *.lo
 	rm pygen
 	rm ksgen
 	rm fsgen 

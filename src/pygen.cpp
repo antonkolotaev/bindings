@@ -62,11 +62,12 @@ int main(int argc, char *argv[])
         ("verbosity,v", po::value(&verbosity)->default_value(1), "verbosity level (0 - no output, 1 - basic, 2 - detailed)")
     ;
     
-    
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);   
     
+    dll_dir = !dll_dir.root_directory().empty() ? dll_dir : fs::current_path() / dll_dir;
+
 	python::PyCtx ctx(data_dir, dll_dir, template_dir, output_path, verbosity);
     
     ctx.out(1)
