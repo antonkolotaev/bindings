@@ -19,8 +19,10 @@ namespace api   {
 	{
 		std::vector<double> res(vc->size);
 
-		if (vc->convert == 'd') boost::fill(res, vc->val);
-		else std::copy(vc->array, vc->array + vc->size, &res[0]);
+		if (vc->convert == 'd') 
+			std::fill(res.begin(), res.end(), vc->val);
+		else 
+			std::copy(vc->array, vc->array + vc->size, &res[0]);
 		return res;
 	}
 

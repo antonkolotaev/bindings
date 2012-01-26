@@ -7,7 +7,6 @@
 #include <ostream>
 #include <exception>
 
-#include <boost/range/algorithm/fill.hpp>
 #include <boost/format.hpp>
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
@@ -33,7 +32,7 @@ namespace formatter_dsl {
 		explicit Formatter(fs::path const & p, int indent_size = 3)
 			: out_(p), indent_(0), buf_(), indent_size_(indent_size)
 		{
-			boost::fill(buf_, ' ');
+			for (int i = 0; i < 200; ++i) buf_[i] = ' ';
 			setIndent(0);
 			push_scope();
 		}

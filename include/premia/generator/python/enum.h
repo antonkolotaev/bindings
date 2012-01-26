@@ -96,7 +96,13 @@ namespace python {
 		ctx.out(1) << "Generating enums:...";
 
 		ctx.create(ctx.enumDir());
-		boost::for_each(e.enums() | map_values, ctx << lm::_1);
+		
+		BOOST_FOREACH(Enums::EnumsToLabels::const_reference p, e.enums())
+		{
+		    ctx << p.second;
+		}
+		
+		//boost::for_each(e.enums() | map_values, ctx << lm::_1);
 
 		ctx.out(1) << "ok!" << std::endl;
 		return ctx;

@@ -55,7 +55,7 @@ namespace python {
 	{
 		ctx.create(ctx.dir(f));
 		// generating option wrappers
-		for_each(f.options, boost::ref(ctx) << lm::_1);
+		std::for_each(f.options.begin(), f.options.end(), boost::ref(ctx) << lm::_1);
 
 		// creating family's option listing
 		Formatter ff(ctx.filename(f));
@@ -90,12 +90,19 @@ namespace python {
 
 		ctx.create(ctx.opt());
 
-		for_each(fs.families, ctx << lm::_1);
+		std::for_each(fs.families.begin(), fs.families.end(), ctx << lm::_1);
+		
+		std::list<std::string> names; // ugly copy but we cannot use a new boost =(
+		
+		BOOST_FOREACH(Families::Names::const_reference n, fs.names)
+		{
+		    names.push_back(n.first);
+		}
 
 		Formatter f(ctx.optionsPy());
 		f << (seq, 
-			foreach_x(fs.names | map_keys, print::importFamily), "", 
-			"def all(): return [", +foreach_x(fs.names | map_keys, print::family), "]");
+			foreach_x(names, print::importFamily), "", 
+			"def all(): return [", +foreach_x(names, print::family), "]");
 
 		/* ctx.out(1) << "ok!" << std::endl; */
 

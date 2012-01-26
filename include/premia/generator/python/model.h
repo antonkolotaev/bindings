@@ -125,7 +125,7 @@ namespace python {
 		ctx.create(ctx.mod());
 
 		// generating wrappers for all models
-		for_each(m.models, ctx << lm::_1);
+		std::for_each(m.models.begin(), m.models.end(), ctx << lm::_1);
 
 		// creating list of all models
 		Formatter f(ctx.modelsPy());

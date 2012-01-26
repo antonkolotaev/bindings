@@ -125,12 +125,14 @@ namespace api    {
 		{
 			return names.find(family_name) != names.end();
 		}
+		
+		typedef std::map<std::string, Family*> Names;
 
 		/// \brief looks for a family with given name
 		/// \returns pointer to the wrapper if found; throw an exception unless
 		Family * lookup(std::string const & family_name) const 
 		{
-			std::map<std::string, Family*>::const_iterator it = names.find(family_name);
+			Names::const_iterator it = names.find(family_name);
 
 			if (it == names.end())
 				throw std::string("cannot find a family with name ") + family_name;
@@ -141,7 +143,7 @@ namespace api    {
 		/// collected families
 		boost::ptr_list<Family>			families;
 		/// maps family names to pointers to families
-		std::map<std::string, Family*>	names;
+		Names	names;
 	};
 }
 

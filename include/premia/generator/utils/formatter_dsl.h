@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/range/algorithm/for_each.hpp>
 #include <boost/bind.hpp>
 
 namespace premia {
@@ -129,7 +128,8 @@ namespace pygen {
 			{
 				/// NB!!! We assume that each iteration have the same variables set
 				out.push_scope();
-				boost::for_each(x.range_, boost::bind(x.func_, boost::ref(out), _1));
+                                
+				std::for_each(x.range_.begin(), x.range_.end(), boost::bind(x.func_, boost::ref(out), _1));
 				out.pop_scope();
 				return out;
 			}

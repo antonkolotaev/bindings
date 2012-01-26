@@ -1,13 +1,8 @@
 #pragma once
 
-#include <boost/range/irange.hpp>
-#include <premia/generator/utils/zipped.h>
-
 namespace premia {
 namespace pygen {
 namespace python {
-
-	using boost::adaptors::zip;
 
 	namespace print {
 
@@ -39,6 +34,15 @@ namespace python {
 			out("RES_NAME", v.name)("RES_IDX", boost::get<1>(e)) << getResultFmt(v.src->Vtype);
 		}
 	}
+
+	inline void printResults(Formatter & out, VarList const & results)
+	{
+		int i = 0;
+		BOOST_FOREACH(NamedVar const vr, results)
+		{
+			print::ResElementEx(out, boost::make_tuple(vr, i++));	
+		}
+	}        
 
 	/// generates wrapper for a pricing method
 	PyCtx const & operator << (PyCtx const & ctx, PricingMethod const & method)
@@ -75,7 +79,7 @@ namespace python {
  					"self.makeCurrent()",
 					"interop.compute_3()",
 					"return [", 
-						+foreach_x(zip(method.results, boost::irange(0u, results_size)), print::ResElementEx),
+						+call(boost::bind(printResults, _1, boost::cref(method.results))),
 					"]"), "",
 
 				"@staticmethod",
@@ -124,7 +128,7 @@ namespace python {
 		ctx.create(ctx.dir(p));
 
 		// generating wrappers for methods
-		for_each(p.methods, boost::ref(ctx) << lm::_1);
+		std::for_each(p.methods.begin(), p.methods.end(), boost::ref(ctx) << lm::_1);
 
 		// creating a file with the pricing description
 		Formatter f(ctx.filename(p));
@@ -144,7 +148,7 @@ namespace python {
 	PyCtx const & operator << (PyCtx const & ctx, Pricings const & p)
 	{
 		ctx.out(1) << "Generating pricing methods:...";
-		for_each(p.pricings, boost::ref(ctx) << lm::_1);
+		std::for_each(p.pricings.begin(), p.pricings.end(), boost::ref(ctx) << lm::_1);
 		/* ctx.out(1) << "ok!" << std::endl; */
 		return ctx;
 	}
