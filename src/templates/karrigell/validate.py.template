@@ -36,6 +36,18 @@ run_computation = True
 if 'a' not in REQUEST:
   _a = 'equity_Black_Scholes_type'
 
+if 'm' not in REQUEST:
+  _m = 'BS1D'
+
+if 'f' not in REQUEST:
+  _f = 'STD'
+
+if 'o' not in REQUEST:
+  _o = 'CallEuro'
+
+if 'meth' not in REQUEST:
+  _meth = 'CF_Call'
+
 mod_colors = ['lightgreen','white']
 opt_colors = ['#FFFFC0', 'white']
 met_colors = ['lightblue','white']
