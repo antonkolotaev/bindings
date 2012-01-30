@@ -40,7 +40,10 @@ namespace fsharp{
 	{
 		ctx.out(1) << "Generating enums:...";
 
-		boost::for_each(e.enums() | map_values, boost::bind(generateEnum, boost::ref(ctx), _1));
+        BOOST_FOREACH(Enums::EnumsToLabels::const_reference r, e.enums())
+        {
+            generateEnum(ctx, r.second);
+        } 
 
 		ctx.out(1) << "ok!" << std::endl;
 		return ctx;

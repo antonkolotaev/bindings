@@ -59,7 +59,7 @@ namespace karrigell {
 	{
 		ctx.create(ctx.dir(f));
 
-		for_each(f.options, boost::bind(generateOption, boost::ref(ctx), _1));
+		std::for_each(f.options.begin(), f.options.end(), boost::bind(generateOption, boost::ref(ctx), _1));
 
 		Formatter ff(ctx.optionsFile(f));
 		ff	("FAMILY_NAME", f.name)
@@ -81,7 +81,7 @@ namespace karrigell {
 	{
 		ctx.create(ctx.opt());
 
-		for_each(f.families, boost::bind(generateFamily, boost::ref(ctx), _1));
+		std::for_each(f.families.begin(), f.families.end(), boost::bind(generateFamily, boost::ref(ctx), _1));
 
 		Formatter ff(ctx.opt() / "all.py");
 		ff	<< (seq, "from HTMLTags import *", "print H3('Available instruments')", foreach_x(f.families, printRefToFamily));

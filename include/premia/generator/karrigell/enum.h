@@ -27,8 +27,13 @@ namespace karrigell {
 	inline Ctx& operator << (Ctx & ctx, Enums const & enums)
 	{
 		ctx.create(ctx.enumDir());
+		
+		BOOST_FOREACH(Enums::EnumsToLabels::const_reference r, enums.enums())
+		{
+		    generateEnum(ctx, r.second);
+		}
 
-		boost::for_each(enums.enums() | map_values, boost::bind(generateEnum, boost::ref(ctx), _1));
+//		boost::for_each(enums.enums() | map_values, boost::bind(generateEnum, boost::ref(ctx), _1));
 
 		return ctx;
 	}

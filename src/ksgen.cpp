@@ -1,6 +1,5 @@
 #include <istream>
 #include <boost/filesystem.hpp>
-#include <boost/range/adaptors.hpp>
 #include <boost/lambda/lambda.hpp>
 
 
@@ -14,7 +13,6 @@ typedef fs::path  path_t;
 
 typedef boost::format fmt;
 namespace lm = boost::lambda;
-using namespace boost::adaptors;
 #include <premia/import.h>
 
 const std::string premia_lib_name = "premia";
@@ -81,7 +79,7 @@ int main(int argc, char *argv[])
 
 	InitVar();
 
-	strcpy(premia_data_dir, data_dir.native().c_str());
+	strcpy(premia_data_dir, data_dir.string().c_str());
 	
     ctx.out(1) << "Initializing...";
 
@@ -93,7 +91,7 @@ int main(int argc, char *argv[])
 	
 	{
 	   Formatter f(output_path / "import.py");
-	   f("PYTHON_DIR", python_dir.native())
+	   f("PYTHON_DIR", python_dir.string())
 	        .process_file(template_dir / "import.py.template");
 	}
    

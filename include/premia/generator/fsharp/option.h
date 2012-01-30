@@ -47,7 +47,7 @@ namespace fsharp {
 	/// generates wrappers for all options in the family and a file with shortcuts to their constructors
 	FsCtx const & generateFamily (FsCtx const & ctx, Family const & f)
 	{
-		for_each(f.options, boost::bind(generateOption, boost::ref(ctx), _1));
+		std::for_each(f.options.begin(), f.options.end(), boost::bind(generateOption, boost::ref(ctx), _1));
 
 		Formatter ff(ctx.filename(f));
 		ff	("FAMILY", f.name) << (seq, 
@@ -65,7 +65,7 @@ namespace fsharp {
 	{
 		ctx.out(1) << "Generating option families:...";
 
-		for_each(fs.families, boost::bind(generateFamily, boost::ref(ctx), _1));
+		std::for_each(fs.families.begin(), fs.families.end(), boost::bind(generateFamily, boost::ref(ctx), _1));
 
 		ctx.out(1) << "ok." << std::endl;
 

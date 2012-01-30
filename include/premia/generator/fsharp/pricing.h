@@ -1,17 +1,12 @@
 #pragma once
 
-#include <boost/range/irange.hpp>
 #include <premia/generator/api/pricing.h>
 #include <premia/generator/fsharp/ctx.h>
 #include <premia/generator/fsharp/var.h>
 
-#include <premia/generator/utils/zipped.h>
-
 namespace premia {
 namespace pygen {
 namespace fsharp {
-
-	using boost::adaptors::zip;
 
 	namespace print {
 
@@ -75,7 +70,16 @@ namespace fsharp {
 						"stopWriteParameters()"
 				)), "");
 		}
-
+		
+	    inline void printResults(Formatter & out, VarList const & results)
+	    {
+		    int i = 0;
+		    BOOST_FOREACH(NamedVar const vr, results)
+		    {
+			    print::ResElementEx(out, boost::make_tuple(vr, i++));	
+		    }
+	    }        
+	    
 		/// prints generic compute method
 		void computeGeneric(Formatter & out, PricingMethod const & method)
 		{
@@ -85,7 +89,7 @@ namespace fsharp {
 				"member private x.compute'(opt : #IPremiaObj, model : #IPremiaObj) = ", +(seq,
 					"Util.premiaCompute(model, opt, x)", 
 					block("{}",
-						foreach_x(zip(method.results, boost::irange(0u, results_size)), print::ResElementEx)
+						call(boost::bind(printResults, _1, boost::cref(method.results)))
 					)));
 		}
 
@@ -174,7 +178,7 @@ namespace fsharp {
 	{
 		if (!p.methods.empty())
 		{
-			for_each(p.methods, boost::bind(generateMethod, boost::ref(ctx), _1));
+			std::for_each(p.methods.begin(), p.methods.end(), boost::bind(generateMethod, boost::ref(ctx), _1));
 
 			Formatter f(ctx.filename(p));
 			f	("MODEL_NAME", p.model->name)
@@ -193,7 +197,7 @@ namespace fsharp {
 	FsCtx const & operator << (FsCtx const & ctx, Pricings const & p)
 	{
 		ctx.out(1) << "Generating pricing methods:...";
-		for_each(p.pricings, boost::bind(generatePricing, boost::ref(ctx), _1));
+		std::for_each(p.pricings.begin(), p.pricings.end(), boost::bind(generatePricing, boost::ref(ctx), _1));
 		ctx.out(1) << "ok!" << std::endl;
 		return ctx;
 	}

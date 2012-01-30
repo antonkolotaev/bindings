@@ -41,7 +41,7 @@ namespace karrigell {
 	{
 		ctx.create(ctx.mod());
 
-		for_each(m.models, boost::bind(generateModel, boost::ref(ctx), _1));
+		std::for_each(m.models.begin(), m.models.end(), boost::bind(generateModel, boost::ref(ctx), _1));
 
 		return ctx;
 	}

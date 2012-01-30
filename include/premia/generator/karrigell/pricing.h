@@ -46,7 +46,7 @@ namespace karrigell {
 	{
 		ctx.create(ctx.dir(p));
 
-		for_each(p.methods, boost::bind(generatePricingMethod, boost::ref(ctx), _1));
+		std::for_each(p.methods.begin(), p.methods.end(), boost::bind(generatePricingMethod, boost::ref(ctx), _1));
 
 		Formatter f(ctx.methodsFile(p));
 		f	("MODEL_ID", p.model->ID())
@@ -62,7 +62,7 @@ namespace karrigell {
 
 	inline Ctx& operator << (Ctx & ctx, Pricings const & p)
 	{
-		for_each(p.pricings, boost::bind(generatePricing, boost::ref(ctx), _1));
+		std::for_each(p.pricings.begin(), p.pricings.end(), boost::bind(generatePricing, boost::ref(ctx), _1));
 
 		return ctx;
 	}

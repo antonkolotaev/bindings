@@ -48,7 +48,7 @@ namespace fsharp {
 	{
 		ctx.out(1) << "Generating models:...";
 
-		for_each(m.models, boost::bind(generateModel, boost::ref(ctx), _1));
+		std::for_each(m.models.begin(), m.models.end(), boost::bind(generateModel, boost::ref(ctx), _1));
 
 		ctx.out(1) << "ok!" << std::endl;
 
