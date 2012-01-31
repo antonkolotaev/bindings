@@ -167,7 +167,7 @@ if res <> None:
         else:
             table_method <= TR(TD(k,align='right') + TD(v),bgcolor=clr(res_colors,idx))
 
-form = FORM(action='/validate?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth,method="post")
+form = FORM(action='/index?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth,method="post")
 
 if model_size_mode:
     table_method <= table_model_size_mode

@@ -54,6 +54,7 @@ namespace details {
 	template <class Target>
 	bool are_there_any_errors_in_params(Target * target)
 	{
+       	
 		// if there any errors when Check method is called, they will reported to 'g_dup_file' 
 		g_dup_printf = true;
 		FILE *h = fopen("checking_premia_input", "w");

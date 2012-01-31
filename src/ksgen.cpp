@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 	}
 	
 	{
-	   Formatter f(output_path / "validate.py");
+	   Formatter f(output_path / "index.py");
 	   f.process_file(template_dir / "validate.py.template");
 	}
     return 0;
