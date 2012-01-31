@@ -83,8 +83,10 @@ table <= (TR(TD((B('Asset Type:')),align='right') + TD(enum_submit('asset_type',
 
 clridx = 1
 
+model_list = eval('assets.' + _a + '.models()')
+
 if 'model' in REQUEST:
-   new_model = eval('assets.' + _a + '.models()')[int(_model)].ID()
+   new_model = model_list[int(_model)].ID()
    if _m <> new_model:
       _m = new_model
       _family = 0

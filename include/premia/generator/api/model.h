@@ -31,8 +31,6 @@ namespace api	 {
 			VAR * vars = reinterpret_cast<VAR*>((*source)->TypeModel);
 
 			getVars(ctx, vars, (*source)->nvar, members);
-
-			asset.models.insert(this);
 		}
 
 		/// corrected model name (e.g. BlackScholes1dim)
@@ -68,7 +66,8 @@ namespace api	 {
 			// used names for models
 			UsedIds		used_names;
 			// used to ensure model uniqueness
-			std::set< ::Model*> processed_models;
+			typedef std::map< ::Model*, api::Model*> ProcessedModels; 
+			ProcessedModels processed_models;
 
 			for (PremiaAsset * asset = premia_assets; asset->name; ++asset)
 			{
@@ -76,15 +75,20 @@ namespace api	 {
 
 				for (::Model ** m = asset->models; *m; ++m)
 				{
-					::Model * model = *m;
+					::Model * src_model = *m;
+					
+					ProcessedModels::const_iterator mit = processed_models.find(src_model);
 
-					if (processed_models.find(model) == processed_models.end())
+					if (mit == processed_models.end())
 					{
-						models.push_back(ids[model->ID] = new Model(ctx, m, a, 
-							correctIdentifierName(model->Name, used_names)));
+					    api::Model *new_model = ids[src_model->ID] = new Model(ctx, m, a, correctIdentifierName(src_model->Name, used_names));
+						models.push_back(new_model);
 
-						processed_models.insert(model);
+						mit = processed_models.insert(std::make_pair(src_model, new_model)).first;
 					}
+					
+					
+        			a.models.insert(mit->second);
 				}
 			}
 		}

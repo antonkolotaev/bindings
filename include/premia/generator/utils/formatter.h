@@ -32,6 +32,9 @@ namespace formatter_dsl {
 		explicit Formatter(fs::path const & p, int indent_size = 3)
 			: out_(p), indent_(0), buf_(), indent_size_(indent_size)
 		{
+		    if (!out_)
+		        throw std::logic_error("Unable to open " + p.string() + " for writing");
+		
 			for (int i = 0; i < 200; ++i) buf_[i] = ' ';
 			setIndent(0);
 			push_scope();

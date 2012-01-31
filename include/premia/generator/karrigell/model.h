@@ -20,7 +20,7 @@ namespace karrigell {
 			<< (seq, 
 				"%OBJ% = models.%MODEL_NAME%()", "",
 				foreach_x(m.members, print::Ini),
-				"table <= (TR(TD((B('Model:')),align='right') + TD(enum_submit('model', model.assetType().models(), '%MODEL_LABEL%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+				"table <= (TR(TD((B('Model:')),align='right') + TD(enum_submit('model', model_list, '%MODEL_LABEL%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				foreach_x(m.members, print::Table)
 			);
 	}
