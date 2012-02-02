@@ -81,11 +81,17 @@ namespace api   {
 			default:
 				if (vars->Vsetable == SETABLE)
 				{
+				    bool iterable = 
+				        vars->Viter == ALLOW &&
+				        vars->Vtype != ENUM &&
+				        vars->Vtype != FILENAME;
+				        
 					var_list.push_back(
 						NamedVar(vars, 
 								correctIdentifierName(vars->Vname, used_pars), 
 								convertToVar(ctx, *vars), 
-								vars->setter != 0));
+								vars->setter != 0,
+								iterable));
 				}
 				--stopper;
 			}

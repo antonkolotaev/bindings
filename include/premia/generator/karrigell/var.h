@@ -241,28 +241,45 @@ namespace karrigell {
 
 		inline void Table(Formatter & out, NamedVar const & vr)
 		{
+		    std::string star;
+		    if (vr.iterable) star = "*";
 			out("VAR_NAME", vr.name)
 			   ("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)
-               ("FRIENDLY_NAME", vr.src->Vname)
-			   << (seq, /*"table <= TR(TD('%FRIENDLY_NAME%',align='right') + ", +*/call(boost::bind(TableVal, _1, vr))/*, ")"*/);
-            /*
-			if (vr.name == "Model_Size")
-			{
-				out << (seq, 
-					"model_size_mode = '_Model_Size' not in dir()",
-					"if model_size_mode:",
-					"   table_model_size_mode = table",
-					"   table = TABLE()");
-			}
-			if (vr.name == "Number_of_Companies")
-			{
-				out << (seq, 
-					"number_of_companies_mode = '_Number_of_Companies' not in dir()",
-					"if number_of_companies_mode:",
-					"   table_number_of_companies_mode = table",
-					"   table = TABLE()");
-			}*/
+               ("FRIENDLY_NAME", star + vr.src->Vname)
+			   << (seq, call(boost::bind(TableVal, _1, vr)));
 		}
+        inline void IterableName(Formatter &out, NamedVar const &vr)
+        {
+            if (vr.iterable)
+                out("VNAME",vr.src->Vname) << "'%VNAME%',";
+        }
+        inline void IterableNameCorr(Formatter &out, NamedVar const &vr)
+        {
+            if (vr.iterable)
+                out("VNAME",vr.name) << "'%VNAME%',";
+        }
+
+        inline void Iterables(Formatter& out, VarList const &vars)
+        {
+            out << (seq, "iterables = [",
+                    "   'No iteration',",
+                    +foreach_x(vars,IterableName),
+                    "]",
+                    "v_iterables = [",
+                    "   '',",
+                    +foreach_x(vars,IterableNameCorr),
+                    "]",
+                    "clridx = clridx + 1",
+				    "table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod('iterate_%ENTITY_NAME%', iterables, iterables[int(_iterate_%ENTITY_NAME%)]))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+				    "if _iterate_%ENTITY_NAME% <> '0':",
+                    "   clridx = clridx + 1",
+				    "   table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name='iterate_to',value=getattr(%OBJ%, v_iterables[int(_iterate_%ENTITY_NAME%)])))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+                    "   clridx = clridx + 1",
+				    "   table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=10))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+				    "   iterate_object = %OBJ%",
+				    "   iterate_name = v_iterables[int(_iterate_%ENTITY_NAME%)]"
+                    );
+        }
 	}
 
 

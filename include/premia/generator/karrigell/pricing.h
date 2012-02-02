@@ -16,13 +16,15 @@ namespace karrigell {
 			("FAMILY_NAME", met.pricing.family->name)
 			("BGCOLOR_BASE","met_colors")
 			("OBJ", "method")
+			("ENTITY_NAME", "method")
 			<< (seq, 
 				"%OBJ% = pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME%()", "",
 				"if run_computation:", +(seq,
 				    "pass",
 				    foreach_x(met.members, print::Ini)),
 				"table <= (TR(TD((B('Pricing method:')),align='right') + TD(enum_submit('pricing_method', [x for x in pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.all() if type(opt) in x.options()],'%METHOD_NAME%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				foreach_x(met.members, print::Table)
+				foreach_x(met.members, print::Table),
+				call(boost::bind(print::Iterables, _1, boost::cref(met.members)))
 			);
 	}
 

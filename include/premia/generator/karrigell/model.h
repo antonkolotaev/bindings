@@ -7,7 +7,6 @@ namespace premia {
 namespace pygen {
 namespace karrigell {
 
-
 	inline void generateModel(Ctx & ctx, Model const & m)
 	{
 		ctx.create(ctx.dir(m));
@@ -17,11 +16,13 @@ namespace karrigell {
 			("MODEL_LABEL", (*m.source)->Name)
 			("OBJ", "model")
 			("BGCOLOR_BASE","mod_colors")
+			("ENTITY_NAME", "model")
 			<< (seq, 
 				"%OBJ% = models.%MODEL_NAME%()", "",
 				foreach_x(m.members, print::Ini),
 				"table <= (TR(TD((B('Model:')),align='right') + TD(enum_submit('model', model_list, '%MODEL_LABEL%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				foreach_x(m.members, print::Table)
+				foreach_x(m.members, print::Table),
+				call(boost::bind(print::Iterables, _1, boost::cref(m.members)))
 			);
 	}
 

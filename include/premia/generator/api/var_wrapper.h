@@ -78,12 +78,13 @@ namespace api   {
 		std::string name;	//!<  "corrected" name of the member
 		Var			value;	//!<  wraps a default value, type and constraints for the field value
 		bool        has_setter; //!< true iff the field has a non-trivial setter
+		bool        iterable; //!< true iff the field allows iteration
 
 		/// \param src pointer to the source VAR 
 		/// \param name "corrected" name of the member
 		/// \param value a wrapper holding the default value, type and constraints for the field value
-		NamedVar(VAR const * src, std::string name, Var value, bool has_setter)
-			: src(src), name(name), value(value), has_setter(has_setter)
+		NamedVar(VAR const * src, std::string name, Var value, bool has_setter, bool iterable)
+			: src(src), name(name), value(value), has_setter(has_setter), iterable(iterable)
 		{}
 	};
 

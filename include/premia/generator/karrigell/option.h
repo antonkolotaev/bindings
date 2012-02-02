@@ -30,13 +30,15 @@ namespace karrigell {
 			("FAMILY_NAME", opt.family.name)
 			("OBJ", "opt")
 			("BGCOLOR_BASE","opt_colors")
+			("ENTITY_NAME", "option")
 			<< (seq, 
 				"%OBJ% = options.%FAMILY_NAME%.%OPT_NAME%()", "",
 				foreach_x(opt.vars, print::Ini),
 				"table <= (TR(TD((B('Family:')),align='right') + TD(enum_submit_mod('family', model.families(), '%FAMILY_NAME%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				"clridx = clridx + 1",
 				"table <= (TR(TD((B('Option:')),align='right') + TD(enum_submit('option', pricing_options(model.ID(), '%FAMILY_NAME%'),'%OPT_NAME%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				foreach_x(opt.vars, print::Table)
+				foreach_x(opt.vars, print::Table),
+				call(boost::bind(print::Iterables, _1, boost::cref(opt.vars)))
 			);
 
 		Formatter ff(ctx.methodsFile(opt));
