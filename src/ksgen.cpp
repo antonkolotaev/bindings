@@ -104,5 +104,9 @@ int main(int argc, char *argv[])
 	   Formatter f(output_path / "index.py");
 	   f.process_file(template_dir / "validate.py.template");
 	}
+	
+	fs::copy_file(template_dir / "graph.pih", output_path / "graph.pih", fs::copy_option::overwrite_if_exists);
+	fs::copy_file(template_dir / "flotr2.min.js", output_path / "flotr2.min.js", fs::copy_option::overwrite_if_exists);
+	
     return 0;
 }

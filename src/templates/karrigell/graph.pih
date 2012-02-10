@@ -48,7 +48,7 @@
   }
 
   // Draw graph
-  graph = Flotr.draw(container, data, {
+  graph = Flotr.draw(container, datas, {
     legend : {
       position : 'se',            // Position the legend 'south-east'.
       labelFormatter : labelFn,   // Format the labels.
