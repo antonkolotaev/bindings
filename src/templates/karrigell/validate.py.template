@@ -5,6 +5,139 @@ from time import time
 
 Include('import.py')
 
+class Ctx:
+   def __init__(self):
+      self.iterables = ['No iteration']
+      self.iterables_corr = ['']
+      self.iterables_getter = ['']
+      self.iterables_setter = ['']
+
+def loadScalar(property_name, src_prefix, dst, conv):
+    try:
+       src = src_prefix + '_' + property_name
+       if src in REQUEST:
+          setattr(dst, property_name, conv(REQUEST[src]))
+    except Exception, ex:
+       add_error('Error in '+ property_name +':' + str(ex))
+
+def loadVector(property_name, src_prefix, dst):
+    try:
+       pname = "_" + property_name
+       arr = getattr(dst, pname)
+       for i in range(len(arr)):
+          src = src_prefix + pname + "[" + str(i) + "]"
+          if src in REQUEST: 
+             arr[i] = float(REQUEST[src])
+    except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
+
+def loadVectorCompact(property_name, src_prefix, dst):
+    try:
+       pname = "_" + property_name
+       arr = getattr(dst, pname)
+       if src_prefix + pname + '__c' in REQUEST:
+         val = float(REQUEST[src_prefix + pname + '__c'])
+         for i in range(len(arr)):                 
+            arr[i] = val
+       else:
+          for i in range(len(arr)):
+             src = src_prefix + pname + "[" + str(i) + "]"
+             if src in REQUEST: 
+                arr[i] = float(REQUEST[src])
+    except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
+
+def printScalar(table, colors, label, pname, prefix, obj, constr, onChange=''):
+   table <= rowinc(colors, label, INPUT(name=prefix+pname,onchange=onChange,value=getattr(obj, pname)), constr)
+   
+def printVector(table, colors, label, pname, prefix, obj):
+   pmem = getattr(obj, pname)
+   clrinc()
+   table <= TR(TD(label, align='right',rowspan=len(pmem)) + TD(INPUT(name=prefix + pname + '[0]',value=pmem[0])) + TD('R',rowspan=len(pmem)),bgcolor=clr(colors,clridx))
+   table <= Sum([TR(TD(INPUT(name=prefix + pname + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
+   
+def vectCompactMode(obj,prefix,pname):
+   pmem = getattr(obj, pname)
+   mode = None
+   if prefix + pname + '__t' in REQUEST:
+      if REQUEST[prefix + pname + '__t'] == '0':
+         mode = 0
+      else:
+         mode = 1
+   else:
+      if all(map(lambda x: x == pmem[0], pmem)):
+         mode = 0
+      else:
+         mode = 1
+   return mode
+
+def printVectorCompact(table, colors, label, pname, prefix, obj):
+   pmem = getattr(obj, pname)
+   clrinc()
+   mode = vectCompactMode(obj,prefix,pname)
+   L = SELECT(name = prefix+pname+ '__t', onchange='submit();').from_list(['Constant','Array'])
+   if mode == 0:
+      L.select(value=0)
+      table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
+      table <= TR(TD(INPUT(name=prefix + pname + '__c',value=pmem[0])),bgcolor=clr(colors,clridx))
+
+   if mode == 1:
+      L.select(value=1)
+      table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
+      table <= Sum([TR(TD(INPUT(name=prefix + pname + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
+
+
+def iterVector(ctx, obj, propname, label, vlabel):
+   dst = getattr(obj, propname)
+
+   for i in range(len(dst)): 
+      ctx.iterables.append(label + '[' + str(i) + ']')
+      ctx.iterables_corr.append(vlabel + str(i))
+
+   ctx.iterables_getter.extend(map(lambda x: (lambda: x), dst))
+   ctx.iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
+ 
+
+def iterLabelVectorCompact(iterables, obj, propname, label, prefix):
+   mode = vectCompactMode(obj,prefix,propname)
+   if mode == 0:
+      iterables.append(label)
+   else:      
+      for i in range(len(getattr(obj,propname))): 
+         iterables.append(label + '[' + str(i) + ']')
+      
+def iterCorrVectorCompact(iterables_corr, obj, propname,label,prefix):
+   mode = vectCompactMode(obj,prefix,propname)
+   if mode == 0:
+      iterables_corr.append(label + '__c')
+   else:      
+      for i in range(len(getattr(obj,propname))): 
+         iterables_corr.append(label + str(i))
+      
+def iterGetterVectorCompact(iterables_getter, obj, propname,prefix):
+   mode = vectCompactMode(obj,prefix,propname)
+   if mode == 0:
+      iterables_getter.append(lambda: getattr(obj,propname)[0])
+   else:      
+      iterables_getter.extend(map(lambda x: (lambda: x), getattr(obj, propname)))
+
+def iterSetterVectorCompact(iterables_setter, obj, propname,prefix):
+   dst = getattr(obj, propname)
+   mode = vectCompactMode(obj,prefix,propname)
+   if mode == 0:
+      def F(x):
+         for i in range(len(dst)): dst[i] = x          
+      iterables_setter.append(F)
+   else:      
+      iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
+
+def iterScalar(ctx, obj, propname, label, vlabel):
+   ctx.iterables.append(label)
+   ctx.iterables_corr.append(vlabel)
+   ctx.iterables_getter.append(lambda: getattr(obj, propname))
+   ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
+   
+   
 iterate_object = None
 
 def extlist(lst,size):
@@ -134,7 +267,7 @@ if 'asset_type' in REQUEST:
 
 table <= (TR(TD((B('Asset Type:')),align='right') + TD(enum_submit('asset_type', assets.all(), _a))+TD(),bgcolor=mod_colors[0]))
 
-clridx = 1
+clridx = 0
 
 model_list = eval('assets.' + _a + '.models()')
 
@@ -147,6 +280,19 @@ if 'model' in REQUEST:
       _pricing_method = 0
       run_computation = True
       _iterate_model = _iterate_option = _iterate_method = '0' 
+
+def clrinc():
+   globals()['clridx'] = globals()['clridx'] + 1
+   
+def row(colors, c_1, c_2, c_3=""):
+   return (TR(TD(c_1,align='right') + TD(c_2)+TD(c_3),bgcolor=clr(colors,clridx)))
+
+def rowinc(colors, c_1, c_2, c_3=""):
+   clrinc()
+   return row(colors, c_1, c_2, c_3)
+
+def printModelType(table, model_type):
+   table <= rowinc(mod_colors, B('Model:'), enum_submit('model', model_list, model_type))
 
 Include(r'/premia/mod/'+ _m + '/model.py')
 
@@ -162,6 +308,9 @@ if 'family' in REQUEST:
       run_computation = False
       _iterate_option = _iterate_method = '0' 
 
+def printFamilyType(table, family_type):
+   table <= rowinc(opt_colors, B('Family:'), enum_submit_mod('family', model.families(), family_type))
+
 if 'option' in REQUEST:
    new_opt = pricing_options(_m,_f)[int(_option)].__name__
    if new_opt <> _o:
@@ -170,21 +319,30 @@ if 'option' in REQUEST:
       run_computation = False
       _iterate_option = _iterate_method = '0' 
 
-clridx = 0
+def printOptionType(table, option_type):
+   table <= rowinc(opt_colors, B('Option:'), enum_submit('option', pricing_options(_m,_f), option_type))
+
+clridx = 1
 
 Include(r'/premia/opt/' + _f + '/' + _o + '.py')
 
 table_method = TABLE(Class="content")
 table = table_method
 
-if 'pricing_method' in REQUEST:
-        new_meth = [x for x in eval('pricings.' + _m + '.' + _m + '_' + _f + '.all()') if type(opt) in x.options()][int(_pricing_method)].__name__
-        if _meth <> new_meth:
-            _meth = new_meth
-            run_computation = False
-            _iterate_method = '0' 
+if 'pricing_method' not in REQUEST:
+   _pricing_method = '0'
+   
+methods = [x for x in eval('pricings.' + _m + '.' + _m + '_' + _f + '.all()') if type(opt) in x.options()]
+new_meth = methods[int(_pricing_method)].__name__
+if _meth <> new_meth:
+   _meth = new_meth
+   run_computation = False
+   _iterate_method = '0' 
 
-clridx = 0
+clridx = 1
+
+def printMethodType(table, method_type):
+   table <= rowinc(met_colors, B('Pricing method:'), enum_submit('pricing_method', methods, method_type))
 
 Include(r'/premia/mod/' + _m + '/' + _m + '_' + _f + '/' + _meth + '.py')
 

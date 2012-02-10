@@ -13,11 +13,11 @@ namespace karrigell {
 
 	namespace print 
 	{
-	    inline void Ini(Formatter & out, NamedVar const & vr);
+	    inline void IniEx(Formatter & out, NamedVar const & vr, std::string const &prefix);
 	    
 	    inline void enumParams(Formatter &out, NamedVar const &vr)
 	    {
-	        Ini(out("OBJ", "%OBJ%._%VAR_NAME%.get_%LABEL%()"), vr);
+	        IniEx(out("OBJ", "pmem.get_%LABEL%()"), vr, "src + '_get_%LABEL%_'");
 	    }
 	    
 	    inline void enumChoices(Formatter &out, api::Enum const &e)
@@ -28,73 +28,59 @@ namespace karrigell {
 	            out("IDX",idx)("LABEL", em.second.label) 
 	                << (seq, 
 	                "if e == %IDX%:", +(seq, 
-	                    "%OBJ%._%VAR_NAME%.set_%LABEL%()",
+	                    "pmem.set_%LABEL%()",
 	                    foreach_x(em.second.params, enumParams)));
 	            ++idx;
 	        }
 	    } 
 		struct param_loader : var_visitor<param_loader>
 		{
-			param_loader(Formatter & out) : out(out) {}
+			param_loader(Formatter & out, VAR const* src = 0) : out(out), src(src) {}
 
-			/// assert for INT based types
 			void operator () (Numeric<int> const & i) 
 			{
-				out << "if '_%VAR_ID%' in dir(): %OBJ%.%VAR_NAME% = int(_%VAR_ID%)";
+			    out << "loadScalar('%VAR_NAME%', %PREFIX%, %OBJ%, int)";
 			}
 
-			/// assert for LONG based types
 			void operator () (Numeric<long> const & i) 
 			{
-				out << "if '_%VAR_ID%' in dir(): %OBJ%.%VAR_NAME% = long(_%VAR_ID%)";
+			    out << "loadScalar('%VAR_NAME%', %PREFIX%, %OBJ%, long)";
 			}
 
-			/// assert for DOUBLE based types
 			void operator () (Numeric<double> const & i) 
 			{
-				out << "if '_%VAR_ID%' in dir(): %OBJ%.%VAR_NAME% = float(_%VAR_ID%)";
+			    out << "loadScalar('%VAR_NAME%', %PREFIX%, %OBJ%, float)";
 			}
 
-			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
-				out << "if '_%VAR_ID%' in dir(): %OBJ%.%VAR_NAME% = _%VAR_ID%";
+			    out << "loadScalar('%VAR_NAME%', %PREFIX%, %OBJ%, str)";
 			}
 
-			/// assert for PNLVECT and PNLVECTCOMPACT
 			void operator () (std::vector<double> const & i) 
 			{
-				out << (seq, 
-					//"if 'N_Dim' not in dir(): N_Dim = len(%OBJ%._%VAR_NAME%)",
-					"for i in range(len(%OBJ%._%VAR_NAME%)):", 
-					//"   #extlist(%OBJ%._%VAR_NAME%, N_Dim)",
-					"   if '_%VAR_ID%[' + str(i) + ']' in dir(): ",
-					"      %OBJ%._%VAR_NAME%[i] = float(REQUEST['%VAR_ID%[' + str(i) + ']'])"); 
+			   if (src && src->Vtype == PNLVECTCOMPACT)
+			    out << "loadVectorCompact('%VAR_NAME%', %PREFIX%, %OBJ%)";
+			   else
+			    out << "loadVector('%VAR_NAME%', %PREFIX%, %OBJ%)";
 			}
 			
-			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
-				out << (seq,
-				       "def loadEnum(prefix, obj):", 
-				       "  if prefix in dir():", +(seq, 
-				            "e = int(dir()[prefix])",
-				            call(boost::bind(print::enumChoices, _1, boost::cref(*e.type)))
-				            ),
-				       "loadEnum('_%VAR_ID%', %OBJ%._%VAR_NAME%)");
+				out("ENUM_NAME", e.type->label) 
+				   << (seq,
+                  "load_%ENUM_NAME%('%VAR_NAME%', %PREFIX%, %OBJ%)");
 			}
+			
+			
 		private:
 			Formatter & out;
-
+         VAR const * src;
 		};
 
-		inline void Ini(Formatter & out, NamedVar const & vr)
+		inline void IniEx(Formatter & out, NamedVar const & vr, std::string const &prefix)
 		{
-			param_loader loader(out("VAR_NAME", vr.name)("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)); 
-			
-			out << "";
-			out << "try:";
-			out.incindent();
+			param_loader loader(out("VAR_NAME", vr.name)("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)("PREFIX", prefix), vr.src); 
 			
 			loader.apply(vr.value);
 			
@@ -102,18 +88,45 @@ namespace karrigell {
 			{
 				out << "N_Dim = model._Model_Size";
 			} 
-
-            out.decindent();
-            
-            out << "except Exception, ex:";
-
-			out.incindent();
-			
-			out << "add_error('Error in %VAR_NAME%:' + str(ex))";
-			
-            out.decindent();
 		}
 
+		inline void Ini(Formatter & out, NamedVar const & vr)
+		{
+		   IniEx(out, vr, std::string("'")+symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str())+"'");
+		}
+		struct include_enums : var_visitor<include_enums>
+		{
+			include_enums(Formatter & out) : out(out){}
+
+         template <class T>
+			void operator () (Numeric<T> const & i) 
+			{
+			}
+
+			void operator () (std::string const & i)  
+			{
+			}
+
+			void operator () (std::vector<double> const & i) 
+			{
+			}
+			
+			void operator() (EnumValue const & e) 
+			{
+				out("ENUM_NAME", e.type->label) 
+				   << "Include(r'/premia/enum/%ENUM_NAME%.py')";
+			}
+			
+			
+		private:
+			Formatter & out;
+		};
+		
+		inline void includeEnums(Formatter &out, NamedVar const &vr)
+		{
+		   include_enums(out).apply(vr.value);
+		}
+		
 		template <class Scalar>
 			std::string const & tostr(api::Range<Scalar> const * c)
 		{
@@ -155,11 +168,11 @@ namespace karrigell {
 		template <class T> const char * symbol() { return "Z"; }
 		template <> const char * symbol<double>(){ return "R"; }
 
-		inline void Table(Formatter & out, NamedVar const & vr);
+		inline void TableEx(Formatter & out, NamedVar const & vr);
 
 		struct tbl_val_printer : var_visitor<tbl_val_printer>
 		{
-			tbl_val_printer(Formatter & out) : out(out) {}
+			tbl_val_printer(Formatter & out, VAR const *src) : out(out), src(src) {}
 			
 			static std::string row(std::string const &s)
 			{
@@ -172,76 +185,49 @@ namespace karrigell {
 			{
 				out("CONSTR",tostr(i.constraint))
 				   ("SYMB", symbol<Scalar>())	
-					<< row("TD(INPUT(name='%VAR_ID%'%SUBMIT%,value=%OBJ%._%VAR_NAME%)) + TD('%SYMB% %CONSTR%')"); 
+				   << "printScalar(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%, '%SYMB% %CONSTR%', %ONCHANGE%)"
+;
 			}
 
 			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
-				out << row("TD(INPUT(name='%VAR_ID%'%SUBMIT%,value=%OBJ%._%VAR_NAME%))+TD()");
+			   out
+				   << "printScalar(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%, '', '')"
+;
 			}
 
 			/// assert for PNLVECT and PNLVECTCOMPACT
 			void operator () (std::vector<double> const & i) 
 			{
-			    out << "table <= TR(TD('%FRIENDLY_NAME%', align='right',rowspan=len(%OBJ%._%VAR_NAME%)) + TD(INPUT(name='%VAR_ID%[0]',value=%OBJ%._%VAR_NAME%[0])) + TD('R',rowspan=len(%OBJ%._%VAR_NAME%)),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
-			    
-				out << "table <= Sum([TR(TD(INPUT(name='%VAR_ID%[' + str(i) + ']',value=%OBJ%._%VAR_NAME%[i])),bgcolor=clr(%BGCOLOR_BASE%,clridx)) for i in range(1,len(%OBJ%._%VAR_NAME%))])";
+			   if (src && src->Vtype==PNLVECTCOMPACT)
+			      out <<
+			      "printVectorCompact(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
+			   else
+			      out <<
+			      "printVector(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
 			}
 			
-			static void printEnumChoices(Formatter &out, api::Enum::Members::const_reference p)
-			{
-			    out("LABEL", p.second.quoted_original_label) <<  "'%LABEL%',";    
-			}
-
 			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
-			    out << (seq, "labels = [", +foreach_x(e.type->members, printEnumChoices), "]");  
-			    
-			    bool has_params = false;
-			    
-			    int idx = 0;
-			    BOOST_FOREACH(api::Enum::Members::const_reference p, e.type->members)
-			    {
-			        out("IDX", idx++)("KEY",p.first) << "if %OBJ%._%VAR_NAME%._value.key() == %KEY%: list_idx = %IDX%";
-			        if (!p.second.params.empty())
-			            has_params = true;
-			    }
-			    
-			    out("CHANGE", has_params ? ", onchange='submit();'": "") 
-			       << "L = SELECT(name = '%VAR_ID%'%CHANGE%).from_list(labels)";
-                out << "L.select(value=list_idx)";
-				out << row("TD(L)+TD()");
-				
-				BOOST_FOREACH(api::Enum::Members::const_reference p, e.type->members)
-				    BOOST_FOREACH(NamedVar const &v, p.second.params)
-				    {
-			            out("KEY",p.first) << "if %OBJ%._%VAR_NAME%._value.key() == %KEY%:";
-			            
-			            out.push_scope();				  
-			              
-				        out("CHOICE",p.second.label)
-				           ("OBJ", "%OBJ%._%VAR_NAME%.get_%CHOICE%()") 
-				              << +call(boost::bind(Table,_1, v));
-				        out << "";
-				        out.pop_scope();
-				    }
+			    out("ENUM_TYPE", e.type->label) 
+				   << "print_%ENUM_TYPE%(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
 			}
 		private:
 			Formatter & out;
-
+         VAR const * src;
 		};
 		
 		inline void TableVal(Formatter & out, NamedVar const & vr)
 		{
 		    if (vr.has_setter) std::cout << vr.name << std::endl;
 		    std::string submit = vr.has_setter ? ", onchange='submit();'": "";
-		    out << "clridx = clridx + 1";
-			tbl_val_printer(out("SUBMIT", submit)).apply(vr.value);
+		    std::string onchange = vr.has_setter ? "'submit();'": "''";
+			tbl_val_printer(out("SUBMIT", submit)("ONCHANGE",onchange), vr.src).apply(vr.value);
 		}
 
-		inline void Table(Formatter & out, NamedVar const & vr)
+		inline void TableEx(Formatter & out, NamedVar const & vr)
 		{
 		    std::string star;
 		    if (vr.iterable) star = "*";
@@ -249,6 +235,11 @@ namespace karrigell {
 			   ("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)
                ("FRIENDLY_NAME", star + vr.src->Vname)
 			   << (seq, call(boost::bind(TableVal, _1, vr)));
+		}
+
+		inline void Table(Formatter & out, NamedVar const & vr)
+		{
+		   TableEx(out("PREFIX", std::string("'")+symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str())+"'"), vr);
 		}
 
 		struct iterable_name_printer : var_visitor<iterable_name_printer>
@@ -259,23 +250,25 @@ namespace karrigell {
 				void operator () (Numeric<Scalar> const & i) 
 			{
                 if (iterable)
-                    out << "iterables.append('%VNAME%')";
+                {
+                  out << "iterScalar(ctx, %OBJ%, '%VNAME%', '%VARNAME%', %PREFIX% + '_%VNAME%')";
+
+                }
 			}
 
-			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
 			}
 
-			/// assert for PNLVECT and PNLVECTCOMPACT
 			void operator () (std::vector<double> const & i) 
 			{
-			    out << "for i in range(len(%OBJ%.%VARNAME%)): iterables.append('%VNAME%[' + str(i) + ']')";
+                  out << "iterVector(ctx, %OBJ%, '%VNAME%', '%VARNAME%', %PREFIX% + '_%VNAME%')";
 			}
 			
-			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
+			   out("ENUM_TYPE",e.type->label) 
+			   << "iterables_%ENUM_TYPE%(ctx, %OBJ%.%VNAME%, %PREFIX% + '_%VNAME%')";
 			}
 		private:
 			Formatter & out;
@@ -283,151 +276,48 @@ namespace karrigell {
 
 		};
 		
-        inline void IterableName(Formatter &out, NamedVar const &vr)
-        {
-            iterable_name_printer(out("VNAME",vr.src->Vname)("VARNAME",vr.name), vr.iterable).apply(vr.value);
-        }
-
-		struct iterable_corrname_printer : var_visitor<iterable_corrname_printer>
-		{
-			iterable_corrname_printer(Formatter & out, bool iterable) : out(out), iterable(iterable) {}
-			
-			template <class Scalar>
-				void operator () (Numeric<Scalar> const & i) 
-			{
-                if (iterable)
-                    out << "iterables_corr.append('%VNAME%')";
-			}
-
-			/// assert for FILENAME
-			void operator () (std::string const & i)  
-			{
-			}
-
-			/// assert for PNLVECT and PNLVECTCOMPACT
-			void operator () (std::vector<double> const & i) 
-			{
-			    out << "for i in range(len(%OBJ%.%VNAME%)): iterables_corr.append('%VNAME%_' + str(i))";
-			}
-			
-			/// assert for ENUM
-			void operator() (EnumValue const & e) 
-			{
-			}
-		private:
-			Formatter & out;
-			bool iterable;
-
-		};
+		  inline std::string quote(std::string const &s)
+		  {
+		      return "'" + s + "'";
+		  }
 		
-        inline void IterableCorrName(Formatter &out, NamedVar const &vr)
+        inline void IterableEx(Formatter &out, NamedVar const &vr)
         {
-            iterable_corrname_printer(out("VNAME",vr.name), vr.iterable).apply(vr.value);
+            iterable_name_printer(
+               out("VARNAME",vr.src->Vname)
+                  ("VNAME",vr.name)
+                  ,
+               vr.iterable
+            ).apply(vr.value);
         }
         
-		struct iterable_getter_printer : var_visitor<iterable_getter_printer>
-		{
-			iterable_getter_printer(Formatter & out, bool iterable) : out(out), iterable(iterable) {}
-			
-			template <class Scalar>
-				void operator () (Numeric<Scalar> const & i) 
-			{
-                if (iterable)
-                    out << "iterables_getter.append(lambda: getattr(%OBJ%, '%VNAME%'))";
-			}
-
-			/// assert for FILENAME
-			void operator () (std::string const & i)  
-			{
-			}
-
-			/// assert for PNLVECT and PNLVECTCOMPACT
-			void operator () (std::vector<double> const & i) 
-			{
-			    out <<  
-			    "iterables_getter.extend(map(lambda x: (lambda: x), %OBJ%.%VNAME%))";
-			}
-			
-			/// assert for ENUM
-			void operator() (EnumValue const & e) 
-			{
-			}
-		private:
-			Formatter & out;
-			bool iterable;
-
-		};
-        
-        inline void IterableGetter(Formatter &out, NamedVar const &vr)
+        inline void Iterable(Formatter &out, NamedVar const &vr)
         {
-            iterable_getter_printer(out("VNAME",vr.name), vr.iterable).apply(vr.value);
-        }
-
-		struct iterable_setter_printer : var_visitor<iterable_setter_printer>
-		{
-			iterable_setter_printer(Formatter & out, bool iterable) : out(out), iterable(iterable) {}
-			
-			template <class Scalar>
-				void operator () (Numeric<Scalar> const & i) 
-			{
-                if (iterable)
-                    out << "iterables_setter.append(lambda x: setattr(%OBJ%, '%VNAME%', x))";
-			}
-
-			/// assert for FILENAME
-			void operator () (std::string const & i)  
-			{
-			}
-
-			/// assert for PNLVECT and PNLVECTCOMPACT
-			void operator () (std::vector<double> const & i) 
-			{
-			    out <<  
-			    "iterables_setter.extend(map(lambda i: (lambda z: %OBJ%.%VNAME%.__setitem__(i, z)), range(len(%OBJ%.%VNAME%))))";
-			}
-			
-			/// assert for ENUM
-			void operator() (EnumValue const & e) 
-			{
-			}
-		private:
-			Formatter & out;
-			bool iterable;
-
-		};
-        
-        inline void IterableSetter(Formatter &out, NamedVar const &vr)
-        {
-            iterable_setter_printer(out("VNAME",vr.name), vr.iterable).apply(vr.value);
+            IterableEx(out("PREFIX",/*out.lookupVar("ENTITY_NAME")*/"''"), vr);
         }
 
         inline void Iterables(Formatter& out, VarList const &vars)
         {
-            out << (seq, "iterables = ['No iteration']",
-                    foreach_x(vars,IterableName),
-                    "iterables_corr = ['']",
-                    foreach_x(vars,IterableCorrName),
-                    "iterables_getter = ['']",
-                    foreach_x(vars,IterableGetter),
-                    "iterables_setter = ['']",
-                    foreach_x(vars,IterableSetter),
+            out << (seq, 
+                    "ctx = Ctx()",
+                    foreach_x(vars,Iterable),
                     "clridx = clridx + 1",
-				    "table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod('iterate_%ENTITY_NAME%', iterables, iterables[int(_iterate_%ENTITY_NAME%)]))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+				    "table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod('iterate_%ENTITY_NAME%', ctx.iterables, ctx.iterables[int(_iterate_%ENTITY_NAME%)]))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				    "if _iterate_%ENTITY_NAME% <> '0':",
                     "   clridx = clridx + 1",
-				    "   if 'iterate_%ENTITY_NAME%_' + iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
-                    "      old_value = REQUEST['iterate_%ENTITY_NAME%_' + iterables_corr[int(_iterate_%ENTITY_NAME%)]]",
+				    "   if 'iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
+                    "      old_value = REQUEST['iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)]]",
                     "   else:",
-                    "      old_value = iterables_getter[int(_iterate_%ENTITY_NAME%)]()",
-				    "   table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name='iterate_%ENTITY_NAME%_' + iterables_corr[int(_iterate_%ENTITY_NAME%)],value=old_value))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+                    "      old_value = ctx.iterables_getter[int(_iterate_%ENTITY_NAME%)]()",
+				    "   table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name='iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)],value=old_value))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
                     "   clridx = clridx + 1",
 				    "   table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=10))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				    "   iterate_object = %OBJ%",
-				    "   iterate_name = iterables[int(_iterate_%ENTITY_NAME%)]",
-				    "   iteration_getter = iterables_getter[int(_iterate_%ENTITY_NAME%)]",
-				    "   iteration_setter = iterables_setter[int(_iterate_%ENTITY_NAME%)]",
-				    "   if 'iterate_%ENTITY_NAME%_' + iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
-				    "      iterate_to = float(REQUEST['iterate_%ENTITY_NAME%_' + iterables_corr[int(_iterate_%ENTITY_NAME%)]])"
+				    "   iterate_name = ctx.iterables[int(_iterate_%ENTITY_NAME%)]",
+				    "   iteration_getter = ctx.iterables_getter[int(_iterate_%ENTITY_NAME%)]",
+				    "   iteration_setter = ctx.iterables_setter[int(_iterate_%ENTITY_NAME%)]",
+				    "   if 'iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
+				    "      iterate_to = float(REQUEST['iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)]])"
                     );
         }
 	}

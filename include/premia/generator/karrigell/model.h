@@ -18,9 +18,10 @@ namespace karrigell {
 			("BGCOLOR_BASE","mod_colors")
 			("ENTITY_NAME", "model")
 			<< (seq, 
+			   foreach_x(m.members, print::includeEnums),
 				"%OBJ% = models.%MODEL_NAME%()", "",
 				foreach_x(m.members, print::Ini),
-				"table <= (TR(TD((B('Model:')),align='right') + TD(enum_submit('model', model_list, '%MODEL_LABEL%'))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
+				"printModelType(table, '%MODEL_NAME%')",
 				foreach_x(m.members, print::Table),
 				call(boost::bind(print::Iterables, _1, boost::cref(m.members)))
 			);
