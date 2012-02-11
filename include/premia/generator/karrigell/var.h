@@ -187,20 +187,12 @@ namespace karrigell {
 				   ("ITERABLE", iterable ? "True" : "False")	
 				   << "processScalar(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%)"
 ;
-            /* if (iterable)
-             {
-               out << "iterScalar(ctx, %OBJ%, '%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX% + '_%VAR_NAME%')";
-
-             }*/
-             
 			}
 
 			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
-			   out
-				   << "printScalar(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%, '', '')"
-;
+			   out << "processScalar(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False)";
 			}
 
 			/// assert for PNLVECT and PNLVECTCOMPACT
@@ -208,11 +200,10 @@ namespace karrigell {
 			{
 			   if (src && src->Vtype==PNLVECTCOMPACT)
 			      out <<
-			      "printVectorCompact(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
+			      "processVectorCompact(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
 			   else
 			      out <<
-			      "printVector(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
-            out << "iterVector(ctx, %OBJ%, '%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX% + '_%VAR_NAME%')";
+			      "processVector(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
 			}
 			
 			/// assert for ENUM

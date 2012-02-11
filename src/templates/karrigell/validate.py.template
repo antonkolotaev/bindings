@@ -55,27 +55,32 @@ def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onCh
       ctx.iterables_getter.append(lambda: getattr(obj, propname))
       ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
    
-def printVector(table, colors, label, pname, prefix, obj):
-   pmem = getattr(obj, pname)
+def printVector(table, colors, label, vlabel, pmem):
    clrinc()
-   table <= TR(TD(label, align='right',rowspan=len(pmem)) + TD(INPUT(name=prefix + pname + '[0]',value=pmem[0])) + TD('R',rowspan=len(pmem)),bgcolor=clr(colors,clridx))
-   table <= Sum([TR(TD(INPUT(name=prefix + pname + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
+   table <= TR(TD(label, align='right',rowspan=len(pmem)) + TD(INPUT(name=vlabel + '[0]',value=pmem[0])) + TD('R',rowspan=len(pmem)),bgcolor=clr(colors,clridx))
+   table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
 
-def iterVector(ctx, obj, propname, label, vlabel):
-   dst = getattr(obj, propname)
-
-   for i in range(len(dst)): 
+def iterVector(ctx, pmem, label, vlabel):
+   
+   for i in range(len(pmem)): 
       ctx.iterables.append(label + '[' + str(i) + ']')
       ctx.iterables_corr.append(vlabel + str(i))
 
-   ctx.iterables_getter.extend(map(lambda x: (lambda: x), dst))
-   ctx.iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
-   
-def vectCompactMode(obj,prefix,pname):
-   pmem = getattr(obj, pname)
+   ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+   ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+
+def processVector(ctx, table, colors, obj, propname, label, vlabel):
+   pmem = getattr(obj, propname)
+   printVector(table, colors, label, vlabel, pmem)
+   iterVector(ctx, pmem, label, vlabel)
+
+def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
+   pmem = getattr(obj, propname)
+   clrinc()
    mode = None
-   if prefix + pname + '__t' in REQUEST:
-      if REQUEST[prefix + pname + '__t'] == '0':
+
+   if vlabel + '__t' in REQUEST:
+      if REQUEST[vlabel + '__t'] == '0':
          mode = 0
       else:
          mode = 1
@@ -84,55 +89,30 @@ def vectCompactMode(obj,prefix,pname):
          mode = 0
       else:
          mode = 1
-   return mode
 
-def printVectorCompact(table, colors, label, pname, prefix, obj):
-   pmem = getattr(obj, pname)
-   clrinc()
-   mode = vectCompactMode(obj,prefix,pname)
-   L = SELECT(name = prefix+pname+ '__t', onchange='submit();').from_list(['Constant','Array'])
+   L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
    if mode == 0:
+      ctx.iterables.append(label)
+      ctx.iterables_corr.append(vlabel + '__c')
+      ctx.iterables_getter.append(lambda: pmem[0])
+      def F(x):
+         for i in range(len(pmem)): pmem[i] = x          
+      ctx.iterables_setter.append(F)
+
       L.select(value=0)
       table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
-      table <= TR(TD(INPUT(name=prefix + pname + '__c',value=pmem[0])),bgcolor=clr(colors,clridx))
+      table <= TR(TD(INPUT(name=vlabel + '__c',value=pmem[0])),bgcolor=clr(colors,clridx))
 
    if mode == 1:
+      for i in range(len(pmem)): 
+         ctx.iterables.append(label + '[' + str(i) + ']')
+         ctx.iterables_corr.append(vlabel + str(i))
+      ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+      ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+      
       L.select(value=1)
       table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
-      table <= Sum([TR(TD(INPUT(name=prefix + pname + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
-
-def iterLabelVectorCompact(iterables, obj, propname, label, prefix):
-   mode = vectCompactMode(obj,prefix,propname)
-   if mode == 0:
-      iterables.append(label)
-   else:      
-      for i in range(len(getattr(obj,propname))): 
-         iterables.append(label + '[' + str(i) + ']')
-      
-def iterCorrVectorCompact(iterables_corr, obj, propname,label,prefix):
-   mode = vectCompactMode(obj,prefix,propname)
-   if mode == 0:
-      iterables_corr.append(label + '__c')
-   else:      
-      for i in range(len(getattr(obj,propname))): 
-         iterables_corr.append(label + str(i))
-      
-def iterGetterVectorCompact(iterables_getter, obj, propname,prefix):
-   mode = vectCompactMode(obj,prefix,propname)
-   if mode == 0:
-      iterables_getter.append(lambda: getattr(obj,propname)[0])
-   else:      
-      iterables_getter.extend(map(lambda x: (lambda: x), getattr(obj, propname)))
-
-def iterSetterVectorCompact(iterables_setter, obj, propname,prefix):
-   dst = getattr(obj, propname)
-   mode = vectCompactMode(obj,prefix,propname)
-   if mode == 0:
-      def F(x):
-         for i in range(len(dst)): dst[i] = x          
-      iterables_setter.append(F)
-   else:      
-      iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
+      table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
 
   
    
