@@ -43,42 +43,11 @@ namespace karrigell {
 );
             out << "";
 
-            out << "def iterables_%ENUM_NAME%(ctx, pmem, src_prefix):";
-            
-            bool empty = true;
-
-				BOOST_FOREACH(api::Enum::Members::const_reference p, e.members)
-				{
-				   if (!p.second.params.empty())
-				   {
-				    empty = false;
-                out("KEY",p.first) << "   if pmem._value.key() == %KEY%:  # %ENUM_NAME%";
-                out << "      pass";
-                
-                out.push_scope();				  
-                 
-                out("CHOICE",p.second.label)
-                   ("OBJ", "pmem.get_%CHOICE%()")
-                   ("PREFIX", "src_prefix + '_get_%CHOICE%_'")
-                   ;
-                   
-				    out << + +foreach_x(p.second.params, print::IterableEx);
-				    
-                out.pop_scope();
-                out << "";
-               }
-				}
-				
-				if (empty)
-				   out << "   pass";
-
-            out << "";
             out
-			    << "def print_%ENUM_NAME%(table, colors, label, pname, prefix, obj):";
+			    << "def process_%ENUM_NAME%(ctx, table, colors, label, pmem, src_prefix):";
 			    
 			    out.incindent();
 			    
-			    out << "pmem = getattr(obj, pname)";
 			    out << "clrinc()";
 			    
 			    out << (seq, "labels = [", +foreach_x(e.members, printEnumChoices), "]");  
@@ -94,7 +63,7 @@ namespace karrigell {
 			    }
 			    
 			    out("CHANGE", has_params ? ", onchange='submit();'": "") 
-			       << "L = SELECT(name = prefix+pname%CHANGE%).from_list(labels)";
+			       << "L = SELECT(name = src_prefix%CHANGE%).from_list(labels)";
 			    out("BGCOLOR_BASE", "colors");
 			    
              out << "L.select(value=list_idx)";
@@ -102,19 +71,20 @@ namespace karrigell {
 				
 				
 				BOOST_FOREACH(api::Enum::Members::const_reference p, e.members)
-				    BOOST_FOREACH(NamedVar const &v, p.second.params)
-				    {
-			            out("KEY",p.first) << "if pmem._value.key() == %KEY%:";
-			            
-			            out.push_scope();				  
-			              
-				        out("CHOICE",p.second.label)
-				           ("OBJ", "pmem.get_%CHOICE%()") 
-				           ("PREFIX", "prefix+pname+'_get_%CHOICE%_'")
-				              << +call(boost::bind(print::TableEx,_1, v));
-				        out << "";
-				        out.pop_scope();
-				    }
+            {
+               out("KEY",p.first) << "if pmem._value.key() == %KEY%: #%ENUM_NAME%";
+               out << "   pass";
+
+               out.push_scope();				  
+                 
+               out("CHOICE",p.second.label)
+                  ("OBJ", "pmem.get_%CHOICE%()") 
+                  ("PREFIX", "src_prefix+'_get_%CHOICE%_'")
+                    << +foreach_x(p.second.params, print::TableEx);
+                    
+               out << "";
+               out.pop_scope();
+				 }
 				 out.decindent();
 
 	}

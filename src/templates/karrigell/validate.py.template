@@ -47,14 +47,29 @@ def loadVectorCompact(property_name, src_prefix, dst):
     except Exception, ex:
        add_error('Error in' + property_name + ':' + str(ex))
 
-def printScalar(table, colors, label, pname, prefix, obj, constr, onChange=''):
-   table <= rowinc(colors, label, INPUT(name=prefix+pname,onchange=onChange,value=getattr(obj, pname)), constr)
+def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable):
+   table <= rowinc(colors, label, INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname)), constr)
+   if iterable:
+      ctx.iterables.append(label)
+      ctx.iterables_corr.append(vlabel)
+      ctx.iterables_getter.append(lambda: getattr(obj, propname))
+      ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
    
 def printVector(table, colors, label, pname, prefix, obj):
    pmem = getattr(obj, pname)
    clrinc()
    table <= TR(TD(label, align='right',rowspan=len(pmem)) + TD(INPUT(name=prefix + pname + '[0]',value=pmem[0])) + TD('R',rowspan=len(pmem)),bgcolor=clr(colors,clridx))
    table <= Sum([TR(TD(INPUT(name=prefix + pname + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
+
+def iterVector(ctx, obj, propname, label, vlabel):
+   dst = getattr(obj, propname)
+
+   for i in range(len(dst)): 
+      ctx.iterables.append(label + '[' + str(i) + ']')
+      ctx.iterables_corr.append(vlabel + str(i))
+
+   ctx.iterables_getter.extend(map(lambda x: (lambda: x), dst))
+   ctx.iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
    
 def vectCompactMode(obj,prefix,pname):
    pmem = getattr(obj, pname)
@@ -85,18 +100,6 @@ def printVectorCompact(table, colors, label, pname, prefix, obj):
       L.select(value=1)
       table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
       table <= Sum([TR(TD(INPUT(name=prefix + pname + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
-
-
-def iterVector(ctx, obj, propname, label, vlabel):
-   dst = getattr(obj, propname)
-
-   for i in range(len(dst)): 
-      ctx.iterables.append(label + '[' + str(i) + ']')
-      ctx.iterables_corr.append(vlabel + str(i))
-
-   ctx.iterables_getter.extend(map(lambda x: (lambda: x), dst))
-   ctx.iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
- 
 
 def iterLabelVectorCompact(iterables, obj, propname, label, prefix):
    mode = vectCompactMode(obj,prefix,propname)
@@ -131,12 +134,7 @@ def iterSetterVectorCompact(iterables_setter, obj, propname,prefix):
    else:      
       iterables_setter.extend(map(lambda i: (lambda z: dst.__setitem__(i, z)), range(len(dst))))
 
-def iterScalar(ctx, obj, propname, label, vlabel):
-   ctx.iterables.append(label)
-   ctx.iterables_corr.append(vlabel)
-   ctx.iterables_getter.append(lambda: getattr(obj, propname))
-   ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
-   
+  
    
 iterate_object = None
 

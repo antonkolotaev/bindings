@@ -34,6 +34,7 @@ namespace karrigell {
 			<< (seq, 
 			   foreach_x(opt.vars, print::includeEnums),
 				"%OBJ% = options.%FAMILY_NAME%.%OPT_NAME%()", "",
+            "ctx = Ctx()",
 				foreach_x(opt.vars, print::Ini),
 				"printFamilyType(table, '%FAMILY_NAME%')",
 				"printOptionType(table, '%OPT_NAME%')",

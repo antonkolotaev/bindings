@@ -20,6 +20,7 @@ namespace karrigell {
 			<< (seq, 
 			   foreach_x(met.members, print::includeEnums),
 				"%OBJ% = pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME%()", "",
+            "ctx = Ctx()",
 				"if run_computation:", +(seq,
 				    "pass",
 				    foreach_x(met.members, print::Ini)),

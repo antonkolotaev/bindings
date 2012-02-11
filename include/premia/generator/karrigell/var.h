@@ -172,21 +172,27 @@ namespace karrigell {
 
 		struct tbl_val_printer : var_visitor<tbl_val_printer>
 		{
-			tbl_val_printer(Formatter & out, VAR const *src) : out(out), src(src) {}
+			tbl_val_printer(Formatter & out, VAR const *src, bool iterable) : out(out), src(src), iterable(iterable) {}
 			
 			static std::string row(std::string const &s)
 			{
 			    return "table <= TR(TD('%FRIENDLY_NAME%',align='right') + " + s + ",bgcolor=clr(%BGCOLOR_BASE%,clridx))";
 			}
 
-
 			template <class Scalar>
 				void operator () (Numeric<Scalar> const & i) 
 			{
 				out("CONSTR",tostr(i.constraint))
-				   ("SYMB", symbol<Scalar>())	
-				   << "printScalar(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%, '%SYMB% %CONSTR%', %ONCHANGE%)"
+				   ("SYMB", symbol<Scalar>())
+				   ("ITERABLE", iterable ? "True" : "False")	
+				   << "processScalar(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%)"
 ;
+            /* if (iterable)
+             {
+               out << "iterScalar(ctx, %OBJ%, '%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX% + '_%VAR_NAME%')";
+
+             }*/
+             
 			}
 
 			/// assert for FILENAME
@@ -206,17 +212,19 @@ namespace karrigell {
 			   else
 			      out <<
 			      "printVector(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
+            out << "iterVector(ctx, %OBJ%, '%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX% + '_%VAR_NAME%')";
 			}
 			
 			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
 			    out("ENUM_TYPE", e.type->label) 
-				   << "print_%ENUM_TYPE%(table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', '_%VAR_NAME%', %PREFIX%, %OBJ%)";
+				   << "process_%ENUM_TYPE%(ctx, table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
 			}
 		private:
 			Formatter & out;
          VAR const * src;
+         bool iterable;
 		};
 		
 		inline void TableVal(Formatter & out, NamedVar const & vr)
@@ -224,7 +232,7 @@ namespace karrigell {
 		    if (vr.has_setter) std::cout << vr.name << std::endl;
 		    std::string submit = vr.has_setter ? ", onchange='submit();'": "";
 		    std::string onchange = vr.has_setter ? "'submit();'": "''";
-			tbl_val_printer(out("SUBMIT", submit)("ONCHANGE",onchange), vr.src).apply(vr.value);
+			tbl_val_printer(out("SUBMIT", submit)("ONCHANGE",onchange), vr.src, vr.iterable).apply(vr.value);
 		}
 
 		inline void TableEx(Formatter & out, NamedVar const & vr)
@@ -299,8 +307,8 @@ namespace karrigell {
         inline void Iterables(Formatter& out, VarList const &vars)
         {
             out << (seq, 
-                    "ctx = Ctx()",
-                    foreach_x(vars,Iterable),
+                    //"ctx = Ctx()",
+                    //foreach_x(vars,Iterable),
                     "clridx = clridx + 1",
 				    "table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod('iterate_%ENTITY_NAME%', ctx.iterables, ctx.iterables[int(_iterate_%ENTITY_NAME%)]))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				    "if _iterate_%ENTITY_NAME% <> '0':",
