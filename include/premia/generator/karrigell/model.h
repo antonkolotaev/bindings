@@ -21,7 +21,7 @@ namespace karrigell {
 			   foreach_x(m.members, print::includeEnums),
 				"%OBJ% = models.%MODEL_NAME%()", "",
             "ctx = Ctx()",
-				foreach_x(m.members, print::Ini),
+				//foreach_x(m.members, print::Ini),
 				"printModelType(table, '%MODEL_NAME%')",
 				foreach_x(m.members, print::Table),
 				call(boost::bind(print::Iterables, _1, boost::cref(m.members)))

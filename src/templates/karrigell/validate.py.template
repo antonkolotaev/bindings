@@ -12,42 +12,15 @@ class Ctx:
       self.iterables_getter = ['']
       self.iterables_setter = ['']
 
-def loadScalar(property_name, src_prefix, dst, conv):
+def loadScalar(property_name, vlabel, obj, conv):
     try:
-       src = src_prefix + '_' + property_name
-       if src in REQUEST:
-          setattr(dst, property_name, conv(REQUEST[src]))
+       if vlabel in REQUEST:
+          setattr(obj, property_name, conv(REQUEST[vlabel]))
     except Exception, ex:
        add_error('Error in '+ property_name +':' + str(ex))
 
-def loadVector(property_name, src_prefix, dst):
-    try:
-       pname = "_" + property_name
-       arr = getattr(dst, pname)
-       for i in range(len(arr)):
-          src = src_prefix + pname + "[" + str(i) + "]"
-          if src in REQUEST: 
-             arr[i] = float(REQUEST[src])
-    except Exception, ex:
-       add_error('Error in' + property_name + ':' + str(ex))
-
-def loadVectorCompact(property_name, src_prefix, dst):
-    try:
-       pname = "_" + property_name
-       arr = getattr(dst, pname)
-       if src_prefix + pname + '__c' in REQUEST:
-         val = float(REQUEST[src_prefix + pname + '__c'])
-         for i in range(len(arr)):                 
-            arr[i] = val
-       else:
-          for i in range(len(arr)):
-             src = src_prefix + pname + "[" + str(i) + "]"
-             if src in REQUEST: 
-                arr[i] = float(REQUEST[src])
-    except Exception, ex:
-       add_error('Error in' + property_name + ':' + str(ex))
-
-def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable):
+def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
+   loadScalar(propname, vlabel, obj, conv)
    table <= rowinc(colors, label, INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname)), constr)
    if iterable:
       ctx.iterables.append(label)
@@ -69,15 +42,41 @@ def iterVector(ctx, pmem, label, vlabel):
    ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
    ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
 
+def loadVector(property_name, vlabel, pmem):
+    try:
+       for i in range(len(pmem)):
+          src = vlabel + "[" + str(i) + "]"
+          if src in REQUEST: 
+             pmem[i] = float(REQUEST[src])
+    except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
+
 def processVector(ctx, table, colors, obj, propname, label, vlabel):
    pmem = getattr(obj, propname)
+   loadVector(propname, vlabel, pmem)
    printVector(table, colors, label, vlabel, pmem)
    iterVector(ctx, pmem, label, vlabel)
+
+def loadVectorCompact(property_name, vlabel, pmem):
+    try:
+       if vlabel + '__c' in REQUEST:
+         val = float(REQUEST[vlabel + '__c'])
+         for i in range(len(pmem)):                 
+            pmem[i] = val
+       else:
+          for i in range(len(pmem)):
+             src = vlabel + "[" + str(i) + "]"
+             if src in REQUEST: 
+                pmem[i] = float(REQUEST[src])
+    except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
 
 def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
    pmem = getattr(obj, propname)
    clrinc()
    mode = None
+   
+   loadVectorCompact(propname, vlabel, pmem)
 
    if vlabel + '__t' in REQUEST:
       if REQUEST[vlabel + '__t'] == '0':
