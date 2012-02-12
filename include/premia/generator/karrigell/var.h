@@ -181,7 +181,8 @@ namespace karrigell {
         inline void Iterables(Formatter& out, VarList const &vars)
         {
             out << (seq, 
-                    "clridx = clridx + 1",
+                  "processIteration(ctx, %OBJ%, '%ENTITY_NAME%', %BGCOLOR_BASE%)"
+             /*       "clridx = clridx + 1",
 				    "table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod('iterate_%ENTITY_NAME%', ctx.iterables, ctx.iterables[int(_iterate_%ENTITY_NAME%)]))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
 				    "if _iterate_%ENTITY_NAME% <> '0':",
                     "   clridx = clridx + 1",
@@ -198,7 +199,7 @@ namespace karrigell {
 				    "   iteration_setter = ctx.iterables_setter[int(_iterate_%ENTITY_NAME%)]",
 				    "   if 'iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
 				    "      iterate_to = float(REQUEST['iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)]])"
-                    );
+                    */);
         }
 	}
 
