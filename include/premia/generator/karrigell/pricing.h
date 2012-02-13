@@ -7,7 +7,23 @@ namespace premia {
 namespace pygen {
 namespace karrigell {
 
+   inline void printIterateCheckBox(Formatter &out, NamedVar const &vr)
+   {
+      out << "clrinc()";
+      out ("VLABEL", vr.name)("FRIENDLY", vr.src->Vname)
+      << "table <= TR(TD() + TD(INPUT(name='showGraphLabel_%VLABEL%',value='%FRIENDLY%')+checkbox('showGraph_%VLABEL%')) + TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+   }
 
+   inline void printIterateCheckBoxes(Formatter &out, VarList const &results)
+   {
+      out << "if iterate_object <> None: ";
+      out << "   clrinc()";
+      out << "   table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+      out << +foreach_x(results, printIterateCheckBox);
+      out << "   clrinc()";
+      out << "   table <= TR(TD() + TD(INPUT(name='showGraphLabel_Time',value='Computation Time')+checkbox('showGraph_Time')) + TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+   }
+    
 	inline void generatePricingMethod(Ctx & ctx, PricingMethod const & met)
 	{
 		Formatter f(ctx.filename(met));
@@ -26,7 +42,8 @@ namespace karrigell {
 				//    foreach_x(met.members, print::Ini)),
 				"printMethodType(table, '%METHOD_NAME%')",
 				foreach_x(met.members, print::Table),
-				call(boost::bind(print::Iterables, _1, boost::cref(met.members)))
+				call(boost::bind(print::Iterables, _1, boost::cref(met.members))),
+				call(boost::bind(printIterateCheckBoxes, _1, boost::cref(met.results)))
 			);
 	}
 

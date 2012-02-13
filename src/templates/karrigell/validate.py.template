@@ -5,6 +5,10 @@ from time import time
 
 Include('import.py')
 
+def checkbox(vname):
+   return INPUT(type="checkbox", name=vname, value="1", align="right", checked=True) 
+
+
 class Ctx:
    def __init__(self):
       self.iterables = ['No iteration']
@@ -476,6 +480,8 @@ def todata(v):
    s += "]"
    return s
 
+#print REQUEST
+
 if res_t <> None:
     script("var datas = []")
     idx = 1
@@ -483,16 +489,16 @@ if res_t <> None:
         idx = idx + 1
         if type(v[0]) == list:
             table_result_i <= TR(TD(k, align='right',rowspan=len(v[0])) + Sum([TD(L[0]) for L in v]),bgcolor=clr(res_colors,idx))
-            if k != res_t[0][0]:               
-                script("datas.push({ data : "+todata(map(lambda L: L[0], v))+", label : \'"+k+"[0]\' })")          
+            if k != res_t[0][0] and ('showGraph_' + k in REQUEST):               
+                script("datas.push({ data : "+todata(map(lambda L: L[0], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"[0]\' })")          
             for i in range(1, len(v[0])):
                 table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
-                if k != res_t[0][0]:               
-                   script("datas.push({ data : "+todata(map(lambda L: L[i], v))+", label : \'"+k+"["+str(i)+"]\' })")          
+                if k != res_t[0][0] and ('showGraph_' + k in REQUEST):               
+                   script("datas.push({ data : "+todata(map(lambda L: L[i], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\' })")          
         else:
             table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
-            if k != res_t[0][0]:               
-               script("datas.push({ data : "+todata(v)+", label : \'"+k+"\' })")          
+            if k != res_t[0][0] and ('showGraph_' + k in REQUEST):               
+               script("datas.push({ data : "+todata(v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
 
         
 
