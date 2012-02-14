@@ -131,15 +131,15 @@ def processIteration(ctx, obj, entity, colors):
       iterate_idx = 0
 
    old_idx = G['oldit'][entity]
-   print "old_idx=",old_idx, "iterate_idx=", iterate_idx
+   #print "old_idx=",old_idx, "iterate_idx=", iterate_idx
    if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
-      print iterate_idx >= len(ctx.iterables_corr), G['_il'], ctx.iterables_corr, iterate_idx  
+      #print iterate_idx >= len(ctx.iterables_corr), G['_il'], ctx.iterables_corr, iterate_idx  
       if iterate_idx >= len(ctx.iterables_corr) or G['_il'] <> ctx.iterables_corr[iterate_idx]:
          if G['_il'] in ctx.iterables_corr: 
             iterate_idx = ctx.iterables_corr.index(G['_il'])
          else:
             iterate_idx = 0
-         print "==>", iterate_idx
+         #print "==>", iterate_idx
 
    iterate_value_vlabel = iterate_vlabel + '_' + ctx.iterables_corr[iterate_idx]
       
@@ -270,7 +270,7 @@ if changed_iterate == 'method':
     _iterate_option = '0'
     _iterate_model = '0' 
 
-print changed_iterate
+#print changed_iterate
 
 g_table = TABLE(Class="content")
 
@@ -462,8 +462,8 @@ if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
             
         process.join(timeout=threshold)
     except Exception, exc:
-        print "exception caught:"
-        print traceback.format_exc()
+        #print "exception caught:"
+        #print traceback.format_exc()
         add_error(exc)
 
 table_result_i = TABLE(Class="content")
@@ -514,11 +514,11 @@ if res_t == None and res <> None:
         else:
             table_method <= TR(TD(k,align='right') + TD(v),bgcolor=clr(res_colors,idx))
 
-print 'iterate_model = ', _iterate_model
+#print 'iterate_model = ', _iterate_model
 im = str(_iterate_model)
-print 'iterate_option = ', _iterate_option
+#print 'iterate_option = ', _iterate_option
 io = str(_iterate_option)
-print 'iterate_method = ', _iterate_method
+#print 'iterate_method = ', _iterate_method
 ip = str(_iterate_method)
 
 form = FORM(action='/index?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth+'&im=' + im+'&io=' + io+'&ip=' + ip+'&il='+iterate_label,method="post")
