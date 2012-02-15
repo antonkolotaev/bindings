@@ -1,6 +1,6 @@
 BOOST_ROOT = /usr/include/
 PREMIA_ROOT = ../..
-KARRIGELL_WWW = /Karrigell-3.1.1/www
+KARRIGELL_WWW = ../../../Karrigell-3.1.1/www
 
 PYTHON_DIR=`python2.6 -c 'import sys; print sys.prefix'`
 PYTHON_INCLUDE=$(PYTHON_DIR)/include/python2.6
@@ -69,11 +69,17 @@ install-karrigell: install-python ksgen
 install-fsharp: fsharp
 	./fsgen --output-dir=../fsharp/premia
 
+clean-karrigell:
+	rm -f ksgen.lo
+
+re-karrigell: clean-karrigell ksgen
+	./ksgen --output-dir=$(KARRIGELL_WWW)
+	
 clean: 
-	rm *.o
-	rm *.so
-	rm *.lo
-	rm pygen
-	rm ksgen
-	rm fsgen 
+	rm -f *.o
+	rm -f *.so
+	rm -f *.lo
+	rm -f pygen
+	rm -f ksgen
+	rm -f fsgen 
 

@@ -57,7 +57,6 @@ void copyDir(const fs::path& source, const fs::path& dest, Filter filter) {
             else {
                 if (filter(current)) 
                 {
-                   std::cout << dest << std::endl;
                    fs::create_directories(dest);
                    
                    // Found file: Copy
@@ -82,7 +81,8 @@ bool tocopy(fs::path const &p)
    std::string e = p.extension();
    return
       e == ".js" ||
-      e == ".pih"
+      e == ".pih"||
+      e == ".py"
       ; 
 }
 
