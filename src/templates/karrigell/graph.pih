@@ -17,7 +17,7 @@
     <!--[if lt IE 9]>
     <script type="text/javascript" src="flashcanvas.js"></script>
     <![endif]-->
-    <script type="text/javascript" src="flotr2.min.js"></script>
+    <script type="text/javascript" src="premia/flotr2.min.js"></script>
     <script type="text/javascript">
 (function basic_legend(container) {
 

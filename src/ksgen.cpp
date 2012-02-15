@@ -30,9 +30,61 @@ typedef std::logic_error premia_exception;
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp>
 
+template <class Filter>
+void copyDir(const fs::path& source, const fs::path& dest, Filter filter) {
+
+    try {
+        // Check whether the function call is valid
+        if(!fs::exists(source) || !fs::is_directory(source)) {
+            std::cerr << "Source directory " << source.string().c_str()
+                << " does not exist or is not a directory." << std::endl;
+            return;
+        }
+    }
+    catch(fs::filesystem_error& e) {
+        std::cerr << e.what() << std::endl;
+        return;
+    }
+    // Iterate through the source directory
+    for(fs::directory_iterator it(source); it != fs::directory_iterator(); it++) {
+        try {
+            fs::path current(it->path());
+            if(fs::is_directory(current)) {
+                // Found directory: Recursion
+                copyDir(current, 
+                    dest / current.filename(), filter);
+            }
+            else {
+                if (filter(current)) 
+                {
+                   std::cout << dest << std::endl;
+                   fs::create_directories(dest);
+                   
+                   // Found file: Copy
+                   fs::copy_file(current,
+                       fs::path(dest / current.filename()), fs::copy_option::overwrite_if_exists);
+                }
+            }
+        }
+        catch(fs::filesystem_error& e) {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+}
+
+
 using premia::pygen::formatter_dsl::Formatter;
 
 namespace po = boost::program_options;
+
+bool tocopy(fs::path const &p)
+{
+   std::string e = p.extension();
+   return
+      e == ".js" ||
+      e == ".pih"
+      ; 
+}
 
 int main(int argc, char *argv[])
 {
@@ -46,7 +98,7 @@ int main(int argc, char *argv[])
     path_t output_path;
     
     int verbosity;
-
+    
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
@@ -76,6 +128,8 @@ int main(int argc, char *argv[])
     }    
 
     fs::create_directories(output_path / "premia");
+    
+    copyDir(template_dir, output_path / "premia",tocopy);
 
 	InitVar();
 
