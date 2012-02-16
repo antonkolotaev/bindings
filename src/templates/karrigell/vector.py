@@ -23,7 +23,8 @@ def loadVector(property_name, vlabel, pmem):
 
 def processVector(ctx, table, colors, obj, propname, label, vlabel):
    pmem = getattr(obj, propname)
-   loadVector(propname, vlabel, pmem)
+   if ctx.reload:
+      loadVector(propname, vlabel, pmem)
    printVector(table, colors, label, vlabel, pmem)
    iterVector(ctx, pmem, label, vlabel)
 

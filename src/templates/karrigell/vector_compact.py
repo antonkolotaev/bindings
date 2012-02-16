@@ -17,7 +17,8 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
    clrinc()
    mode = None
    
-   loadVectorCompact(propname, vlabel, pmem)
+   if ctx.reload:
+      loadVectorCompact(propname, vlabel, pmem)
 
    if vlabel + '__t' in REQUEST:
       if REQUEST[vlabel + '__t'] == '0':

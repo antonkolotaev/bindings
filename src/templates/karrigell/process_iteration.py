@@ -60,8 +60,14 @@ def processIteration(ctx, obj, entity, colors):
          
       table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name=iterate_value_vlabel,value=old_value))+TD(),bgcolor=clr(colors,clridx)))
       
+      if 'iteration_steps' in REQUEST:
+         steps_no = REQUEST['iteration_steps']
+      else:
+         steps_no = 10
+       
+      
       clrinc()      
-      table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=10))+TD(),bgcolor=clr(colors,clridx)))
+      table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(colors,clridx)))
       
       G['_iterate_' + entity] = str(iterate_idx)
       G['iterate_object'] = obj

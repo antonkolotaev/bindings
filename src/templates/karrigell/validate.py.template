@@ -15,6 +15,7 @@ class Ctx:
       self.iterables_corr = ['']
       self.iterables_getter = ['']
       self.iterables_setter = ['']
+      self.reload = True
       
 Include(r'premia/scalar.py')
 Include(r'premia/vector.py')
