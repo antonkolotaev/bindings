@@ -7,21 +7,18 @@ namespace premia {
 namespace pygen {
 namespace karrigell {
 
-   inline void printIterateCheckBox(Formatter &out, NamedVar const &vr)
+   inline void printResultElement(Formatter &out, NamedVar const &vr)
    {
-      out << "clrinc()";
       out ("VLABEL", vr.name)("FRIENDLY", vr.src->Vname)
-      << "table <= TR(TD() + TD(INPUT(name='showGraphLabel_%VLABEL%',value='%FRIENDLY%')) + TD(checkbox('showGraph_%VLABEL%')),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+      << "('%VLABEL%', '%FRIENDLY%'),";
    }
-
+   
    inline void printIterateCheckBoxes(Formatter &out, VarList const &results)
    {
-      out << "if iterate_object <> None: ";
-      out << "   clrinc()";
-      out << "   table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
-      out << +foreach_x(results, printIterateCheckBox);
-      out << "   clrinc()";
-      out << "   table <= TR(TD() + TD(INPUT(name='showGraphLabel_Time',value='Computation Time')) + TD(checkbox('showGraph_Time')),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+      out << "result_members = [";
+      out << +foreach_x(results, printResultElement);
+      out << "]";
+      out << "printResultSeries(table, result_members, %BGCOLOR_BASE%)";
    }
     
 	inline void generatePricingMethod(Ctx & ctx, PricingMethod const & met)

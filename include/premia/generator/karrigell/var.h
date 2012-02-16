@@ -165,10 +165,9 @@ namespace karrigell {
 		inline void TableEx(Formatter & out, NamedVar const & vr)
 		{
 		    std::string star;
-		    if (vr.iterable) star = "*";
 			out("VAR_NAME", vr.name)
 			   ("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)
-               ("FRIENDLY_NAME", star + vr.src->Vname)
+               ("FRIENDLY_NAME", vr.src->Vname)
 			   << (seq, call(boost::bind(TableVal, _1, vr)));
 		}
 

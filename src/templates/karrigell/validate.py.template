@@ -5,8 +5,8 @@ from time import time
 
 Include('import.py')
 
-def checkbox(vname):
-   return INPUT(type="checkbox", name=vname, value="1", align="right", checked=True) 
+def checkbox(vname,is_checked=True):
+   return INPUT(type="checkbox", name=vname, value="1", align="right", checked=is_checked) 
 
 
 class Ctx:
