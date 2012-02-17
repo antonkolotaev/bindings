@@ -10,8 +10,8 @@
 extern "C" {
 	
 	#include "optype.h"
-    #include "enums.h"
-    #include "var.h"
+  #include "enums.h"
+  #include "var.h"
 	#include "premia_obj.h"
 	int InitVar();
 	extern int *true_typeV;

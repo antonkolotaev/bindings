@@ -89,14 +89,14 @@ bool tocopy(fs::path const &p)
 int main(int argc, char *argv[])
 {
     using namespace premia::pygen;
-    
+
     path_t current_path = fs::current_path();
     path_t root         = current_path.parent_path().parent_path();
     path_t python_dir;
     path_t data_dir;
     path_t template_dir;
     path_t output_path;
-    
+
     int verbosity;
     
     po::options_description desc("Allowed options");
@@ -107,20 +107,20 @@ int main(int argc, char *argv[])
         ("template-dir", po::value(&template_dir)->default_value(current_path / "templates" / "karrigell"), "directory containing templates for ksgen")
         ("data-dir",   po::value(&data_dir)->default_value(root / "data"), "directory containing premia data files")
         ("verbosity,v", po::value(&verbosity)->default_value(1), "verbosity level (0 - no output, 1 - basic, 2 - detailed)")
-    ;
-        
+        ;
+
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);   
-    
-	karrigell::Ctx ctx(output_path, verbosity);
-    
+
+    karrigell::Ctx ctx(output_path, verbosity);
+
     ctx.out(1)
-            << "premia-root: "  << root         << std::endl
-            << "output-dir: "   << output_path  << std::endl
-            << "python-dir: "   << python_dir   << std::endl
-            << "data-dir: "     << data_dir     << std::endl
-            << "template-dir: " << template_dir << std::endl;
+        << "premia-root: "  << root         << std::endl
+        << "output-dir: "   << output_path  << std::endl
+        << "python-dir: "   << python_dir   << std::endl
+        << "data-dir: "     << data_dir     << std::endl
+        << "template-dir: " << template_dir << std::endl;
 
     if (vm.count("help")) {
         std::cout << desc << "\n";
@@ -131,36 +131,36 @@ int main(int argc, char *argv[])
     
     copyDir(template_dir, output_path / "premia",tocopy);
 
-	InitVar();
+    InitVar();
 
-	strcpy(premia_data_dir, data_dir.string().c_str());
-	
+    strcpy(premia_data_dir, data_dir.string().c_str());
+
     ctx.out(1) << "Initializing...";
 
-	PremiaCtx p;
+    PremiaCtx p;
 
     ctx.out(1) << "ok!" << std::endl;
-    
-	ctx << p.models << p.families << p.pricings << p.enums << p.assets;
-	
-	{
-	   Formatter f(output_path / "import.py");
-	   f("PYTHON_DIR", python_dir.string())
-	        .process_file(template_dir / "import.py.template");
-	}
-   
-	{
-	   Formatter f(output_path / "all.py");
-	   f.process_file(template_dir / "all.py.template");
-	}
-	
-	{
-	   Formatter f(output_path / "index.py");
-	   f.process_file(template_dir / "validate.py.template");
-	}
-	
-	fs::copy_file(template_dir / "graph.pih", output_path / "graph.pih", fs::copy_option::overwrite_if_exists);
-	fs::copy_file(template_dir / "flotr2.min.js", output_path / "flotr2.min.js", fs::copy_option::overwrite_if_exists);
-	
+
+    ctx << p.models << p.families << p.pricings << p.enums << p.assets;
+
+        {
+            Formatter f(output_path / "import.py");
+            f("PYTHON_DIR", python_dir.string())
+                .process_file(template_dir / "import.py.template");
+        }
+
+        {
+            Formatter f(output_path / "all.py");
+            f.process_file(template_dir / "all.py.template");
+        }
+
+        {
+            Formatter f(output_path / "index.py");
+            f.process_file(template_dir / "validate.py.template");
+        }
+
+    fs::copy_file(template_dir / "graph.pih", output_path / "graph.pih", fs::copy_option::overwrite_if_exists);
+    fs::copy_file(template_dir / "flotr2.min.js", output_path / "flotr2.min.js", fs::copy_option::overwrite_if_exists);
+
     return 0;
 }

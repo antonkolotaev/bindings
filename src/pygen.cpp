@@ -33,6 +33,8 @@ typedef std::logic_error premia_exception;
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp> 
 
+/* Get shared library extension in SHEXT */
+#include "../../Src/config.h"
 
 
 using premia::pygen::formatter_dsl::Formatter;
@@ -69,7 +71,7 @@ int main(int argc, char *argv[])
     // making them absolute
     data_dir = !data_dir.root_directory().empty() ? data_dir : fs::current_path() / data_dir;
 
-	python::PyCtx ctx(data_dir, dll_dir, template_dir, output_path, verbosity);
+    python::PyCtx ctx(data_dir, dll_dir, template_dir, output_path, verbosity);
     
     ctx.out(1)
             << "premia-root: "  << root         << std::endl
@@ -84,21 +86,19 @@ int main(int argc, char *argv[])
     }    
 
     fs::create_directories(output_path);
-	python::createDir(output_path);
+    python::createDir(output_path);
 
-    fs::copy_file(dll_dir / "pypremia.so", output_path / "pypremia.so", fs::copy_option::overwrite_if_exists);  
+    InitVar();
 
-	InitVar();
-
-	strcpy(premia_data_dir, data_dir.string().c_str());
+    strcpy(premia_data_dir, data_dir.string().c_str());
 	
     ctx.out(1) << "Initializing...";
 
-	PremiaCtx p;
+    PremiaCtx p;
 
     ctx.out(1) << "ok!" << std::endl;
     
-	ctx << python::CommonPy() << p.models << p.families << p.pricings << p.enums << p.assets;
+    ctx << python::CommonPy() << p.models << p.families << p.pricings << p.enums << p.assets;
    
     return 0;
 }

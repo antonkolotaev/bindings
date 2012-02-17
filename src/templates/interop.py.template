@@ -1,3 +1,3 @@
-from pypremia import *
+from libpypremia import *
 
 init("%PREMIA_DATA%")
