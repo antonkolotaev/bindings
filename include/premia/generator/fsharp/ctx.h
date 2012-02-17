@@ -21,11 +21,11 @@ namespace fsharp {
 		/// constructs the context
 		/// \param output_dir path to the directory where Premia is installed (so it contains directories data, src etc.)
 		FsCtx(fs::path const & output_dir, fs::path const &data_dir, fs::path const &dll_path, fs::path const &template_dir, int verbosity) 
-			:	dll_path_(dll_path)
-			,   data_dir_(data_dir)
-			,	output_dir_(output_dir)
-			,   template_dir_(template_dir)
-			,   verbosity_(verbosity)
+			:	output_dir_(output_dir)
+			,	dll_path_(dll_path)
+			, data_dir_(data_dir)
+			, template_dir_(template_dir)
+			, verbosity_(verbosity)
 		{}
 		
 		std::ostream& out(int v) const 

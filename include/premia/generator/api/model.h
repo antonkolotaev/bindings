@@ -22,7 +22,7 @@ namespace api	 {
 		/// \param name corrected name of the model
 		template <class Ctx>
 		Model(Ctx & ctx, ::Model ** source, Asset & asset, std::string const & name)
-			:	name(name), asset(asset), source(source)
+			:	name(name), source(source), asset(asset)
 		{
 			// initialize the native model
 			(*(*source)->Init)(*source);

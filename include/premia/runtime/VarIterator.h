@@ -22,8 +22,8 @@ struct ArrayIterator
 	template <class Func>
 	    ArrayIterator(VAR *v, Func f)
 	    :   stopper_(f(v))
-	    ,   v_(v)
 	    ,   idx_(0)
+	    ,   v_(v)
 	{
 		if (stopper_ < 1) throw exception("Array size should be positive");
 	}
@@ -117,16 +117,16 @@ struct VarIterator
         void process_array_begin(Func f)
     {
 	    assert(!in_array_mode());
-		assert_in_valid_position();
-		if (current()->Vtype == PNLVECT || current()->Vtype == PNLVECTCOMPACT)
-		{
-			// start collecting values for the PNLVECTOR
-			array_writer_.reset(new ArrayIterator(current(), f));
-		}
-		else
-		{
-			throw exception("current VAR is expected to be PNLVECT or PNLVECTCOMPACT");
-		}				
+      assert_in_valid_position();
+      if (current()->Vtype == PNLVECT || current()->Vtype == PNLVECTCOMPACT)
+        {
+          // start collecting values for the PNLVECTOR
+          array_writer_.reset(new ArrayIterator(current(), f));
+        }
+      else
+        {
+          throw exception("current VAR is expected to be PNLVECT or PNLVECTCOMPACT");
+        }				
     }
 
 	
@@ -174,7 +174,6 @@ private:
 	void check_type(int type, std::string const & label)
 	{
 		assert_in_valid_position();
-		VAR * c = current();
 		if (true_typeV[current()->Vtype] != type)
 			throw premia::api::exception("Expected data of " + label + " type");
 	}

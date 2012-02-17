@@ -35,9 +35,9 @@ namespace python {
 		      fs::path const & output_dir,
 		      int verbosity) 
 			: data_dir     (data_dir)
+			, output_dir   (output_dir)
 			, dll_dir      (dll_dir)
 			, template_dir (template_dir)
-			, output_dir   (output_dir)
 			, verbosity    (verbosity)
 		{}
 		

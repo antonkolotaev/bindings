@@ -83,8 +83,6 @@ namespace fsharp {
 		/// prints generic compute method
 		void computeGeneric(Formatter & out, PricingMethod const & method)
 		{
-			unsigned results_size = method.results.size();
-
 			out << (seq, 
 				"member private x.compute'(opt : #IPremiaObj, model : #IPremiaObj) = ", +(seq,
 					"Util.premiaCompute(model, opt, x)", 
@@ -123,8 +121,6 @@ namespace fsharp {
 	/// generates an F# wrapper for a pricing method
 	FsCtx const & generateMethod (FsCtx const & ctx, PricingMethod const & method)
 	{
-		unsigned results_size = method.results.size();
-
 		if (method.members.empty())
 		{
 			Formatter f(ctx.filename(method));

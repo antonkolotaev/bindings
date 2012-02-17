@@ -65,7 +65,7 @@ namespace api    {
 		/// \param asset an asset the family belongs to
 		template <class Ctx>
 		Family(Ctx& ctx, ::Family **f, Asset const& asset)
-			: name(getName(*f)), asset(asset), source(f)
+			: asset(asset), name(getName(*f)), source(f)
 		{
 			for (::Option ** option = **f; *option; ++option)
 			{

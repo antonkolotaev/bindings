@@ -30,7 +30,7 @@ namespace formatter_dsl {
 		/// \param p path to the file
 		/// \param indent_size size for indentation (default value: 3)
 		explicit Formatter(fs::path const & p, int indent_size = 3)
-			: out_(p), indent_(0), buf_(), indent_size_(indent_size)
+			: indent_size_(indent_size), indent_(0), buf_(), out_(p)
 		{
 		    if (!out_)
 		        throw std::logic_error("Unable to open " + p.string() + " for writing");

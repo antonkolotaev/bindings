@@ -110,8 +110,6 @@ namespace python {
 		/// prints body of the generated property setter for the variable
 		inline void propertySetter(Formatter & out, NamedVar const & vr, VarList const & vars)
 		{
-			VAR const * v = vr.src;
-
 			// if var is Model_Size we need adjust some other dependent properties
 			/*if (v == reinterpret_cast<VAR*>(BSND_model.TypeModel))	// Model_Size
 			{

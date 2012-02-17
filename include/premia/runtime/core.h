@@ -64,7 +64,7 @@ namespace api		{
 	/// \param base_path path to Premia 'data' directory 
 	void init_premia(const char *base_path)
 	{
-		int unused = chdir(base_path);
+		chdir(base_path);
 		strcpy(premia_data_dir, base_path);
 		path_sep = "/";
 	}

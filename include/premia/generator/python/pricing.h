@@ -47,8 +47,6 @@ namespace python {
 	/// generates wrapper for a pricing method
 	PyCtx const & operator << (PyCtx const & ctx, PricingMethod const & method)
 	{
-		unsigned results_size = method.results.size();
-
 		Formatter f(ctx.filename(method));
 		f  ("CLASS", method.name)
 		   ("MODEL_NAME", method.pricing.model->name)
