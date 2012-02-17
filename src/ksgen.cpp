@@ -78,7 +78,11 @@ namespace po = boost::program_options;
 
 bool tocopy(fs::path const &p)
 {
+#if (BOOST_VERSION < 104600)
+   std::string e = p.extension();
+#else
    std::string e = p.extension().string();
+#endif
    return
       e == ".js" ||
       e == ".pih"||
