@@ -24,6 +24,10 @@ How to compile:
 --------------
 
 > make
-
 > make all-install WWW=path_to_karrigell/www
+
+Python 2.7 is used by default, if you need to change it you can use
+
+> make PYTHON_VERSION=2.XX
+> make all-install PYTHON_VERSION=2.XX WWW=path_to_karrigell/www
 

@@ -2,8 +2,9 @@ WWW=
 BOOST_CPPFLAGS=@BOOST_CPPFLAGS@
 BOOST_LDFLAGS=@BOOST_LDFLAGS@
 
-PYTHON_DIR=`python2.7 -c 'import sys; print sys.prefix'`
-PYTHON_INCLUDE=$(PYTHON_DIR)/include/python2.7
+PYTHON_VERSION=2.7
+PYTHON_DIR=`python$(PYTHON_VERSION) -c 'import sys; print sys.prefix'`
+PYTHON_INCLUDE=$(PYTHON_DIR)/include/python$(PYTHON_VERSION)
 PYTHON_LIB=$(PYTHON_DIR)/lib
 
 include $(top_srcdir)/Make.incl
@@ -12,7 +13,7 @@ AM_CPPFLAGS=$(PNL_INCLUDES) $(PREMIA_MINIMUM_INCLUDES)
 lib_LTLIBRARIES=libpypremia.la libfspremia.la 
 
 libpypremia_la_SOURCES=pypremia.cpp
-libpypremia_la_LDFLAGS=-avoid-version -L$(PYTHON_LIB) $(BOOST_LDFLAGS) -lboost_python -lpython2.7 -lboost_system $(AM_LDFLAGS)
+libpypremia_la_LDFLAGS=-avoid-version -L$(PYTHON_LIB) $(BOOST_LDFLAGS) -lboost_python -lpython$(PYTHON_VERSION) -lboost_system $(AM_LDFLAGS)
 libpypremia_la_CXXFLAGS=-I$(includedir) $(BOOST_CPPFLAGS) -I$(PYTHON_INCLUDE) -I../include $(AM_CXXFLAGS)
 libpypremia_la_LIBADD=$(libdir)/libpremia.la $(libdir)/libpnl.la
 
