@@ -13,18 +13,21 @@ namespace karrigell {
 
 		Formatter f(ctx.filename(m));
 		f	("MODEL_NAME", m.name)
+		   ("ID", m.ID())
 			("MODEL_LABEL", (*m.source)->Name)
 			("OBJ", "model")
 			("BGCOLOR_BASE","mod_colors")
 			("ENTITY_NAME", "model")
 			<< (seq, 
 			   foreach_x(m.members, print::includeEnums),
-				"%OBJ% = models.%MODEL_NAME%()", "",
-            "ctx = Ctx()",
+			   "def %OBJ%_%ID%(table, %OBJ%=None):",
+				"   if %OBJ% == None: %OBJ% = models.%MODEL_NAME%()", "",
+            "   ctx = Ctx()",
 				//foreach_x(m.members, print::Ini),
-				"printModelType(table, '%MODEL_NAME%')",
-				foreach_x(m.members, print::Table),
-				call(boost::bind(print::Iterables, _1, boost::cref(m.members)))
+				"   printModelType(table, '%MODEL_NAME%')",
+				+foreach_x(m.members, print::Table),
+				+call(boost::bind(print::Iterables, _1, boost::cref(m.members))),
+				"   return %OBJ%"
 			);
 	}
 

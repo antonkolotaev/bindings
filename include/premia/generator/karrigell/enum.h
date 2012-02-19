@@ -51,7 +51,10 @@ namespace karrigell {
 	    out("BGCOLOR_BASE", "colors");
       
        out << "L.select(value=e)";
-       out << "table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+       out << "if history_mode:";
+       out << "   table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+       out << "else:";
+       out << "   table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
 				
 		 out.decindent();
 

@@ -1,25 +1,38 @@
 def printGraphSerie(table, vlabel, friendly, colors):
       clrinc()
       
-      if 'showGraphLabel_'+vlabel in REQUEST:
-         old_label = REQUEST['showGraphLabel_'+vlabel]
-      else: 
+      if history_mode:
          old_label = friendly
+         old_checked = False
+      else:
+         if 'showGraphLabel_'+vlabel in REQUEST:
+            old_label = REQUEST['showGraphLabel_'+vlabel]
+         else: 
+            old_label = friendly
 
-      if 'showGraphLabel_'+vlabel in REQUEST:
-         old_checked = 'showGraph_'+vlabel in REQUEST
-      else: 
-         old_checked = True
+         if 'showGraphLabel_'+vlabel in REQUEST:
+            old_checked = 'showGraph_'+vlabel in REQUEST
+         else: 
+            old_checked = True
          
       table <= TR(TD() + TD(INPUT(name='showGraphLabel_'+vlabel,value=old_label)) + TD(checkbox('showGraph_'+vlabel,old_checked)),bgcolor=clr(colors,clridx))
 
 def printResultSeries(table, results, colors):
-   if iterate_object <> None: 
-      clrinc()
-      table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
-      for (vlabel, friendly) in results:
-         printGraphSerie(table, vlabel, friendly, colors)
-      printGraphSerie(table, 'Time', 'Computation Time', colors)
+   if history_mode:
+      if res_labels <> []:
+         clrinc()
+         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
+         for i in range(len(results)):
+            vlabel = results[i][0]
+            friendly = res_labels[i]
+            printGraphSerie(table, vlabel, friendly, colors)
+   else:
+      if iterate_object <> None: 
+         clrinc()
+         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
+         for (vlabel, friendly) in results:
+            printGraphSerie(table, vlabel, friendly, colors)
+         printGraphSerie(table, 'Time', 'Computation Time', colors)
 
 def processIteration(ctx, obj, entity, colors):
 

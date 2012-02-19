@@ -17,7 +17,7 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
    clrinc()
    mode = None
    
-   if ctx.reload:
+   if ctx.reload and not history_mode:
       loadVectorCompact(propname, vlabel, pmem)
 
    if vlabel + '__t' in REQUEST:
@@ -31,7 +31,9 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
       else:
          mode = 1
 
-   L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
+   if not history_mode:
+      L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
+      
    if mode == 0:
       ctx.iterables.append(label)
       ctx.iterables_corr.append(vlabel + '__c')
@@ -40,9 +42,15 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
          for i in range(len(pmem)): pmem[i] = x          
       ctx.iterables_setter.append(F)
 
-      L.select(value=0)
-      table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
-      table <= TR(TD(INPUT(name=vlabel + '__c',value=pmem[0])),bgcolor=clr(colors,clridx))
+      if not history_mode:
+         L.select(value=0)
+         table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
+         mc = INPUT(name=vlabel + '__c',value=pmem[0])
+         table <= TR(TD(mc),bgcolor=clr(colors,clridx))
+      else:
+         table <= TR(TD(label, align='right') + TD(pmem[0]) + TD(''),bgcolor=clr(colors,clridx))
+            
+      
 
    if mode == 1:
       for i in range(len(pmem)): 
@@ -50,8 +58,17 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
          ctx.iterables_corr.append(vlabel + str(i))
       ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
       ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
-      
-      L.select(value=1)
-      table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
-      table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
+   
+      if not history_mode:   
+         L.select(value=1)
+         table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
+         table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
+      else:
+         def as_string(arr):
+            s = "["
+            for x in arr:
+               s += x
+               s += ";"
+            return s + "]"
+         table <= TR(TD(label, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=clr(colors,clridx))
 

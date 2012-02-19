@@ -1,7 +1,17 @@
 def printVector(table, colors, label, vlabel, pmem):
+   def mc(vlabel, label):
+      if not history_mode:
+         return INPUT(name=vlabel,value=label)
+      else:
+         return label
+   def rc(s):
+      if not history_mode:
+         return s  
+      else:
+         return ''    
    clrinc()
-   table <= TR(TD(label, align='right',rowspan=len(pmem)) + TD(INPUT(name=vlabel + '[0]',value=pmem[0])) + TD('R',rowspan=len(pmem)),bgcolor=clr(colors,clridx))
-   table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
+   table <= TR(TD(label, align='right',rowspan=len(pmem)) + TD(mc(vlabel + '[0]',pmem[0])) + TD(rc('R'),rowspan=len(pmem)),bgcolor=clr(colors,clridx))
+   table <= Sum([TR(TD(mc(vlabel + '[' + str(i) + ']',pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
 
 def iterVector(ctx, pmem, label, vlabel):
    
@@ -23,7 +33,7 @@ def loadVector(property_name, vlabel, pmem):
 
 def processVector(ctx, table, colors, obj, propname, label, vlabel):
    pmem = getattr(obj, propname)
-   if ctx.reload:
+   if ctx.reload and not history_mode:
       loadVector(propname, vlabel, pmem)
    printVector(table, colors, label, vlabel, pmem)
    iterVector(ctx, pmem, label, vlabel)

@@ -13,7 +13,13 @@
     </style>
   </head>
   <body>
-    <div id="container">
+  <table>
+   <tr>
+      <td>
+         <div id="container">
+      </td>
+   </tr>
+  </table>
     <!--[if lt IE 9]>
     <script type="text/javascript" src="flashcanvas.js"></script>
     <![endif]-->
@@ -42,9 +48,8 @@
   ];
 
 
-  // This function prepend each label with 'y = '
   function labelFn (label) {
-    return 'y = ' + label;
+    return label;
   }
 
   // Draw graph

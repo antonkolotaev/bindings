@@ -32,13 +32,15 @@ namespace karrigell {
 			("ENTITY_NAME", "method")
 			<< (seq, 
 			   foreach_x(met.members, print::includeEnums),
-				"%OBJ% = pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME%()", "",
-            "ctx = Ctx()",
-            "ctx.reload = run_computation",
-				"printMethodType(table, '%METHOD_NAME%')",
-				foreach_x(met.members, print::Table),
-				call(boost::bind(print::Iterables, _1, boost::cref(met.members))),
-				call(boost::bind(printIterateCheckBoxes, _1, boost::cref(met.results)))
+			   "def %OBJ%_%MODEL_NAME%_%FAMILY_NAME%_%METHOD_NAME%(table, %OBJ%=None):",
+				"   if %OBJ% == None: %OBJ% = pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME%()", "",
+            "   ctx = Ctx()",
+            "   ctx.reload = run_computation",
+				"   printMethodType(table, '%METHOD_NAME%')",
+				+foreach_x(met.members, print::Table),
+				+call(boost::bind(print::Iterables, _1, boost::cref(met.members))),
+				+call(boost::bind(printIterateCheckBoxes, _1, boost::cref(met.results))),
+				"   return %OBJ%"
 			);
 	}
 

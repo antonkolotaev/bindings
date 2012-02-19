@@ -7,9 +7,12 @@ Include('import.py')
 
 def checkbox(vname,is_checked=True):
    return INPUT(type="checkbox", name=vname, value="1", align="right", checked=is_checked) 
+   
+session = Session()
 
 
 class Ctx:
+
    def __init__(self):
       self.iterables = ['No iteration']
       self.iterables_corr = ['']
@@ -17,15 +20,112 @@ class Ctx:
       self.iterables_setter = ['']
       self.reload = True
       
-Include(r'premia/scalar.py')
 Include(r'premia/vector.py')
-Include(r'premia/vector_compact.py')
+#Include(r'premia/vector_compact.py')
 Include(r'premia/process_iteration.py')   
 
+#Include(r'premia/scalar.py')
+
+def loadVectorCompact(property_name, vlabel, pmem):
+    try:
+       if vlabel + '__c' in REQUEST:
+         val = float(REQUEST[vlabel + '__c'])
+         for i in range(len(pmem)):                 
+            pmem[i] = val
+       else:
+          for i in range(len(pmem)):
+             src = vlabel + "[" + str(i) + "]"
+             if src in REQUEST: 
+                pmem[i] = float(REQUEST[src])
+    except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
+
+def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
+   pmem = getattr(obj, propname)
+   clrinc()
+   mode = None
+   
+   if ctx.reload and not history_mode:
+      loadVectorCompact(propname, vlabel, pmem)
+
+   if vlabel + '__t' in REQUEST:
+      if REQUEST[vlabel + '__t'] == '0':
+         mode = 0
+      else:
+         mode = 1
+   else:
+      if all(map(lambda x: x == pmem[0], pmem)):
+         mode = 0
+      else:
+         mode = 1
+
+   if not history_mode:
+      L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
+      
+   if mode == 0:
+      ctx.iterables.append(label)
+      ctx.iterables_corr.append(vlabel + '__c')
+      ctx.iterables_getter.append(lambda: pmem[0])
+      def F(x):
+         for i in range(len(pmem)): pmem[i] = x          
+      ctx.iterables_setter.append(F)
+
+      if not history_mode:
+         L.select(value=0)
+         table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
+         mc = INPUT(name=vlabel + '__c',value=pmem[0])
+         table <= TR(TD(mc),bgcolor=clr(colors,clridx))
+      else:
+         table <= TR(TD(label, align='right') + TD(pmem[0]) + TD(''),bgcolor=clr(colors,clridx))
+            
+      
+
+   if mode == 1:
+      for i in range(len(pmem)): 
+         ctx.iterables.append(label + '[' + str(i) + ']')
+         ctx.iterables_corr.append(vlabel + str(i))
+      ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+      ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+   
+      if not history_mode:   
+         L.select(value=1)
+         table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
+         table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
+      else:
+         def as_string(arr):
+            s = "["
+            for x in arr:
+               s += str(x) + ";"
+            return s + "]"
+         table <= TR(TD(label, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=clr(colors,clridx))
+
+def loadScalar(ctx, property_name, vlabel, obj, conv):
+    try:
+       if not history_mode and ctx.reload and vlabel in REQUEST:
+          setattr(obj, property_name, conv(REQUEST[vlabel]))
+    except Exception, ex:
+       add_error('Error in '+ property_name +':' + str(ex))
+
+def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
+   loadScalar(ctx, propname, vlabel, obj, conv)
+   if not history_mode:
+      mc = INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname))      
+   else:
+      mc = getattr(obj, propname)
+      constr = ''
+      
+   table <= rowinc(colors, label, mc, constr)
+   if iterable:
+      ctx.iterables.append(label)
+      ctx.iterables_corr.append(vlabel)
+      ctx.iterables_getter.append(lambda: getattr(obj, propname))
+      ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
 
    
 iterate_object = None
 iterate_label = '_'
+
+history_mode = False
 
 def extlist(lst,size):
     if len(lst) < size:
@@ -151,7 +251,15 @@ if 'asset_type' in REQUEST:
       run_computation = True
       _iterate_model = _iterate_option = _iterate_method = '0' 
 
-table <= (TR(TD((B('Asset Type:')),align='right') + TD(enum_submit('asset_type', assets.all(), _a))+TD(),bgcolor=mod_colors[0]))
+def printAsset(table, asset_id):
+   if not history_mode:
+      mc = enum_submit('asset_type', assets.all(), asset_id)
+   else:
+      mc = asset_id
+   table <= (TR(TD((B('Asset Type:')),align='right') + TD(mc)+TD(),bgcolor=mod_colors[0]))
+
+
+printAsset(table, _a)
 
 clridx = 0
 
@@ -178,9 +286,15 @@ def rowinc(colors, c_1, c_2, c_3=""):
    return row(colors, c_1, c_2, c_3)
 
 def printModelType(table, model_type):
-   table <= rowinc(mod_colors, B('Model:'), enum_submit('model', model_list, model_type))
+   if history_mode:
+      mc = model_type
+   else:
+      mc = enum_submit('model', model_list, model_type)
+   table <= rowinc(mod_colors, B('Model:'), mc)
 
 Include(r'/premia/mod/'+ _m + '/model.py')
+
+model = eval('model_' + _m + '(table_model)')
 
 table_option = TABLE(Class="content")
 table = table_option
@@ -195,7 +309,11 @@ if 'family' in REQUEST:
       _iterate_option = _iterate_method = '0' 
 
 def printFamilyType(table, family_type):
-   table <= rowinc(opt_colors, B('Family:'), enum_submit_mod('family', model.families(), family_type))
+   if not history_mode:
+      mc = enum_submit_mod('family', model.families(), family_type)
+   else:
+      mc = family_type
+   table <= rowinc(opt_colors, B('Family:'), mc)
 
 if 'option' in REQUEST:
    new_opt = pricing_options(_m,_f)[int(_option)].__name__
@@ -206,11 +324,17 @@ if 'option' in REQUEST:
       _iterate_option = _iterate_method = '0' 
 
 def printOptionType(table, option_type):
-   table <= rowinc(opt_colors, B('Option:'), enum_submit('option', pricing_options(_m,_f), option_type))
+   if not history_mode:
+      mc = enum_submit('option', pricing_options(_m,_f), option_type)
+   else:
+      mc = option_type
+   table <= rowinc(opt_colors, B('Option:'), mc)
 
 clridx = 1
 
 Include(r'/premia/opt/' + _f + '/' + _o + '.py')
+
+opt = eval('opt_' + _f + '_' + _o + '(table_option)')
 
 table_method = TABLE(Class="content")
 table = table_method
@@ -228,10 +352,15 @@ if _meth <> new_meth:
 clridx = 1
 
 def printMethodType(table, method_type):
-   table <= rowinc(met_colors, B('Pricing method:'), enum_submit('pricing_method', methods, method_type))
+   if not history_mode:
+      mc = enum_submit('pricing_method', methods, method_type)
+   else:
+      mc = method_type
+   table <= rowinc(met_colors, B('Pricing method:'), mc)
 
 Include(r'/premia/mod/' + _m + '/' + _m + '_' + _f + '/' + _meth + '.py')
 
+method = eval('method_'+_m+'_'+_f+'_'+_meth+'(table_method)')
 
 res = None
 
@@ -248,7 +377,12 @@ Include(r'premia/run_computation.py')
 Include(r'premia/print_table_result.py')
 Include(r'premia/print_scalar_result.py')        
 
+if res_t == None and res <> None:
+   printScalarResult(table_method, res)
 
+if res_t <> None:
+   printVectorResult(table_method, res_t)
+   
 #print 'iterate_model = ', _iterate_model
 im = str(_iterate_model)
 #print 'iterate_option = ', _iterate_option
@@ -269,14 +403,75 @@ if len(g_errors) > 0:
 
 g_table <= TR(TD(table_model,valign='top') + TD(table_option,valign='top') + TD(table_method,valign='top'))
 
+if 'history' not in dir(session):
+   session.history = []
 
+
+if 'ClearHistory' in REQUEST:
+   session.history = []
+   
 form <= g_table
 
-if res_t <> None:
-    form <= table_result_i 
+if session.history <> []:
+   form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
 print form
 
 
 if res_t <> None:
     Include(r'premia/graph.pih') 
+
+history_mode = True
+
+g_table = TABLE(Class="content")
+
+if 'result_labels' not in dir():
+   result_labels = [] 
+
+to_save = None
+
+if res_t <> None or res <> None:   
+   to_save = (_a, model, opt, method, result_labels, res, res_t)
+
+
+
+for h_idx in range(len(session.history)):
+   h = session.history[h_idx]
+
+   table_model_h = TABLE(Class="content")
+   table_opt_h = TABLE(Class="content")
+   table_meth_h = TABLE(Class="content")
+
+   asset_id = h[0]
+   printAsset(table_model_h, asset_id)
+   model_list = eval('assets.' + asset_id + '.models()')
+
+   model = h[1]
+   Include(r'/premia/mod/'+ model.ID() + '/model.py')
+   eval('model_' + model.ID() + '(table_model_h, model)')
+
+   opt = h[2]
+   Include(r'/premia/opt/' + opt.familyName() + r'/' + type(opt).__name__ + '.py')
+   opt = eval('opt_' + opt.familyName() + '_' + type(opt).__name__ + '(table_opt_h, opt)')
+
+   method = h[3]
+   res_labels = h[4]
+   res = h[5]
+   res_t = h[6]
+
+   Include(r'/premia/mod/' + model.ID() + '/' + model.ID() + '_' + opt.familyName() + '/' + type(method).__name__ + '.py')
+   method = eval('method_'+model.ID()+'_'+opt.familyName()+'_'+type(method).__name__+'(table_meth_h, method)')
+   
+   if res_t == None and res <> None:
+      printScalarResult(table_meth_h, res)
+
+   g_table <= TR(TD(table_model_h,valign='top')+TD(table_opt_h,valign='top')+TD(table_meth_h,valign='top'))
+
+print g_table
+
+if res_t <> None or res <> None:
+   form <= table_result_i 
+
+if to_save <> None:
+   session.history.insert(0, to_save)
+

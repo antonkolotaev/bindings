@@ -1,4 +1,4 @@
-if res_t == None and res <> None:
+def printScalarResult(table_method, res):
     idx = 1
     table_method <= TR(TD(B("Result:"),align='right') + TD(B("")))
     for k,v in res:

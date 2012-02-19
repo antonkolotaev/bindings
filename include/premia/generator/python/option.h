@@ -12,6 +12,7 @@ namespace python {
 			("OPTION_ID", id(opt))
 			("ASSET_ID",  id(opt.family.asset))
 			("FAMILY_ID", id(opt.family))
+			("FAMILY_NAME", opt.family.name)
 			<< (seq, 
 				"from ...common import *", "",
 				"class %NAME%(object):", +(seq, "",
@@ -19,6 +20,8 @@ namespace python {
 						+call(boost::bind(print::Initializers, _1, boost::ref(opt.vars))), "", 
 					foreach_x(opt.vars, boost::bind(print::PropertyEx, _1, _2, boost::cref(opt.vars))), "", 
 					"def __repr__(self): return getRepr(self, 'Option')", 
+					"@staticmethod",
+					"def familyName(): return '%FAMILY_NAME%'",
  					"def makeCurrent(self):", +(seq,
 						"from premia import interop",
  						"interop.setCurrentAsset(%ASSET_ID%)",
