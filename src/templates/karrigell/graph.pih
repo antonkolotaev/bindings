@@ -1,11 +1,10 @@
-<html>
   <head>
     <style type="text/css">
       body {
         margin: 0px;
         padding: 0px;
       }
-      #container {
+      #<%=qqq%> {
         width : 600px;
         height: 384px;
         margin: 8px auto;
@@ -16,7 +15,7 @@
   <table>
    <tr>
       <td>
-         <div id="container">
+         <div id="<%=qqq%>">
       </td>
    </tr>
   </table>
@@ -61,7 +60,7 @@
     },
     HtmlText : false
   });
-})(document.getElementById('container'));      
+})(document.getElementById('<%=qqq%>'));      
     </script>
   </body>
-</html>
+

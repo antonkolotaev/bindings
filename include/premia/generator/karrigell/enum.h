@@ -28,8 +28,7 @@ namespace karrigell {
 
       out << (seq,
             "   if vlabel not in REQUEST:",
-            "      REQUEST[vlabel] = '0'",
-            "   e = int(REQUEST[vlabel])");
+            "      REQUEST[vlabel] = '0'");
 
 	    
 	    out.incindent();
@@ -37,6 +36,12 @@ namespace karrigell {
 	    out << "clrinc()";
 	    
 	    out << (seq, "labels = [", +foreach_x(e.members, printEnumChoices), "]");  
+	    
+	    out << (seq,
+            "if history_mode:",
+            "   e = labels.index(pmem._labels[pmem._value.key()])",
+            "else:",
+            "   e = int(REQUEST[vlabel])");
 	    
 	    bool has_params = false;
 	    
