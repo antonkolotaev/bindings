@@ -1,3 +1,4 @@
+"""
 def script(s):
     print "<script type=\"text/javascript\">"
     print s
@@ -13,7 +14,6 @@ def todata(v):
 #print REQUEST
 
 result_labels = []
-
 def printVectorResult(table_result_i, res_t):
     script("var datas = []")
     idx = 1
@@ -43,4 +43,4 @@ def printVectorResult(table_result_i, res_t):
             if not is_header and is_selected:               
                script("datas.push({ data : "+todata(v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
 
-
+"""

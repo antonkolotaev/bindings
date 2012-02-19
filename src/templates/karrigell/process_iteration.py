@@ -23,9 +23,10 @@ def printResultSeries(table, results, colors):
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
          for i in range(len(results)):
-            vlabel = results[i][0]
+            vlabel = str(h_idx) + results[i][0]
             friendly = res_labels[i][0]
             printGraphSerie(table, vlabel, friendly, colors)
+         printGraphSerie(table, str(h_idx) + 'Time', res_labels[len(res_labels)-1][0], colors)
    else:
       if iterate_object <> None: 
          clrinc()
