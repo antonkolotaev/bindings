@@ -484,8 +484,6 @@ def printVectorHistoryResult(table_result_i, res_t): #ddd
     script("var datas = []")
     idx = 1
     rli = -1
-    print res_labels
-    print res_t
     
     for k,v in res_t:
         idx = idx + 1
@@ -495,33 +493,24 @@ def printVectorHistoryResult(table_result_i, res_t): #ddd
 
             table_result_i <= TR(TD(k, align='right',rowspan=len(v[0])) + Sum([TD(L[0]) for L in v]),bgcolor=clr(res_colors,idx))
             
-            print "rli=", rli
             if res_labels[rli][1]:               
             
                 script("datas.push({ data : "+todata(map(lambda L: L[0], v))+", label : \'"+res_labels[rli][0]+"\' })")
             
             rli = rli + 1
-            if rli >= len(res_labels):
-               break
                 
             for i in range(1, len(v[0])):
                 table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
     
-                print "rli=", rli
                 if res_labels[rli][1]:               
                    script("datas.push({ data : "+todata(map(lambda L: L[i], v))+", label : \'"+ res_labels[rli][0]  +"\' })")         
                 rli = rli + 1 
-                if rli >= len(res_labels):
-                  break
         else:
             table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
                
-            print "rli=", rli
             if not is_header and res_labels[rli][1]:               
                script("datas.push({ data : "+todata(v)+", label : \'"+res_labels[rli][0]+"\' })")        
             rli = rli + 1  
-            if rli >= len(res_labels):
-               break
    
 for h_idx in range(len(session.history)):
    h = session.history[h_idx]
