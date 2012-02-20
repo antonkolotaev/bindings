@@ -477,7 +477,7 @@ if 'result_labels' not in dir():
 to_save = None
 
 if res_t <> None or res <> None:   
-   to_save = (_a, model, opt, method, result_labels, res, res_t)
+   to_save = (_a, model, opt, method, result_labels, res, res_t, iterate_label)
 
 
 def printVectorHistoryResult(table_result_i, res_t): #ddd
@@ -512,7 +512,9 @@ def printVectorHistoryResult(table_result_i, res_t): #ddd
                script("datas.push({ data : "+todata(v)+", label : \'"+res_labels[rli][0]+"\' })")        
             rli = rli + 1  
    
-for h_idx in range(len(session.history)):
+for hh_idx in range(len(session.history)):
+
+   h_idx = len(session.history) - hh_idx - 1
    h = session.history[h_idx]
 
    g_table = TABLE(Class="content")
@@ -537,6 +539,7 @@ for h_idx in range(len(session.history)):
    res_labels = h[4]
    res = h[5]
    res_t = h[6]
+   h_iterate_label = h[7]
    
    print h_idx, res_labels
 
@@ -561,5 +564,5 @@ for h_idx in range(len(session.history)):
 
 
 if to_save <> None:
-   session.history.insert(0, to_save)
+   session.history.append(to_save)
 
