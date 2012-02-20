@@ -46,11 +46,25 @@ def printResultSeries(table, results, colors):
       if res_labels <> []:
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
-         for i in range(len(results)):
-            vlabel = str(h_idx) + "_" + results[i][0]
-            friendly = res_labels[i][0]
-            printGraphSerie(table, vlabel, friendly, colors)
-         printGraphSerie(table, str(h_idx) + '_Time', res_labels[len(res_labels)-1][0], colors)
+         #print "RESULTS=", results
+         idx = 0
+         for i in range(1, len(res_t)):
+            vlabel = str(h_idx) + "_" + res_t[i][0]
+            if type(res_t[i][1][0]) == list:
+               for j in range(len(res_t[i][1][0])):
+                  friendly = res_labels[idx][0]
+                  idx = idx + 1   
+                  printGraphSerie(table, vlabel+str(j), friendly, colors)
+            else:
+               friendly = res_labels[idx][0]
+               idx = idx + 1   
+               printGraphSerie(table, vlabel, friendly, colors)
+         for (res_hh, res_lh) in res_h:
+            for i in range(1, len(res_hh)):
+               vlabel = str(h_idx) + "_" + res_hh[i][0]
+               friendly = res_lh[i-1]
+               printGraphSerie(table, vlabel, friendly, colors)
+         
    else:
       if iterate_object <> None: 
          clrinc()
@@ -525,28 +539,36 @@ def printVectorResult(table_result_i, res_t):
          res_hh = []
          res_lh = []
          for i in range(len(h_results)):
-            vlabel = str(h_idx) + "_" + h_results[i][0]
-            if 'showGraph_'+vlabel in REQUEST:
-              #print "==>", REQUEST['showGraphLabel_'+ vlabel]
-              hk,hv = h_results[i]
-              
-              if res_hh == []:
-                  res_hh = [h_results[0]]
-              
-              res_hh.append((hk+"_"+str(h_idx), hv))
-              res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
-               
-              if type(hv[0]) == list:
+            hk,hv = h_results[i]
+ 
+            if type(hv[0]) == list:
+               for j in range(len(hv[0])):
+                  vlabel = str(h_idx) + "_" + hk + str(j)
+                  if 'showGraph_'+vlabel in REQUEST:
 
-                  #script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[0], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"[0]\' })")
-                  for j in range(len(hv[0])):
-                      table_result_i <= script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[j], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"["+str(j)+"]\' })")          
-              else:
+                     if res_hh == []:
+                           res_hh = [h_results[0]]
+
+                     res_hh.append((hk+"_"+str(h_idx), map(lambda x: x[j], hv)))
+                     res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
+
+                     table_result_i <= script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[j], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+            else:
+               vlabel = str(h_idx) + "_" + hk
+            
+               if 'showGraph_'+vlabel in REQUEST:
+                 
+                  if res_hh == []:
+                        res_hh = [h_results[0]]
+                    
+                  res_hh.append((hk+"_"+str(h_idx), hv))
+                  res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
+                     
                   ddd = todata(h_results[0][1], hv)
-                  #print ddd
                   table_result_i <= script("datas.push({ data : "+ddd+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+         
          if res_hh <> []: res_h.append((res_hh, res_lh))
-    print res_h
+    #print res_h
     return res_h
 
 Include(r'premia/print_scalar_result.py')        
@@ -587,8 +609,6 @@ if 'ClearHistory' in REQUEST:
    
 form <= g_table
 
-if session.history <> []:
-   form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
 if res_t <> None:
    form <= table_result_i 
@@ -682,7 +702,7 @@ def printVectorHistoryResult(table_result_i, res_t, res_labels): #ddd
     idx = 1
     rli = -1
     
-    print res_labels
+    #print res_labels
     
     for k,v in res_t:
         idx = idx + 1
@@ -713,6 +733,9 @@ def printVectorHistoryResult(table_result_i, res_t, res_labels): #ddd
 
 if to_save <> None:
    session.history.append(to_save)
+
+if session.history <> []:
+   form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
 for hh_idx in range(len(session.history)):
 
