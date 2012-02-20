@@ -22,7 +22,104 @@ class Ctx:
       
 Include(r'premia/vector.py')
 #Include(r'premia/vector_compact.py')
-Include(r'premia/process_iteration.py')   
+#Include(r'premia/process_iteration.py')   
+
+def printGraphSerie(table, vlabel, friendly, colors):
+      clrinc()
+      enabled = True
+      
+      if history_mode:
+         old_label = friendly
+         old_checked = False
+         enabled = h_iterate_label == iterate_label
+      else:
+         if 'showGraphLabel_'+vlabel in REQUEST:
+            old_label = REQUEST['showGraphLabel_'+vlabel]
+         else: 
+            old_label = friendly
+
+         if 'showGraphLabel_'+vlabel in REQUEST:
+            old_checked = 'showGraph_'+vlabel in REQUEST
+         else: 
+            old_checked = True
+         
+      table <= TR(TD() + TD(INPUT(name='showGraphLabel_'+vlabel,value=old_label,disabled = not enabled)) + TD(checkbox('showGraph_'+vlabel,old_checked), disabled = not enabled),bgcolor=clr(colors,clridx))
+
+def printResultSeries(table, results, colors):
+   if history_mode:
+      if res_labels <> []:
+         clrinc()
+         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
+         for i in range(len(results)):
+            vlabel = str(h_idx) + "_" + results[i][0]
+            friendly = res_labels[i][0]
+            printGraphSerie(table, vlabel, friendly, colors)
+         printGraphSerie(table, str(h_idx) + '_Time', res_labels[len(res_labels)-1][0], colors)
+   else:
+      if iterate_object <> None: 
+         clrinc()
+         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
+         for (vlabel, friendly) in results:
+            printGraphSerie(table, vlabel, friendly, colors)
+         printGraphSerie(table, 'Time', 'Computation Time', colors)
+
+def processIteration(ctx, obj, entity, colors):
+
+   if not history_mode:
+      G = globals()
+      
+      clrinc()
+      iterate_vlabel = 'iterate_'+entity
+      _iterate_vlabel = '_iterate_'+entity
+      
+      if _iterate_vlabel in G:
+         iterate_idx = int(G[_iterate_vlabel])
+      else:
+         iterate_idx = 0
+
+      old_idx = G['oldit'][entity]
+      #print "old_idx=",old_idx, "iterate_idx=", iterate_idx
+      if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
+         #print iterate_idx >= len(ctx.iterables_corr), G['_il'], ctx.iterables_corr, iterate_idx  
+         if iterate_idx >= len(ctx.iterables_corr) or G['_il'] <> ctx.iterables_corr[iterate_idx]:
+            if G['_il'] in ctx.iterables_corr: 
+               iterate_idx = ctx.iterables_corr.index(G['_il'])
+            else:
+               iterate_idx = 0
+            #print "==>", iterate_idx
+
+      iterate_value_vlabel = iterate_vlabel + '_' + ctx.iterables_corr[iterate_idx]
+         
+      table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod(iterate_vlabel, ctx.iterables, ctx.iterables[iterate_idx]))+TD(),bgcolor=clr(colors,clridx)))
+      
+      if iterate_idx <> 0:
+      
+         clrinc()
+
+         if iterate_value_vlabel in REQUEST:
+            old_value = REQUEST[iterate_value_vlabel]
+         else:
+            old_value = ctx.iterables_getter[iterate_idx]()
+            
+         table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name=iterate_value_vlabel,value=old_value))+TD(),bgcolor=clr(colors,clridx)))
+         
+         if 'iteration_steps' in REQUEST:
+            steps_no = REQUEST['iteration_steps']
+         else:
+            steps_no = 10
+          
+         
+         clrinc()      
+         table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(colors,clridx)))
+         
+         G['_iterate_' + entity] = str(iterate_idx)
+         G['iterate_object'] = obj
+         G['iterate_label'] = ctx.iterables_corr[iterate_idx] 
+         G['iterate_name'] = ctx.iterables[iterate_idx]
+         G['iteration_getter'] = ctx.iterables_getter[iterate_idx]
+         G['iteration_setter'] = ctx.iterables_setter[iterate_idx]
+         if iterate_value_vlabel in REQUEST:
+            G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
 
 #Include(r'premia/scalar.py')
 
@@ -376,14 +473,17 @@ table_result_i = TABLE(Class="content")
 Include(r'premia/run_computation.py')
 #Include(r'premia/print_table_result.py')
 def script(s):
+   """
     print "<script type=\"text/javascript\">"
     print s
     print "</script>"
+   """
+   return SCRIPT(s, type=r"text/javascript")
 
-def todata(v):
+def todata(header, v):
    s = "["
    for i in range(len(v)):
-      s += "[" + str(res_t[0][1][i]) + "," + str(v[i]) + "],"
+      s += "[" + str(header[i]) + "," + str(v[i]) + "],"
    s += "]"
    return s
 
@@ -391,7 +491,7 @@ def todata(v):
 
 result_labels = []
 def printVectorResult(table_result_i, res_t):
-    script("var datas = []")
+    table_result_i <= script("var datas = []")
     idx = 1
     for k,v in res_t:
         idx = idx + 1
@@ -406,18 +506,41 @@ def printVectorResult(table_result_i, res_t):
                result_labels.extend(map(lambda i: (REQUEST['showGraphLabel_' + k]+"["+str(i)+"]", ('showGraph_' + k in REQUEST)), range(len(v[0]))))          
 
             if not is_header and is_selected:               
-                script("datas.push({ data : "+todata(map(lambda L: L[0], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"[0]\' })")
+                table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[0], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"[0]\' })")
             for i in range(1, len(v[0])):
                 table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
                 if not is_header and is_selected:               
-                   script("datas.push({ data : "+todata(map(lambda L: L[i], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\' })")          
+                   table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[i], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\' })")          
         else:
             table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
             if not is_header:
                result_labels.append((REQUEST['showGraphLabel_' + k], ('showGraph_' + k in REQUEST)))
                
             if not is_header and is_selected:               
-               script("datas.push({ data : "+todata(v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
+               table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
+
+    for hh_idx in range(len(session.history)):
+      h_idx = len(session.history) - hh_idx - 1
+      h = session.history[h_idx]
+      h_results = h[6]
+      h_iterate_label = h[7]
+      if h_results <> None and h_iterate_label == iterate_label:
+         for i in range(len(h_results)):
+            vlabel = str(h_idx) + "_" + h_results[i][0]
+            if 'showGraph_'+vlabel in REQUEST:
+              #print "==>", REQUEST['showGraphLabel_'+ vlabel]
+              hk,hv = h_results[i]
+               
+              if type(hv[0]) == list:
+
+                  #script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[0], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"[0]\' })")
+                  for j in range(len(hv[0])):
+                      table_result_i <= script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[j], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"["+str(j)+"]\' })")          
+              else:
+                  ddd = todata(h_results[0][1], hv)
+                  #print ddd
+                  table_result_i <= script("datas.push({ data : "+ddd+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+                       
 
 Include(r'premia/print_scalar_result.py')        
 
@@ -462,14 +585,80 @@ if session.history <> []:
 if res_t <> None:
    form <= table_result_i 
 
-print form
+graph_t = """
+  <head>
+  </head>
+  <body>
+    <style type="text/css">
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+      #qqq {
+        width : 600px;
+        height: 384px;
+        margin: 8px auto;
+      }
+    </style>
+  <table>
+   <tr>
+      <td>
+         <div id="qqq">
+      </td>
+   </tr>
+  </table>
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="flashcanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="premia/flotr2.min.js"></script>
+    <script type="text/javascript">
+(function basic_legend(container) {
 
+  var
+    d1 = [],
+    d2 = [],
+    d3 = [],
+    data,
+    graph, i;
+
+  // Data Generation
+  for (i = 0; i < 15; i += 0.5) {
+    d1.push([i, i + Math.sin(i+Math.PI)]);
+    d2.push([i, i]);
+    d3.push([i, 15-Math.cos(i)]);
+  }
+
+  data = [
+    { data : d1, label :'x + sin(x+&pi;)' },
+    { data : d2, label :'x' },
+    { data : d3, label :'15 - cos(x)' }
+  ];
+
+
+  function labelFn (label) {
+    return label;
+  }
+
+  // Draw graph
+  graph = Flotr.draw(container, datas, {
+    legend : {
+      position : 'se',            // Position the legend 'south-east'.
+      labelFormatter : labelFn,   // Format the labels.
+      backgroundColor : '#D2E8FF' // A light blue background color.
+    },
+    HtmlText : false
+  });
+})(document.getElementById('qqq'));      
+    </script>
+  </body>
+"""
 
 if res_t <> None:
-    qqq = 'container'
-    Include(r'premia/graph.pih') 
+    form <= TEXT(graph_t.replace('qqq','container'))
 
 history_mode = True
+
+#print form
 
 if 'result_labels' not in dir():
    result_labels = [] 
@@ -479,9 +668,10 @@ to_save = None
 if res_t <> None or res <> None:   
    to_save = (_a, model, opt, method, result_labels, res, res_t, iterate_label)
 
+#print REQUEST
 
 def printVectorHistoryResult(table_result_i, res_t): #ddd
-    script("var datas = []")
+    table_result_i <= script("var datas = []")
     idx = 1
     rli = -1
     
@@ -495,7 +685,7 @@ def printVectorHistoryResult(table_result_i, res_t): #ddd
             
             if res_labels[rli][1]:               
             
-                script("datas.push({ data : "+todata(map(lambda L: L[0], v))+", label : \'"+res_labels[rli][0]+"\' })")
+                table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[0], v))+", label : \'"+res_labels[rli][0]+"\' })")
             
             rli = rli + 1
                 
@@ -503,15 +693,18 @@ def printVectorHistoryResult(table_result_i, res_t): #ddd
                 table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
     
                 if res_labels[rli][1]:               
-                   script("datas.push({ data : "+todata(map(lambda L: L[i], v))+", label : \'"+ res_labels[rli][0]  +"\' })")         
+                   table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[i], v))+", label : \'"+ res_labels[rli][0]  +"\' })")         
                 rli = rli + 1 
         else:
             table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
                
             if not is_header and res_labels[rli][1]:               
-               script("datas.push({ data : "+todata(v)+", label : \'"+res_labels[rli][0]+"\' })")        
+               table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], v)+", label : \'"+res_labels[rli][0]+"\' })")        
             rli = rli + 1  
-   
+
+if to_save <> None:
+   session.history.append(to_save)
+
 for hh_idx in range(len(session.history)):
 
    h_idx = len(session.history) - hh_idx - 1
@@ -541,7 +734,7 @@ for hh_idx in range(len(session.history)):
    res_t = h[6]
    h_iterate_label = h[7]
    
-   print h_idx, res_labels
+   #print h_idx, res_labels
 
    Include(r'/premia/mod/' + model.ID() + '/' + model.ID() + '_' + opt.familyName() + '/' + type(method).__name__ + '.py')
    method = eval('method_'+model.ID()+'_'+opt.familyName()+'_'+type(method).__name__+'(table_meth_h, method)')
@@ -551,18 +744,18 @@ for hh_idx in range(len(session.history)):
 
    g_table <= TR(TD(table_model_h,valign='top')+TD(table_opt_h,valign='top')+TD(table_meth_h,valign='top'))
 
-   print g_table
+   form <= g_table
 
    if res_t <> None:
       table_result_h = TABLE(Class="content")
       printVectorHistoryResult(table_result_h, res_t)
-      print table_result_h
+      form <= table_result_h
 
    if res_t <> None:
        qqq = 'container' + str(h_idx)
-       Include(r'premia/graph.pih') 
+       #Include(r'premia/graph.pih') 
+       form <= TEXT(graph_t.replace('qqq',qqq))
 
+print form
 
-if to_save <> None:
-   session.history.append(to_save)
 

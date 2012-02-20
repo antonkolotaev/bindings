@@ -1,4 +1,6 @@
   <head>
+  </head>
+  <body>
     <style type="text/css">
       body {
         margin: 0px;
@@ -10,8 +12,6 @@
         margin: 8px auto;
       }
     </style>
-  </head>
-  <body>
   <table>
    <tr>
       <td>
