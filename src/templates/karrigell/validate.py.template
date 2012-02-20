@@ -5,8 +5,8 @@ from time import time
 
 Include('import.py')
 
-def checkbox(vname,is_checked=True):
-   return INPUT(type="checkbox", name=vname, value="1", align="right", checked=is_checked) 
+def checkbox(vname,is_checked=True, is_disabled = False):
+   return INPUT(type="checkbox", name=vname, value="1", align="right", checked=is_checked, disabled = is_disabled) 
    
 session = Session()
 
@@ -26,24 +26,20 @@ Include(r'premia/vector.py')
 
 def printGraphSerie(table, vlabel, friendly, colors):
       clrinc()
-      enabled = True
       
-      if history_mode:
+      if 'showGraphLabel_'+vlabel in REQUEST:
+         old_label = REQUEST['showGraphLabel_'+vlabel]
+      else: 
          old_label = friendly
-         old_checked = False
-         enabled = h_iterate_label == iterate_label
-      else:
-         if 'showGraphLabel_'+vlabel in REQUEST:
-            old_label = REQUEST['showGraphLabel_'+vlabel]
-         else: 
-            old_label = friendly
 
-         if 'showGraphLabel_'+vlabel in REQUEST:
-            old_checked = 'showGraph_'+vlabel in REQUEST
-         else: 
-            old_checked = True
+      if 'showGraphLabel_'+vlabel in REQUEST:
+         old_checked = 'showGraph_'+vlabel in REQUEST
+      else: 
+         old_checked = not history_mode
          
-      table <= TR(TD() + TD(INPUT(name='showGraphLabel_'+vlabel,value=old_label,disabled = not enabled)) + TD(checkbox('showGraph_'+vlabel,old_checked), disabled = not enabled),bgcolor=clr(colors,clridx))
+      enabled = not history_mode or h_iterate_label == iterate_label
+         
+      table <= TR(TD() + TD(INPUT(name='showGraphLabel_'+vlabel,value=old_label,disabled = not enabled)) + TD(checkbox('showGraph_'+vlabel,old_checked, not enabled)),bgcolor=clr(colors,clridx))
 
 def printResultSeries(table, results, colors):
    if history_mode:
@@ -493,6 +489,7 @@ result_labels = []
 def printVectorResult(table_result_i, res_t):
     table_result_i <= script("var datas = []")
     idx = 1
+    res_h = []
     for k,v in res_t:
         idx = idx + 1
         is_header = k == res_t[0][0]
@@ -525,11 +522,19 @@ def printVectorResult(table_result_i, res_t):
       h_results = h[6]
       h_iterate_label = h[7]
       if h_results <> None and h_iterate_label == iterate_label:
+         res_hh = []
+         res_lh = []
          for i in range(len(h_results)):
             vlabel = str(h_idx) + "_" + h_results[i][0]
             if 'showGraph_'+vlabel in REQUEST:
               #print "==>", REQUEST['showGraphLabel_'+ vlabel]
               hk,hv = h_results[i]
+              
+              if res_hh == []:
+                  res_hh = [h_results[0]]
+              
+              res_hh.append((hk+"_"+str(h_idx), hv))
+              res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
                
               if type(hv[0]) == list:
 
@@ -540,15 +545,18 @@ def printVectorResult(table_result_i, res_t):
                   ddd = todata(h_results[0][1], hv)
                   #print ddd
                   table_result_i <= script("datas.push({ data : "+ddd+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
-                       
+         if res_hh <> []: res_h.append((res_hh, res_lh))
+    print res_h
+    return res_h
 
 Include(r'premia/print_scalar_result.py')        
 
 if res_t == None and res <> None:
    printScalarResult(table_method, res)
 
+res_h = []
 if res_t <> None:
-   printVectorResult(table_result_i, res_t)
+   res_h = printVectorResult(table_result_i, res_t)
    
 #print 'iterate_model = ', _iterate_model
 im = str(_iterate_model)
@@ -666,14 +674,15 @@ if 'result_labels' not in dir():
 to_save = None
 
 if res_t <> None or res <> None:   
-   to_save = (_a, model, opt, method, result_labels, res, res_t, iterate_label)
+   to_save = (_a, model, opt, method, result_labels, res, res_t, iterate_label, res_h)
 
 #print REQUEST
 
-def printVectorHistoryResult(table_result_i, res_t): #ddd
-    table_result_i <= script("var datas = []")
+def printVectorHistoryResult(table_result_i, res_t, res_labels): #ddd
     idx = 1
     rli = -1
+    
+    print res_labels
     
     for k,v in res_t:
         idx = idx + 1
@@ -733,6 +742,7 @@ for hh_idx in range(len(session.history)):
    res = h[5]
    res_t = h[6]
    h_iterate_label = h[7]
+   res_h = h[8]
    
    #print h_idx, res_labels
 
@@ -746,12 +756,20 @@ for hh_idx in range(len(session.history)):
 
    form <= g_table
 
-   if res_t <> None:
-      table_result_h = TABLE(Class="content")
-      printVectorHistoryResult(table_result_h, res_t)
-      form <= table_result_h
+   form <= script("var datas = []")
 
    if res_t <> None:
+      table_result_h = TABLE(Class="content")
+      printVectorHistoryResult(table_result_h, res_t, res_labels)
+      form <= table_result_h
+   
+   for (res_hh, res_lh) in res_h:
+      res_hf = [(l,True) for l in res_lh]
+      table_result_h = TABLE(Class="content")
+      printVectorHistoryResult(table_result_h, res_hh, res_hf)
+      form <= table_result_h
+   
+   if res_t <> None or res_h <> []:
        qqq = 'container' + str(h_idx)
        #Include(r'premia/graph.pih') 
        form <= TEXT(graph_t.replace('qqq',qqq))
