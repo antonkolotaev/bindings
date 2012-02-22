@@ -53,8 +53,11 @@ install-python: pygen libpypremia.la
 
 install-karrigell: install-python ksgen
 	if test -z $(WWW); then \
-		echo "Installation dir is not defined"; \
-		echo "Please call make install-karrigell WWW=path_to_www_dir"; \
+		echo "**********************************************************"; \
+		echo "* Installation dir is not defined                        *"; \
+		echo "* Please call make install-karrigell WWW=path_to_www_dir *"; \
+		echo "**********************************************************"; \
+		exit 1; \
 	else \
 		./ksgen --output-dir=$(WWW) ;\
 	fi
