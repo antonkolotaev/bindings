@@ -23,7 +23,11 @@ Makefile.am to create a link ending in .so
 How to compile:
 --------------
 
+> ./autogen.sh [--with-python=python2.7]
+
+Note that if you have already run autogen.sh once, you can directly run 
 > ./configure [--with-python=python2.7]
+
 > make
 > make install WWW=path_to_karrigell/www
 
