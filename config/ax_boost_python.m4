@@ -83,11 +83,10 @@ if test "$ac_cv_boost_python" = "yes"; then
      ax_python_lib=$with_boost_python
      ax_boost_python_lib=boost_python-$with_boost_python
    fi])
+  save_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$LDFLAGS $PYTHON_LDFLAGS $BOOST_LDFLAGS"
   for ax_lib in $ax_python_lib $ax_boost_python_lib boost_python; do
-    save_LDFLAGS="$LDFLAGS"
-    LDFLAGS="$LDFLAGS -L$PYTHON_LIB_DIR $PYTHON_LIB $BOOST_LDFLAGS"
-    AC_CHECK_LIB($ax_lib, exit, [BOOST_PYTHON_LIB="-l$ax_lib" break])
-    LDFLAGS="$LDFLAGS_save"
+    AC_CHECK_LIB($ax_lib, exit, [BOOST_PYTHON_LIB="-l$ax_lib" LDFLAGS="$LDFLAGS_save" break])
   done
   AC_SUBST(BOOST_PYTHON_LIB)
 fi
