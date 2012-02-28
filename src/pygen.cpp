@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+#  define BOOST_FILESYSTEM_VERSION 3
+#endif
+
 #include <premia/import.h>
 
 #include <istream>
