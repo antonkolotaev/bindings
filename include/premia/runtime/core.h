@@ -7,6 +7,11 @@
 	\warning To be included into only one translation unit of a project since contains some initialization code
 */
 
+#ifdef _MSC_VER
+#include <direct.h>
+#endif
+
+
 #include <boost/scoped_ptr.hpp>
 #include <premia/import.h>
 #include <premia/runtime/VarIterator.h>
@@ -59,6 +64,7 @@ namespace api		{
 	}
 
 	using namespace details;
+
 
 	/// \brief Initializes Premia
 	/// \param base_path path to Premia 'data' directory 

@@ -1,3 +1,4 @@
+#include <premia/import.h>
 
 #include <istream>
 #include <boost/filesystem.hpp>
@@ -14,7 +15,6 @@ typedef fs::path  path_t;
 
 typedef boost::format fmt;
 namespace lm = boost::lambda;
-#include <premia/import.h>
 
 const std::string premia_lib_name = "premia";
 

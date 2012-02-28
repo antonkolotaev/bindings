@@ -15,10 +15,14 @@ namespace pygen  {
             } 
         } buf;
         
+#ifdef _MSC_VER
+        null_stream() : std::basic_ostream<char>(&buf) {}
+#else
         null_stream()
         {
             rdbuf(&buf);
         }
+#endif
     };    
     
 }}
