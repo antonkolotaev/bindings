@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/kolotaev/trunk/bindings/python')
+sys.path.append('python')
 
 from premia import pricings
 from premia import models
@@ -24,7 +24,7 @@ for m in pricings.all():
                     print option
                     print model
                     print method
-                    print method(model, option)
+                    print method(option, model)
                 except Exception,exc:
                     print "EXCEPTION CAUGHT:", exc
                 end = time()
