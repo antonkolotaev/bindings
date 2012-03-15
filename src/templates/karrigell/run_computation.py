@@ -56,7 +56,7 @@ if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
                 begin = time()
                 iterations = int(_iteration_steps)
                 for i in range(iterations):
-                    q = queue.get(timeout=begin + computation_timout - time())
+                    q = queue.get(timeout=begin + computation_timeout - time())
                     res.extend(q)
                     if res_t == []:
                         for k,v in q:
