@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <boost/noncopyable.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <premia/generator/api/asset.h>
 #include <premia/generator/api/var_conversion.h>
@@ -59,6 +60,7 @@ namespace api	 {
     inline fs::path relativeDocPath(Model const &m)
     {
         std::string modelName = correctedFilename(m);
+        boost::to_lower(modelName);
         return fs::path("mod") / modelName / modelName;
     }
 

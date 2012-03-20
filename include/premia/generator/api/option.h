@@ -98,7 +98,8 @@ namespace api    {
     inline fs::path relativeDocPath(Option const &opt)
     {
         std::string optionName = correctedFilename(opt);
-        return fs::path("opt") / opt.family.name / optionName;
+        boost::to_lower(optionName);
+        return fs::path("opt") / boost::to_lower_copy(opt.family.name) / optionName;
     }
 
 	/// \brief gets the ordinal number of the family

@@ -25,12 +25,18 @@ libfspremia_la_CPPFLAGS=-DPREMIADLL_API=
 libfspremia_la_CXXFLAGS=-I../include $(BOOST_CPPFLAGS) $(PREMIA_CPPFLAGS) $(AM_CXXFLAGS)
 libfspremia_la_LIBADD=$(libdir)/libpremia.la
 
-noinst_PROGRAMS=pygen ksgen fsgen
+noinst_PROGRAMS=pygen ksgen fsgen check_help
 
 pygen_SOURCES=pygen.cpp
 pygen_CXXFLAGS=$(BOOST_CPPFLAGS) -I../include $(PREMIA_CPPFLAGS) $(AM_CXXFLAGS)
 pygen_LDFLAGS=$(BOOST_FILESYSTEM_LIB) $(BOOST_PROGRAM_OPTIONS_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_LDFLAGS)  $(AM_LDFLAGS)
 pygen_LDADD=$(libdir)/libpremia.la
+
+check_help_SOURCES=check_help.cpp
+check_help_CXXFLAGS=$(BOOST_CPPFLAGS) -I../include $(PREMIA_CPPFLAGS) $(AM_CXXFLAGS)
+check_help_LDFLAGS=$(BOOST_FILESYSTEM_LIB) $(BOOST_PROGRAM_OPTIONS_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_LDFLAGS)  $(AM_LDFLAGS)
+check_help_LDADD=$(libdir)/libpremia.la
+
 
 ksgen_SOURCES=ksgen.cpp
 ksgen_CXXFLAGS=$(BOOST_CPPFLAGS) -I../include $(PREMIA_CPPFLAGS) $(AM_CXXFLAGS)
