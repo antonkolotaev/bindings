@@ -57,6 +57,15 @@ namespace api    {
 		return (**f)[0].ID;
 	}
 
+    inline const char * correctedFilename(Option const & opt)
+    {
+        if (const char * corrected = (*opt.source)->HelpFilenameHint)
+        {
+            return corrected;
+        }
+        return (*opt.source)->Name;
+    }
+
 	/// \brief A wrapper over an option family
 	struct Family : boost::noncopyable
 	{
@@ -85,6 +94,12 @@ namespace api    {
 		/// pointer to the native family
 		::Family**				source;
 	};
+
+    inline fs::path relativeDocPath(Option const &opt)
+    {
+        std::string optionName = correctedFilename(opt);
+        return fs::path("opt") / opt.family.name / optionName;
+    }
 
 	/// \brief gets the ordinal number of the family
 	inline int id(Family const & f)

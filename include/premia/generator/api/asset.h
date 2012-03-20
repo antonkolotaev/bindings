@@ -1,10 +1,15 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <boost/ptr_container/ptr_list.hpp>
+#include <boost/filesystem.hpp>
 #include <premia/import.h>
 
 namespace premia {
+
+    namespace fs = boost::filesystem;
+
 namespace pygen  {
 namespace api {
 

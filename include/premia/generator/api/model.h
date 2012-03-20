@@ -47,6 +47,31 @@ namespace api	 {
 		std::list<Pricing*>	pricings;
 	};
 
+    inline const char * correctedFilename(Model const & m)
+    {
+        if (const char * corrected = (*m.source)->HelpFilenameHint)
+        {
+            return corrected;
+        }
+        return (*m.source)->ID;
+    }
+
+    inline fs::path relativeDocPath(Model const &m)
+    {
+        std::string modelName = correctedFilename(m);
+        return fs::path("mod") / modelName / modelName;
+    }
+
+    inline fs::path pdf(fs::path const &relative_path)
+    {
+        return fs::path(relative_path.string() + "_doc.pdf");
+    }
+
+    inline fs::path tex(fs::path const &relative_path)
+    {
+        return fs::path(relative_path.string() + "_doc.tex");
+    }
+
 	/// \brief ordinal number of the model
 	inline int id(Model const & m)
 	{
@@ -58,6 +83,8 @@ namespace api	 {
 	{
 		/// \brief list of the models
 		boost::ptr_list<Model>	models;
+
+        typedef boost::ptr_list<Model>::const_iterator const_iterator;
 
 		/// \brief collects all Premia models
 		template <class Ctx>

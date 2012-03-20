@@ -3,8 +3,10 @@
 
 #include <map>
 #include <string>
+#include <boost/format.hpp>
 #include <premia/exception.h>
-#include "enums.h"
+#include <premia/generator/utils/symbols.h>
+#include <premia/generator/api/enum.h>
 
 namespace premia {
 namespace pygen {
