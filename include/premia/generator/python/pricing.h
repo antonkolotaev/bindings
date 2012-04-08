@@ -33,6 +33,12 @@ namespace python {
 
 			out("RES_NAME", v.name)("RES_IDX", boost::get<1>(e)) << getResultFmt(v.src->Vtype);
 		}
+		
+		void OutParamName(Formatter & out, NamedVar const & v)
+		{
+			out("RES_NAME", v.name) << "'%RES_NAME%',";
+		}
+		
 	}
 
 	inline void printResults(Formatter & out, VarList const & results)
@@ -80,6 +86,9 @@ namespace python {
 						+call(boost::bind(printResults, _1, boost::cref(method.results))),
 					"]"), "",
 
+				"@staticmethod",
+				"def results(): ", +(seq, 
+					"return [", +foreach_x(method.results, print::OutParamName), "]"), "",
 				"@staticmethod",
 				"def parameters(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::member), "]"), "",
