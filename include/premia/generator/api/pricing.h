@@ -65,24 +65,38 @@ namespace api    {
 		PricingMethod(Ctx & ctx, ::PricingMethod **source, Pricing & pricing)
 			:	source(source), pricing(pricing), name((*source)->Name)
 		{
-			// initializing the native method
-			(*(*source)->Init)(*source, (**pricing.family->source)[0]);		
-
-			// getting variables
-			getVars(ctx, reinterpret_cast<VAR*>((*source)->Par), MAX_PAR, members);
+            bool initialized = false;
 
 			// obtaining a list of options compatible with the method
 			BOOST_FOREACH(Option & opt, pricing.family->options)
 			{
 				if ((*(*source)->CheckOpt)(*opt.source, *pricing.model->source) == OK)
 				{
+                    if (!initialized)
+                    {
+                        // initializing the native method
+                        (*(*source)->Init)(*source, *opt.source);
+                        initialized = true;
+                    }
+
 					compatible_options.push_back(&opt);
 
 					opt.methods_for_models[pricing.model].insert(this);
 				}
 			}
 
-			// getting method results
+            if (!initialized)
+            {
+                // it is very bad
+                (*(*source)->Init)(*source, *pricing.family->options.front().source);
+
+                std::cout << "Pricing method " << name << " has no compatible options" << std::endl;
+            }
+
+            // getting variables
+            getVars(ctx, reinterpret_cast<VAR*>((*source)->Par), MAX_PAR, members);
+
+            // getting method results
 			getVars(ctx, reinterpret_cast<VAR*>((*source)->Res), MAX_PAR, results);
 		}
 
