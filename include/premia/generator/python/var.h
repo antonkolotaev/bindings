@@ -174,7 +174,7 @@ namespace python {
 			/// for FILENAME
 			std::string operator () (std::string const & i)  
 			{
-				return (boost::format("'%1%'") % i).str(); 
+				return (boost::format("r'%1%'") % i).str(); 
 			}
 
 			/// for PNLVECT and PNLVECTCOMPACT

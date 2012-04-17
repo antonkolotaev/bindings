@@ -29,7 +29,10 @@ namespace api    {
 			:	family(family), name(name), source(option)
 		{
 			// if the option is n-dimensional, we need a model instance to correctly initialize it
-			::Model * model = strcmp((*option)->ID, "STDND") == 0 || strcmp((*option)->ID, "STDNDc") == 0 ? &BSND_model : 0;
+			::Model * model = 
+                strcmp((*option)->ID, "STDND") == 0  ? &BSND_model :
+                strcmp((*option)->ID, "STDNDc") == 0 ? &COPULA_model :
+                0;
 
 			(*(*option)->Init)(*option, model);
 

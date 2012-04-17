@@ -19,6 +19,7 @@ extern "C" {
 	extern FILE * out_stream;
 	extern FILE * g_dup_file;
 	extern Model  BSND_model;
+    extern Model  COPULA_model;
 	extern Family STDND_family;
 }
 
