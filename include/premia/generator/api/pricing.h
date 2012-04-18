@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <premia/generator/api/model.h>
 #include <premia/generator/api/option.h>
 

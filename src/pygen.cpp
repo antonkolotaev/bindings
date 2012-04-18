@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
     }    
 
     fs::create_directories(output_path);
+    
     python::createDir(output_path);
 
     InitVar();

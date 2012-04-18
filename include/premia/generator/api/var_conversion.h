@@ -1,6 +1,7 @@
 #ifndef _premia_generator_api_var_conversion_h_included_
 #define _premia_generator_api_var_conversion_h_included_
 
+#include <iostream>
 #include <premia/generator/api/var_wrapper.h>
 #include <premia/generator/api/enum.h>
 
