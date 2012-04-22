@@ -2,6 +2,7 @@
 
 #include <premia/generator/api/pricing.h>
 #include <premia/generator/karrigell/var.h>
+#include <premia/generator/karrigell/result_kinds.h>
 
 namespace premia {
 namespace pygen {
