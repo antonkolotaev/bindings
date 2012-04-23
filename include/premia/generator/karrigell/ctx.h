@@ -16,6 +16,8 @@ namespace karrigell {
 		    ,   verbosity_(verbosity)
 		{}
 		
+		path_t const& basePath() const { return base_path_; }
+		
 		std::ostream& out(int v) const 
 		{
 	   	   static null_stream nullstr;

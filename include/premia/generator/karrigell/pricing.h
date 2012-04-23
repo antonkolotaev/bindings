@@ -10,7 +10,8 @@ namespace karrigell {
 
    inline void printResultElement(Formatter &out, NamedVar const &vr)
    {
-      out ("VLABEL", vr.name)("FRIENDLY", vr.src->Vname)
+      out ("VLABEL", vr.name)
+          ("FRIENDLY", vr.src->Vname)
       << "('%VLABEL%', '%FRIENDLY%'),";
    }
    
@@ -81,6 +82,8 @@ namespace karrigell {
 
 	inline Ctx& operator << (Ctx & ctx, Pricings const & p)
 	{
+	   ctx << ResultKindsInitialized();
+	   
 		std::for_each(p.pricings.begin(), p.pricings.end(), boost::bind(generatePricing, boost::ref(ctx), _1));
 
 		return ctx;

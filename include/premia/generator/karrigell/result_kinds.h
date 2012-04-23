@@ -33,6 +33,21 @@ namespace karrigell {
             throw std::logic_error(("cannot find kind for result " + res_name).c_str());
          return it->second;   
       }      
+
+      static void printKind(Formatter &out, std::pair<std::string, Kind> const &k)
+      {
+         out("LABEL", k.first)("ID", k.second.second)("SHOW", k.second.first ? "True" : "False")
+            << "'%LABEL%' : (%SHOW%, %ID%),";
+      }
+      
+	   friend Ctx& operator << (Ctx & ctx, ResultKinds const & kinds)
+	   {
+	      Formatter out(ctx.basePath() / "result_kinds.py");   
+	      
+	      out << (seq, "result_kinds = {", +foreach_x(kinds.result_to_kind_, printKind), "}");
+	      
+	      return ctx;
+	   }
       
    private:      
       Result2Kind    result_to_kind_;
@@ -154,13 +169,7 @@ namespace karrigell {
          ;
       }
    };
-   
-   inline ResultKinds::Kind resultKind(const char *corrResName)
-   {
-      static ResultKindsInitialized kinds;
-      return kinds.lookup(corrResName);
-   }
-
+ 
 }}}
 
 

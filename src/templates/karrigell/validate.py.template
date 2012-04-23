@@ -4,6 +4,9 @@ from multiprocessing import Process,Queue
 from time import time
 
 Include('import.py')
+Include(r'premia/result_kinds.py')
+
+result_kinds['Time'] = (False,-1)
 
 def checkbox(vname,is_checked=True, is_disabled = False):
    return INPUT(type="checkbox", name=vname, value="1", align="right", checked=is_checked, disabled = is_disabled) 
@@ -24,7 +27,7 @@ Include(r'premia/vector.py')
 #Include(r'premia/vector_compact.py')
 #Include(r'premia/process_iteration.py')   
 
-def printGraphSerie(table, vlabel, friendly, colors):
+def printGraphSerieEx(table, vlabel, friendly, colors, old_checked):
       clrinc()
       
       if 'showGraphLabel_'+vlabel in REQUEST:
@@ -32,14 +35,16 @@ def printGraphSerie(table, vlabel, friendly, colors):
       else: 
          old_label = friendly
 
-      if 'showGraphLabel_'+vlabel in REQUEST:
-         old_checked = 'showGraph_'+vlabel in REQUEST
-      else: 
-         old_checked = not history_mode
-         
       enabled = not history_mode or h_iterate_label == iterate_label
          
       table <= TR(TD() + TD(INPUT(name='showGraphLabel_'+vlabel,value=old_label,disabled = not enabled)) + TD(checkbox('showGraph_'+vlabel,old_checked, not enabled)),bgcolor=clr(colors,clridx))
+
+def printGraphSerie(table, vlabel, friendly, colors):
+   if 'showGraphLabel_'+vlabel in REQUEST:
+      old_checked = 'showGraph_'+vlabel in REQUEST
+   else: 
+      old_checked = not history_mode
+   printGraphSerieEx(table, vlabel, friendly, colors, old_checked)
 
 def printResultSeries(table, results, colors):
    if history_mode:
@@ -70,8 +75,8 @@ def printResultSeries(table, results, colors):
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
          for (vlabel, friendly) in results:
-            printGraphSerie(table, vlabel, friendly, colors)
-         printGraphSerie(table, 'Time', 'Computation Time', colors)
+            printGraphSerieEx(table, vlabel, friendly, colors, result_kinds[vlabel][0])
+         printGraphSerieEx(table, 'Time', 'Computation Time', colors, False)
 
 def processIteration(ctx, obj, entity, colors):
 
@@ -499,6 +504,17 @@ def todata(header, v):
 
 #print REQUEST
 
+datas = {}
+
+def corrected(s):
+   r = ""
+   for c in s:
+      if c.isalnum():
+         r += c
+      else:
+         r += '_'
+   return r
+
 result_labels = []
 def printVectorResult(table_result_i, res_t):
     table_result_i <= script("var datas = []")
@@ -508,6 +524,10 @@ def printVectorResult(table_result_i, res_t):
         idx = idx + 1
         is_header = k == res_t[0][0]
         is_selected = ('showGraph_' + k in REQUEST)
+  
+        if not is_header and is_selected:
+           kind = result_kinds[k][1]
+           if kind not in datas: datas[kind] = []
 
         if type(v[0]) == list:
 
@@ -515,20 +535,23 @@ def printVectorResult(table_result_i, res_t):
 
             if not is_header:
                result_labels.extend(map(lambda i: (REQUEST['showGraphLabel_' + k]+"["+str(i)+"]", ('showGraph_' + k in REQUEST)), range(len(v[0]))))          
-
+            
             if not is_header and is_selected:               
-                table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[0], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"[0]\' })")
+                #table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[0], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"[0]\' })")
+                datas[kind].append(("\'"+REQUEST['showGraphLabel_' + k]+"[0]\'", todata(res_t[0][1], map(lambda L: L[0], v))))    
             for i in range(1, len(v[0])):
                 table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
                 if not is_header and is_selected:               
-                   table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[i], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\' })")          
+                   #table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[i], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\' })")          
+                   datas[kind].append(("\'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\'", todata(res_t[0][1], map(lambda L: L[i], v))))    
         else:
             table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
             if not is_header:
                result_labels.append((REQUEST['showGraphLabel_' + k], ('showGraph_' + k in REQUEST)))
                
             if not is_header and is_selected:               
-               table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
+               #table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
+               datas[kind].append(("\'"+REQUEST['showGraphLabel_' + k]+"\'", todata(res_t[0][1], v)))    
 
     for hh_idx in range(len(session.history)):
       h_idx = len(session.history) - hh_idx - 1
@@ -540,7 +563,11 @@ def printVectorResult(table_result_i, res_t):
          res_lh = []
          for i in range(len(h_results)):
             hk,hv = h_results[i]
- 
+            
+            if i <> 0:
+               kind = result_kinds[hk][1]
+               if kind not in datas: datas[kind] = []
+  
             if type(hv[0]) == list:
                for j in range(len(hv[0])):
                   vlabel = str(h_idx) + "_" + hk + str(j)
@@ -552,7 +579,8 @@ def printVectorResult(table_result_i, res_t):
                      res_hh.append((hk+"_"+str(h_idx), map(lambda x: x[j], hv)))
                      res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
 
-                     table_result_i <= script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[j], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+                     #table_result_i <= script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[j], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+                     datas[kind].append(("\'"+REQUEST['showGraphLabel_' + vlabel]+"\'", todata(h_results[0][1], map(lambda L: L[j], hv))))    
             else:
                vlabel = str(h_idx) + "_" + hk
             
@@ -565,7 +593,8 @@ def printVectorResult(table_result_i, res_t):
                   res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
                      
                   ddd = todata(h_results[0][1], hv)
-                  table_result_i <= script("datas.push({ data : "+ddd+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+                  #table_result_i <= script("datas.push({ data : "+ddd+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
+                  datas[kind].append(("\'"+REQUEST['showGraphLabel_' + vlabel]+"\'", ddd))    
          
          if res_hh <> []: res_h.append((res_hh, res_lh))
     #print res_h
@@ -643,24 +672,7 @@ graph_t = """
 (function basic_legend(container) {
 
   var
-    d1 = [],
-    d2 = [],
-    d3 = [],
-    data,
-    graph, i;
-
-  // Data Generation
-  for (i = 0; i < 15; i += 0.5) {
-    d1.push([i, i + Math.sin(i+Math.PI)]);
-    d2.push([i, i]);
-    d3.push([i, 15-Math.cos(i)]);
-  }
-
-  data = [
-    { data : d1, label :'x + sin(x+&pi;)' },
-    { data : d2, label :'x' },
-    { data : d3, label :'15 - cos(x)' }
-  ];
+    graph;
 
 
   function labelFn (label) {
@@ -682,7 +694,13 @@ graph_t = """
 """
 
 if res_t <> None:
-    form <= TEXT(graph_t.replace('qqq','container'))
+    values = datas.values()
+    for i in range(len(values)):
+        form <= script("data"+str(i)+" = [];")
+        for label, sc in values[i]:
+            form <= script("data"+str(i)+".push({ data : "+sc+", label : "+label+" });")          
+        if values[i] <> []:
+           form <= TEXT(graph_t.replace('qqq','containers' + str(i)).replace("datas", "data"+str(i)))
 
 history_mode = True
 
