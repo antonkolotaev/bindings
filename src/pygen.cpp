@@ -38,7 +38,7 @@ typedef std::logic_error premia_exception;
 #include <boost/foreach.hpp> 
 
 /* Get shared library extension in SHEXT */
-#include "../../Src/config.h"
+//#include "../../Src/config.h"
 
 
 using premia::pygen::formatter_dsl::Formatter;

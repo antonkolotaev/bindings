@@ -1,3 +1,9 @@
+#ifdef _MSC_VER
+#  define BOOST_FILESYSTEM_VERSION 3
+#endif
+
+#include <premia/import.h>
+
 #include <istream>
 #include <boost/filesystem.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -13,7 +19,6 @@ typedef fs::path  path_t;
 
 typedef boost::format fmt;
 namespace lm = boost::lambda;
-#include <premia/import.h>
 
 const std::string premia_lib_name = "premia";
 
@@ -78,7 +83,7 @@ namespace po = boost::program_options;
 
 bool tocopy(fs::path const &p)
 {
-#if (BOOST_VERSION < 104600)
+#if (BOOST_VERSION < 104400)
    std::string e = p.extension();
 #else
    std::string e = p.extension().string();

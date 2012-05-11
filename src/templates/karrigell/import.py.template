@@ -1,5 +1,5 @@
 import sys
-sys.path.append('%PYTHON_DIR%')
+sys.path.append(r'%PYTHON_DIR%')
 
 from premia import pricings
 from premia import models
