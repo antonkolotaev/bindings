@@ -9,11 +9,20 @@ Include(r'premia/result_kinds.py')
 # object defining per-user data   
 session = Session()
 
+# Type: corrected_output_parameter_name : string
+# -> (should_it_be_in_graph_by_default : bool, its_kind_id : int)
+# here we just add a 'Time' output parameter which is not show by default
 result_kinds['Time'] = (False,-1)
 
+# Type: int optional
+# if not None, indicates that for current state we should take history-th element of history
 history = None
+
+# some tuple representing current history element if any
+# TODO: replaced by class
 history_obj = None
 
+# if 'history' is in URI, we are in history mode
 if '_history' in dir():
    history = int(_history)
    history_obj = session.history[history]
@@ -33,9 +42,25 @@ def checkbox(vname,checked=True, disabled = False):
    
 
 
+# This class contains arrays representing possible iteration over some entity parameter
+# All the arrays have the first element corresponding to No Iteration case
+# Following elemenets represent data for iterable entity parameters
+# If a parameter is of PNLVECT type of size N, these array contain N its components
+# If a parameter is of PNLVECTCOMPACT type of size N, 
+#     these array contain N its components if it is heterogenous, or 1 component if homogenous
+# If a parameter if ENUM type, its parameters, if any, appear in these arrays 
+# iterables  - printable labels for iterable parameters. Type: string list
+# iterables_corr - corrected names for variables. Type: string list
+# iterables_getter - functions returning parameter's value from the entity.
+#                    Type: list<() -> (int | double)>
+# iterables_setter - functions setting parameter's value in the entity.
+#                    Type: list<(int | double) -> ()>
+# TODO: introduce IterableParam class
+# reload : bool  - flag showing should we try to load entity params from the form sent
 class Ctx:
 
    def __init__(self):
+      # 
       self.iterables = ['No iteration']
       self.iterables_corr = ['']
       self.iterables_getter = ['']
@@ -46,16 +71,22 @@ Include(r'premia/vector.py')
 #Include(r'premia/vector_compact.py')
 #Include(r'premia/process_iteration.py')   
 
+# Depends on:
+#   - clrinc, clridx
+#   - REQUEST
+#   - history_mode
+#   - h_iterate_label 
+#   - iterate_label
 def printGraphSerieEx(table, vlabel, friendly, colors, old_checked):
       """
       Adds a row corresponding to a result parameter to the 'show graph' table 
       asking a user should a graph for this parameter be built
        
-      table - target table
-      vlabel - corrected name of the result parameter
-      friendly - original name of the result parameter
+      table : HTMLTable - target table
+      vlabel : string - corrected name of the result parameter
+      friendly : string - original name of the result parameter
       colors - color array to pickup the color for the row (TBD: refactor)
-      old_checked - initial state of the checkbox
+      old_checked : bool - initial state of the checkbox
       """
       clrinc()
       
@@ -72,16 +103,20 @@ def printGraphSerieEx(table, vlabel, friendly, colors, old_checked):
          
       table <= TR(
                   TD() + 
-                  TD(
+                  TD( # input box to enter label for this graph serie
                      INPUT(name='showGraphLabel_'+vlabel,
                            value=old_label,
                            disabled = not enabled)) + 
-                  TD(
+                  TD( # check box should be this serie shown on the graph
                      checkbox('showGraph_'+vlabel,
                               checked = old_checked, 
                               disabled = not enabled)),
                   bgcolor=clr(colors,clridx))
 
+# depends on:
+#   - REQUEST
+#   - history_mode
+# printGraphSerieEx with defined old_checked
 def printGraphSerie(table, vlabel, friendly, colors):
    if 'showGraphLabel_'+vlabel in REQUEST:
       old_checked = 'showGraph_'+vlabel in REQUEST
@@ -89,17 +124,32 @@ def printGraphSerie(table, vlabel, friendly, colors):
       old_checked = not history_mode
    printGraphSerieEx(table, vlabel, friendly, colors, old_checked)
 
+# Depends on:
+#  - res_labels
+#  - clrinc
+#  - h_idx
+#  - res_t
+#  - res_h 
+
+# prints a table asking which parameters are to be shown on graph 
+# and which names should they have
+# table : HTMLTable -- table to add rows with result parameters 
+# results : (vlabel, friendly) seq -- in history mode represents output parameters for the method
+# colors -- colors array
 def printResultSeries(table, results, colors):
    if history_mode:
-      if res_labels <> []:
+      # TODO: ???
+      # this code is not really useful. should be removed
+      if res_labels <> []:    # it seems to me that res_labels contains 
+                              #  old flattened labels for result series 
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
-         #print "RESULTS=", results
-         idx = 0
-         for i in range(1, len(res_t)):
-            vlabel = str(h_idx) + "_" + res_t[i][0]
-            if type(res_t[i][1][0]) == list:
-               for j in range(len(res_t[i][1][0])):
+
+         idx = 0  # flattened index of the output parameter being processed
+         for i in range(1, len(res_t)): # iterating current table results
+            vlabel = str(h_idx) + "_" + res_t[i][0]   # base for variable name
+            if type(res_t[i][1][0]) == list:          # if output param is list
+               for j in range(len(res_t[i][1][0])):   # for every component of ????
                   friendly = res_labels[idx][0]
                   idx = idx + 1   
                   printGraphSerie(table, vlabel+str(j), friendly, colors)
@@ -107,13 +157,14 @@ def printResultSeries(table, results, colors):
                friendly = res_labels[idx][0]
                idx = idx + 1   
                printGraphSerie(table, vlabel, friendly, colors)
-         for (res_hh, res_lh) in res_h:
+
+         for (res_hh, res_lh) in res_h:   # res_h is graph series for some elder run
             for i in range(1, len(res_hh)):
                vlabel = str(h_idx) + "_" + res_hh[i][0]
                friendly = res_lh[i-1]
                printGraphSerie(table, vlabel, friendly, colors)
          
-   else:
+   else: # case of the current view
       if iterate_object <> None: 
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
@@ -121,16 +172,22 @@ def printResultSeries(table, results, colors):
             printGraphSerieEx(table, vlabel, friendly, colors, result_kinds[vlabel][0])
          printGraphSerieEx(table, 'Time', 'Computation Time', colors, False)
 
+# Depends on:
+#  - colors
+#  - globals
+
 def processIteration(ctx, obj, entity, colors):
 
    if not history_mode:
       G = globals()
       
       clrinc()
+      # obtaining name of the variable containing iteration index for 'entity'
       iterate_vlabel = 'iterate_'+entity
-      _iterate_vlabel = '_iterate_'+entity
+      _iterate_vlabel = '_iterate_'+entity   
       
-      if _iterate_vlabel in G:
+      # getting iteration index for 'entity'
+      if _iterate_vlabel in G:   
          iterate_idx = int(G[_iterate_vlabel])
       else:
          iterate_idx = 0
@@ -399,6 +456,10 @@ model = None
 opt = None
 method = None
 
+res = None
+res_h = []
+res_t = None
+
 if history_obj <> None:
    _a = history_obj[0]
    model = history_obj[1]
@@ -408,6 +469,11 @@ if history_obj <> None:
    _o = type(opt).__name__
    method = history_obj[3]
    _meth = type(method).__name__
+   res_labels = history_obj[4]
+   res = history_obj[5]
+   res_t = history_obj[6]
+   h_iterate_label = history_obj[7]
+   res_h = history_obj[8]
    
 if 'asset_type' in REQUEST:
    new_asset_type = assets.all()[int(_asset_type)].__name__
@@ -561,8 +627,6 @@ Include(r'/premia/mod/' + _m + '/' + _m + '_' + _f + '/' + _meth + '.py')
 print "_meth=",_meth, method
 method = eval('method_'+_m+'_'+_f+'_'+_meth+'(table_method, method)')
 
-res = None
-
 def n_elem(lst):
     acc = 0
     for i in lst:
@@ -572,7 +636,86 @@ def n_elem(lst):
 
 table_result_i = TABLE(Class="content")
 
-Include(r'premia/run_computation.py')
+computation_timeout = 30
+
+if g_errors <> []:
+    run_computation = False
+
+if 'Compute' not in REQUEST:
+   run_computation = False
+
+   
+if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
+    try:
+        def F(opt,model,q):
+            begin = time()
+            res = (method(opt,model))
+            end = time()
+            res.append(("Time", end - begin))
+            q.put(res)
+
+        def G(opt,model,q, itobj, itname, itlimit, itcount, itgetter, itsetter):
+            initial = itgetter()            
+            for i in range(itcount):
+                begin = time()
+                if itcount > 1:
+                    x = initial + 1. * i / (itcount - 1) * (itlimit - initial)
+                else:
+                    x = initial
+                    
+                if type(initial) == type(1):
+                    x = int(round(x))
+                if type(initial) == type(1L):
+                    x = long(round(x))
+                
+                itsetter(x)
+                     
+                res = (method(opt,model))
+                end = time()
+                res.insert(0, (itname, x))
+                res.append(("Time", end - begin))
+                q.put(res)
+            
+        res = []
+        queue = Queue()
+        if iterate_object == None:
+            process = Process(target = F, args = (opt,model,queue))
+        else:
+            res_t = []
+            process = Process(target = G, args = (opt,model,queue,iterate_object,iterate_name,iterate_to,int(_iteration_steps), iteration_getter, iteration_setter))
+        process.start()
+        try:
+            if iterate_object == None:
+                res.extend(queue.get(timeout=computation_timeout))
+            else:
+                begin = time()
+                iterations = int(_iteration_steps)
+                for i in range(iterations):
+                    q = queue.get(timeout=begin + computation_timeout - time())
+                    res.extend(q)
+                    if res_t == []:
+                        for k,v in q:
+                            res_t.append((k,[v]))
+                    else:
+                        idx = 0
+                        for k,v in q:
+                            assert res_t[idx][0] == k
+                            res_t[idx][1].append(v)
+                            idx = idx + 1
+                    
+        except Empty, exc:
+            if res == []: res = None
+            if res_t == []: res_t = None
+            process.terminate()
+            raise Exception("Method has worked more than " + str(computation_timeout) + "s. Please try another parameter combination")
+            
+        process.join(timeout=computation_timeout)
+    except Exception, exc:
+        #print "exception caught:"
+        #print traceback.format_exc()
+        add_error(exc)
+
+#Include(r'premia/run_computation.py')
 #Include(r'premia/print_table_result.py')
 def script(s):
    """
@@ -692,7 +835,7 @@ Include(r'premia/print_scalar_result.py')
 if res_t == None and res <> None:
    printScalarResult(table_method, res)
 
-res_h = []
+
 if res_t <> None:
    res_h = printVectorResult(table_result_i, res_t)
    

@@ -7,8 +7,7 @@ if g_errors <> []:
 
 if 'Compute' not in REQUEST:
    run_computation = False
-   
-res_t = None
+
    
 if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
     try:
