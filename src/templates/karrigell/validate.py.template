@@ -343,13 +343,74 @@ class Visitor(object):
       self.ctx = Ctx()
       self.ctx.history_mode = history_mode
       self.ctx.REQUEST = REQUEST
+      
+   def processScalar(self,
+                     correctedName,
+                     printableName,
+                     fullName,
+                     constraint,
+                     onChange,
+                     isIterable,
+                     converter):
+      
+      processScalar(
+         self.ctx, 
+         self.table, 
+         self.colors, 
+         self.entity,
+         correctedName,
+         printableName,
+         fullName,
+         constraint,
+         onChange,
+         isIterable,
+         converter)
+         
+   def processVectorCompact(self,
+                            correctedName,
+                            friendlyName,
+                            fullName):
+   
+      processVectorCompact(
+         self.ctx, 
+         self.table, 
+         self.colors,
+         self.entity,
+         correctedName, 
+         friendlyName, 
+         fullName)   
 
+   def processVector(self,
+                     correctedName,
+                     friendlyName,
+                     fullName):
+   
+      processVector(
+         self.ctx, 
+         self.table, 
+         self.colors,
+         self.entity,
+         correctedName, 
+         friendlyName, 
+         fullName)   
+
+   def processEnum(self,
+                   enumType,
+                   friendlyName,
+                   memberField,
+                   fullName):
+      
+      eval("process_"+enumType+"(self.ctx, self.table, self.colors, friendlyName, memberField, fullName)")
+                   
 class ModelVisitor(Visitor):
 
    def __init__(self, table, model=None):
       super(ModelVisitor,self).__init__(table, mod_colors)
       self.model = model  
-      
+   
+   @property
+   def entity(self):
+      return self.model   
       
    def setModel(self, modelFactory, modelName):
       
@@ -365,6 +426,10 @@ class OptionVisitor(Visitor):
       super(OptionVisitor,self).__init__(table, opt_colors)
       self.option = option
       
+   @property
+   def entity(self):
+      return self.option   
+
    def setOption(self, optionFactory, familyName, optionName):
       
       if self.option == None:
@@ -380,6 +445,10 @@ class MethodVisitor(Visitor):
    def __init__(self, table, method=None):
       super(MethodVisitor,self).__init__(table, met_colors)
       self.method = method
+
+   @property
+   def entity(self):
+      return self.method
 
    def setMethod(self, methodFactory, methodName):
       if self.method == None: 

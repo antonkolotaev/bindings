@@ -124,29 +124,29 @@ namespace karrigell {
 				   ("SYMB", symbol<Scalar>())
 				   ("CONV", converter<Scalar>())
 				   ("ITERABLE", iterable ? "True" : "False")	
-				   << "processScalar(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%)"
+				   << "v.processScalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%)"
 ;
 			}
 
 			void operator () (std::string const & i)  
 			{
-			   out << "processScalar(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str)";
+			   out << "v.processScalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str)";
 			}
 
 			void operator () (std::vector<double> const & i) 
 			{
 			   if (src && src->Vtype==PNLVECTCOMPACT)
 			      out 
-			      << "processVectorCompact(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
+			      << "v.processVectorCompact('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
 			   else
 			      out 
-			      << "processVector(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
+			      << "v.processVector('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
 			}
 			
 			void operator() (EnumValue const & e) 
 			{
 			    out("ENUM_TYPE", e.type->label) 
-				   << "process_%ENUM_TYPE%(v.ctx, table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
+				   << "v.processEnum('%ENUM_TYPE%', '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
 			}
 		private:
 			Formatter & out;
