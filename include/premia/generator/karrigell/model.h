@@ -20,11 +20,9 @@ namespace karrigell {
 			("ENTITY_NAME", "model")
 			<< (seq, 
 			   foreach_x(m.members, print::includeEnums),
-			   "def %OBJ%_%ID%(table, %OBJ%=None):",
-				"   if %OBJ% == None: %OBJ% = models.%MODEL_NAME%()", "",
-            "   ctx = Ctx()",
-				//foreach_x(m.members, print::Ini),
-				"   printModelType(table, '%MODEL_NAME%')",
+			   "def %OBJ%_%ID%(table, %OBJ%, v):",
+			   "   v.setModel(models.%MODEL_NAME%, '%MODEL_NAME%')",
+			   "   model = v.model",
 				+foreach_x(m.members, print::Table),
 				+call(boost::bind(print::Iterables, _1, boost::cref(m.members))),
 				"   return %OBJ%"

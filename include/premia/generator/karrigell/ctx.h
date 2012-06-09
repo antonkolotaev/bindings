@@ -4,19 +4,30 @@
 #include <premia/generator/api/all.h>
 #include <premia/generator/utils/null_stream.h>
 
+/// creates a python module in a given directory
+/// \param p path to the directory, its parent directory should exist
+inline void createDir(fs::path const & p)
+{
+	fs::create_directory(p);
+	fs::ofstream(p / "__init__.py");
+}
+
 namespace premia {
 namespace pygen {
 namespace karrigell {
 
 	struct Ctx
 	{
-		Ctx(path_t const &output_dir, int verbosity) 
+		Ctx(path_t const &output_dir, path_t const &package_dir, int verbosity) 
 		    :   output_dir_(output_dir) 
+		    ,   package_dir_(package_dir)
 		    ,   base_path_(output_dir / "premia") 
 		    ,   verbosity_(verbosity)
 		{}
 		
 		path_t const& basePath() const { return base_path_; }
+		
+		fs::path const & packageDir() const { return package_dir_; }
 		
 		std::ostream& out(int v) const 
 		{
@@ -77,8 +88,9 @@ namespace karrigell {
 		fs::path methodsFile(Pricing const & p) const { return dir(p) / py("methods"); }
 
 	private:   
-	    fs::path    output_dir_;
-		fs::path	base_path_;
+	   fs::path    output_dir_;
+	   fs::path    package_dir_;
+		fs::path	   base_path_;
 		int         verbosity_;
 	};
 

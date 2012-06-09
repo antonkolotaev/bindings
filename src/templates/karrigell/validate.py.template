@@ -4,7 +4,9 @@ from multiprocessing import Process,Queue
 from time import time
 
 Include('import.py')
-Include(r'premia/result_kinds.py')
+#Include(r'premia/result_kinds.py')
+
+from kspremia.result_kinds import *
 
 # object defining per-user data   
 session = Session()
@@ -313,14 +315,14 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
 
 def loadScalar(ctx, property_name, vlabel, obj, conv):
     try:
-       if not history_mode and ctx.reload and vlabel in REQUEST:
-          setattr(obj, property_name, conv(REQUEST[vlabel]))
+       if not ctx.history_mode and ctx.reload and vlabel in ctx.REQUEST:
+          setattr(obj, property_name, conv(ctx.REQUEST[vlabel]))
     except Exception, ex:
        add_error('Error in '+ property_name +':' + str(ex))
 
 def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
    loadScalar(ctx, propname, vlabel, obj, conv)
-   if not history_mode:
+   if not ctx.history_mode:
       mc = INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname))      
    else:
       mc = getattr(obj, propname)
@@ -333,7 +335,58 @@ def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onCh
       ctx.iterables_getter.append(lambda: getattr(obj, propname))
       ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
 
-   
+class Visitor(object):
+
+   def __init__(self, table, colors):
+      self.table = table
+      self.colors = colors
+      self.ctx = Ctx()
+      self.ctx.history_mode = history_mode
+      self.ctx.REQUEST = REQUEST
+
+class ModelVisitor(Visitor):
+
+   def __init__(self, table, model=None):
+      super(ModelVisitor,self).__init__(table, mod_colors)
+      self.model = model  
+      
+      
+   def setModel(self, modelFactory, modelName):
+      
+      if self.model == None: 
+         self.model = modelFactory()
+      
+      printModelType(self.table, modelName)
+      
+            
+class OptionVisitor(Visitor):
+
+   def __init__(self, table, option=None):
+      super(OptionVisitor,self).__init__(table, opt_colors)
+      self.option = option
+      
+   def setOption(self, optionFactory, familyName, optionName):
+      
+      if self.option == None:
+         self.option = optionFactory()
+         
+      printFamilyType(self.table, familyName)
+      printOptionType(self.table, optionName)
+      
+      
+
+class MethodVisitor(Visitor):
+
+   def __init__(self, table, method=None):
+      super(MethodVisitor,self).__init__(table, met_colors)
+      self.method = method
+
+   def setMethod(self, methodFactory, methodName):
+      if self.method == None: 
+         self.method = methodFactory()
+      printMethodType(self.table, methodName)
+      
+
 iterate_object = None
 iterate_label = '_'
 
@@ -557,7 +610,7 @@ def printModelType(table, model_type):
 Include(r'/premia/mod/'+ _m + '/model.py')
 
 print "m=",_m, model
-model = eval('model_' + _m + '(table_model, model)')
+model = eval('model_' + _m + '(table_model, model, ModelVisitor(table_model, model))')
 
 table_option = TABLE(Class="content")
 table = table_option
@@ -598,7 +651,7 @@ clridx = 1
 Include(r'/premia/opt/' + _f + '/' + _o + '.py')
 
 print "_f=",_f, "_o=",_o, opt
-opt = eval('opt_' + _f + '_' + _o + '(table_option, opt)')
+opt = eval('opt_' + _f + '_' + _o + '(table_option, opt, OptionVisitor(table_option, opt))')
 
 table_method = TABLE(Class="content")
 table = table_method
@@ -625,7 +678,7 @@ def printMethodType(table, method_type):
 Include(r'/premia/mod/' + _m + '/' + _m + '_' + _f + '/' + _meth + '.py')
 
 print "_meth=",_meth, method
-method = eval('method_'+_m+'_'+_f+'_'+_meth+'(table_method, method)')
+method = eval('method_'+_m+'_'+_f+'_'+_meth+'(table_method, method, MethodVisitor(table_method, method))')
 
 def n_elem(lst):
     acc = 0
@@ -1002,11 +1055,11 @@ for hh_idx in range(len(session.history)):
 
    model = h[1]
    Include(r'/premia/mod/'+ model.ID() + '/model.py')
-   eval('model_' + model.ID() + '(table_model_h, model)')
+   eval('model_' + model.ID() + '(table_model_h, model, ModelVisitor(table_model_h, model))')
 
    opt = h[2]
    Include(r'/premia/opt/' + opt.familyName() + r'/' + type(opt).__name__ + '.py')
-   opt = eval('opt_' + opt.familyName() + '_' + type(opt).__name__ + '(table_opt_h, opt)')
+   opt = eval('opt_' + opt.familyName() + '_' + type(opt).__name__ + '(table_opt_h, opt, OptionVisitor(table_opt_h, opt))')
 
    method = h[3]
    res_labels = h[4]
@@ -1018,7 +1071,7 @@ for hh_idx in range(len(session.history)):
    #print h_idx, res_labels
 
    Include(r'/premia/mod/' + model.ID() + '/' + model.ID() + '_' + opt.familyName() + '/' + type(method).__name__ + '.py')
-   method = eval('method_'+model.ID()+'_'+opt.familyName()+'_'+type(method).__name__+'(table_meth_h, method)')
+   method = eval('method_'+model.ID()+'_'+opt.familyName()+'_'+type(method).__name__+'(table_meth_h, method, MethodVisitor(table_meth_h, method))')
    
    if res_t == None and res <> None:
       printScalarResult(table_meth_h, res)

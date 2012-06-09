@@ -33,12 +33,9 @@ namespace karrigell {
 			("ENTITY_NAME", "option")
 			<< (seq, 
 			   foreach_x(opt.vars, print::includeEnums),
-			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(table, %OBJ%=None):",
-				"   if %OBJ% == None: %OBJ% = options.%FAMILY_NAME%.%OPT_NAME%()", "",
-			   "   ctx = Ctx()",
-				//foreach_x(opt.vars, print::Ini),
-				"   printFamilyType(table, '%FAMILY_NAME%')",
-				"   printOptionType(table, '%OPT_NAME%')",
+			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(table, %OBJ%, v):",
+			   "   v.setOption(options.%FAMILY_NAME%.%OPT_NAME%, '%FAMILY_NAME%', '%OPT_NAME%')",
+			   "   opt = v.option",
 				+foreach_x(opt.vars, print::Table),
 				+call(boost::bind(print::Iterables, _1, boost::cref(opt.vars))),
 				"   return %OBJ%"

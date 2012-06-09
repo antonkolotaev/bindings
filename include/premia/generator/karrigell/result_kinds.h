@@ -42,7 +42,7 @@ namespace karrigell {
       
 	   friend Ctx& operator << (Ctx & ctx, ResultKinds const & kinds)
 	   {
-	      Formatter out(ctx.basePath() / "result_kinds.py");   
+	      Formatter out(ctx.packageDir() / "result_kinds.py");   
 	      
 	      out << (seq, "result_kinds = {", +foreach_x(kinds.result_to_kind_, printKind), "}");
 	      

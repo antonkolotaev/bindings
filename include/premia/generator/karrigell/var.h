@@ -124,29 +124,29 @@ namespace karrigell {
 				   ("SYMB", symbol<Scalar>())
 				   ("CONV", converter<Scalar>())
 				   ("ITERABLE", iterable ? "True" : "False")	
-				   << "processScalar(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%)"
+				   << "processScalar(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%)"
 ;
 			}
 
 			void operator () (std::string const & i)  
 			{
-			   out << "processScalar(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str)";
+			   out << "processScalar(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str)";
 			}
 
 			void operator () (std::vector<double> const & i) 
 			{
 			   if (src && src->Vtype==PNLVECTCOMPACT)
 			      out 
-			      << "processVectorCompact(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
+			      << "processVectorCompact(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
 			   else
 			      out 
-			      << "processVector(ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
+			      << "processVector(v.ctx, table, %BGCOLOR_BASE%, %OBJ%,'_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
 			}
 			
 			void operator() (EnumValue const & e) 
 			{
 			    out("ENUM_TYPE", e.type->label) 
-				   << "process_%ENUM_TYPE%(ctx, table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
+				   << "process_%ENUM_TYPE%(v.ctx, table, %BGCOLOR_BASE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
 			}
 		private:
 			Formatter & out;
@@ -180,25 +180,7 @@ namespace karrigell {
         inline void Iterables(Formatter& out, VarList const &vars)
         {
             out << (seq, 
-                  "processIteration(ctx, %OBJ%, '%ENTITY_NAME%', %BGCOLOR_BASE%)"
-             /*       "clridx = clridx + 1",
-				    "table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod('iterate_%ENTITY_NAME%', ctx.iterables, ctx.iterables[int(_iterate_%ENTITY_NAME%)]))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				    "if _iterate_%ENTITY_NAME% <> '0':",
-                    "   clridx = clridx + 1",
-				    "   if 'iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
-                    "      old_value = REQUEST['iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)]]",
-                    "   else:",
-                    "      old_value = ctx.iterables_getter[int(_iterate_%ENTITY_NAME%)]()",
-				    "   table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name='iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)],value=old_value))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-                    "   clridx = clridx + 1",
-				    "   table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=10))+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx)))",
-				    "   iterate_object = %OBJ%",
-				    "   iterate_name = ctx.iterables[int(_iterate_%ENTITY_NAME%)]",
-				    "   iteration_getter = ctx.iterables_getter[int(_iterate_%ENTITY_NAME%)]",
-				    "   iteration_setter = ctx.iterables_setter[int(_iterate_%ENTITY_NAME%)]",
-				    "   if 'iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)] in REQUEST:",
-				    "      iterate_to = float(REQUEST['iterate_%ENTITY_NAME%_' + ctx.iterables_corr[int(_iterate_%ENTITY_NAME%)]])"
-                    */);
+                  "processIteration(v.ctx, %OBJ%, '%ENTITY_NAME%', %BGCOLOR_BASE%)");
         }
 	}
 

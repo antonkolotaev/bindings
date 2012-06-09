@@ -81,18 +81,30 @@ using premia::pygen::formatter_dsl::Formatter;
 
 namespace po = boost::program_options;
 
-bool tocopy(fs::path const &p)
+inline std::string ext(fs::path const &p)
 {
 #if (BOOST_VERSION < 104400)
    std::string e = p.extension();
 #else
    std::string e = p.extension().string();
 #endif
+   return e;
+}
+
+bool tocopy(fs::path const &p)
+{
+   std::string e = ext(p);
+
    return
       e == ".js" ||
       e == ".pih"||
       e == ".py"
       ; 
+}
+
+bool only_py(fs::path const & p)
+{
+   return ext(p) == ".py";
 }
 
 int main(int argc, char *argv[])
@@ -121,12 +133,16 @@ int main(int argc, char *argv[])
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);   
+    
+    fs::path package_path = output_path / "karrigell" / "package" / "kspremia";
+    output_path = output_path / "www";
 
-    karrigell::Ctx ctx(output_path, verbosity);
+    karrigell::Ctx ctx(output_path, package_path, verbosity);
 
     ctx.out(1)
         << "premia-root: "  << root         << std::endl
         << "output-dir: "   << output_path  << std::endl
+        << "package-dir: "  << package_path << std::endl
         << "python-dir: "   << python_dir   << std::endl
         << "data-dir: "     << data_dir     << std::endl
         << "template-dir: " << template_dir << std::endl;
@@ -139,6 +155,10 @@ int main(int argc, char *argv[])
     fs::create_directories(output_path / "premia");
     
     copyDir(template_dir, output_path / "premia",tocopy);
+
+    createDir(package_path);
+    
+    copyDir(template_dir, package_path, only_py);
 
     InitVar();
 
