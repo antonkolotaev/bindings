@@ -20,12 +20,13 @@ namespace karrigell {
 			("ENTITY_NAME", "model")
 			<< (seq, 
 			   foreach_x(m.members, print::includeEnums),
-			   "def %OBJ%_%ID%(table, %OBJ%, v):",
-			   "   v.setModel(models.%MODEL_NAME%, '%MODEL_NAME%')",
+			   "from premia.mod.%ID%.model import %MODEL_NAME%",
+			   "def %OBJ%_%ID%(v):",
+			   "   v.setModel(%MODEL_NAME%, '%MODEL_NAME%')",
 			   "   model = v.model",
 				+foreach_x(m.members, print::Table),
 				+call(boost::bind(print::Iterables, _1, boost::cref(m.members))),
-				"   return %OBJ%"
+				"   return v"
 			);
 	}
 

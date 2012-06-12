@@ -28,7 +28,7 @@ namespace karrigell {
 	            out("IDX",idx)("LABEL", em.second.label) 
 	                << (seq, 
 	                "if e == %IDX%:", +(seq, 
-	                    "pmem.set_%LABEL%()",
+	                    "v.member.set_%LABEL%()",
 	                    foreach_x(em.second.params, enumParams)));
 	            ++idx;
 	        }
@@ -53,7 +53,7 @@ namespace karrigell {
 			void operator() (EnumValue const & e) 
 			{
 				out("ENUM_NAME", e.type->label) 
-				   << "Include(r'/premia/enum/%ENUM_NAME%.py')";
+				   << "from kspremia.enum import %ENUM_NAME%";
 			}
 			
 			
@@ -146,7 +146,7 @@ namespace karrigell {
 			void operator() (EnumValue const & e) 
 			{
 			    out("ENUM_TYPE", e.type->label) 
-				   << "v.processEnum('%ENUM_TYPE%', '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
+				   << "v.processEnum(%ENUM_TYPE%.process_%ENUM_TYPE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
 			}
 		private:
 			Formatter & out;
@@ -180,7 +180,7 @@ namespace karrigell {
         inline void Iterables(Formatter& out, VarList const &vars)
         {
             out << (seq, 
-                  "processIteration(v.ctx, %OBJ%, '%ENTITY_NAME%', %BGCOLOR_BASE%)");
+                  "v.processIteration()");
         }
 	}
 

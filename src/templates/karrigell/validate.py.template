@@ -7,6 +7,7 @@ Include('import.py')
 #Include(r'premia/result_kinds.py')
 
 from kspremia.result_kinds import *
+from kspremia import enum
 
 # object defining per-user data   
 session = Session()
@@ -344,6 +345,12 @@ class Visitor(object):
       self.ctx.history_mode = history_mode
       self.ctx.REQUEST = REQUEST
       
+   def clrinc(self): clrinc()
+   @property
+   def currentColor(self): return clr(self.colors,clridx)
+   
+   def addError(self, msg): add_error(msg)
+      
    def processScalar(self,
                      correctedName,
                      printableName,
@@ -395,12 +402,32 @@ class Visitor(object):
          fullName)   
 
    def processEnum(self,
-                   enumType,
+                   enumFunc,
                    friendlyName,
                    memberField,
                    fullName):
       
-      eval("process_"+enumType+"(self.ctx, self.table, self.colors, friendlyName, memberField, fullName)")
+      enumFunc(friendlyName, fullName, EnumVisitor(self, memberField))
+      
+   def processIteration(self):
+   
+      processIteration(self.ctx, 
+         self.entity, self.entityLabel, self.colors) 
+         
+   def printResultSeries(self, result_members):
+   
+      printResultSeries(self.table, result_members, self.colors)  
+   
+class EnumVisitor(Visitor):
+
+   def __init__(self, source, member):
+      super(EnumVisitor, self).__init__(source.table, source.colors)
+      self.ctx = source.ctx
+      self.member = member
+   
+   @property
+   def entity(self):
+      return self.member._value
                    
 class ModelVisitor(Visitor):
 
@@ -412,6 +439,10 @@ class ModelVisitor(Visitor):
    def entity(self):
       return self.model   
       
+   @property
+   def entityLabel(self):
+      return 'model'   
+
    def setModel(self, modelFactory, modelName):
       
       if self.model == None: 
@@ -430,6 +461,10 @@ class OptionVisitor(Visitor):
    def entity(self):
       return self.option   
 
+   @property
+   def entityLabel(self):
+      return 'option'   
+
    def setOption(self, optionFactory, familyName, optionName):
       
       if self.option == None:
@@ -445,10 +480,15 @@ class MethodVisitor(Visitor):
    def __init__(self, table, method=None):
       super(MethodVisitor,self).__init__(table, met_colors)
       self.method = method
+      self.ctx.reload = run_computation
 
    @property
    def entity(self):
       return self.method
+
+   @property
+   def entityLabel(self):
+      return 'method'   
 
    def setMethod(self, methodFactory, methodName):
       if self.method == None: 
@@ -676,10 +716,23 @@ def printModelType(table, model_type):
 
 """
 
-Include(r'/premia/mod/'+ _m + '/model.py')
+def lookupModel(m):
+   exec 'from kspremia.mod.' + m + '.model import model_' + m
+   return eval('model_' + _m)   
+   
+def lookupOption(f,o):
+   exec 'from kspremia.opt.'+f+'.'+o+' import opt_'+f+'_'+o  
+   return eval('opt_'+f+'_'+o)
+
+def lookupMethod(m,f,meth):
+   exec 'from kspremia.mod.'+m+'.'+m+'_'+f+'.'+meth+' import method_'+m+'_'+f+'_'+meth
+   return eval('method_'+m+'_'+f+'_'+meth)
+
+modelVisitor = ModelVisitor(table_model, model)
+lookupModel(_m)(modelVisitor)
+model = modelVisitor.model
 
 print "m=",_m, model
-model = eval('model_' + _m + '(table_model, model, ModelVisitor(table_model, model))')
 
 table_option = TABLE(Class="content")
 table = table_option
@@ -717,10 +770,11 @@ def printOptionType(table, option_type):
 
 clridx = 1
 
-Include(r'/premia/opt/' + _f + '/' + _o + '.py')
+optionVisitor = OptionVisitor(table_option, opt)
+lookupOption(_f, _o)(optionVisitor)
+opt = optionVisitor.option
 
 print "_f=",_f, "_o=",_o, opt
-opt = eval('opt_' + _f + '_' + _o + '(table_option, opt, OptionVisitor(table_option, opt))')
 
 table_method = TABLE(Class="content")
 table = table_method
@@ -744,10 +798,11 @@ def printMethodType(table, method_type):
       mc = method_type
    table <= rowinc(met_colors, B('Pricing method:'), mc)
 
-Include(r'/premia/mod/' + _m + '/' + _m + '_' + _f + '/' + _meth + '.py')
+methodVisitor = MethodVisitor(table_method, method)
+lookupMethod(_m,_f,_meth)(methodVisitor)
+method = methodVisitor.method
 
 print "_meth=",_meth, method
-method = eval('method_'+_m+'_'+_f+'_'+_meth+'(table_method, method, MethodVisitor(table_method, method))')
 
 def n_elem(lst):
     acc = 0
@@ -1123,12 +1178,13 @@ for hh_idx in range(len(session.history)):
    model_list = eval('assets.' + asset_id + '.models()')
 
    model = h[1]
-   Include(r'/premia/mod/'+ model.ID() + '/model.py')
-   eval('model_' + model.ID() + '(table_model_h, model, ModelVisitor(table_model_h, model))')
+   lookupModel(model.ID())(ModelVisitor(table_model_h, model))
 
    opt = h[2]
-   Include(r'/premia/opt/' + opt.familyName() + r'/' + type(opt).__name__ + '.py')
-   opt = eval('opt_' + opt.familyName() + '_' + type(opt).__name__ + '(table_opt_h, opt, OptionVisitor(table_opt_h, opt))')
+   lookupOption(
+      opt.familyName(), 
+      type(opt).__name__)(
+         OptionVisitor(table_opt_h, opt))
 
    method = h[3]
    res_labels = h[4]
@@ -1138,10 +1194,10 @@ for hh_idx in range(len(session.history)):
    res_h = h[8]
    
    #print h_idx, res_labels
-
-   Include(r'/premia/mod/' + model.ID() + '/' + model.ID() + '_' + opt.familyName() + '/' + type(method).__name__ + '.py')
-   method = eval('method_'+model.ID()+'_'+opt.familyName()+'_'+type(method).__name__+'(table_meth_h, method, MethodVisitor(table_meth_h, method))')
    
+   lookupMethod(model.ID(), opt.familyName(), type(method).__name__)(
+      MethodVisitor(table_meth_h, method))
+      
    if res_t == None and res <> None:
       printScalarResult(table_meth_h, res)
 

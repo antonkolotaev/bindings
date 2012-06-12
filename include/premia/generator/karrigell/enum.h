@@ -23,25 +23,27 @@ namespace karrigell {
 	{
 		Formatter out(ctx.filename(e));
 
+      out << "from HTMLTags import *";
+
       out("ENUM_NAME", e.label)
-	    << "def process_%ENUM_NAME%(ctx, table, colors, label, pmem, vlabel):";
+	    << "def process_%ENUM_NAME%(label, vlabel, v):";
 
       out << (seq,
-            "   if vlabel not in REQUEST:",
-            "      REQUEST[vlabel] = '0'");
+            "   if vlabel not in v.ctx.REQUEST:",
+            "      v.ctx.REQUEST[vlabel] = '0'");
 
 	    
 	    out.incindent();
 	    
-	    out << "clrinc()";
+	    out << "v.clrinc()";
 	    
 	    out << (seq, "labels = [", +foreach_x(e.members, printEnumChoices), "]");  
 	    
 	    out << (seq,
-            "if history_mode:",
-            "   e = labels.index(pmem._labels[pmem._value.key()])",
+            "if v.ctx.history_mode:",
+            "   e = labels.index(v.member._labels[v.member._value.key()])",
             "else:",
-            "   e = int(REQUEST[vlabel])");
+            "   e = int(v.ctx.REQUEST[vlabel])");
 	    
 	    bool has_params = false;
 	    
@@ -53,13 +55,12 @@ namespace karrigell {
 	    
 	    out("CHANGE", has_params ? ", onchange='submit();'": "") 
 	       << "L = SELECT(name = vlabel%CHANGE%).from_list(labels)";
-	    out("BGCOLOR_BASE", "colors");
       
        out << "L.select(value=e)";
-       out << "if history_mode:";
-       out << "   table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+       out << "if v.ctx.history_mode:";
+       out << "   v.table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=v.currentColor)";
        out << "else:";
-       out << "   table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=clr(%BGCOLOR_BASE%,clridx))";
+       out << "   v.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=v.currentColor)";
 				
 		 out.decindent();
 
@@ -69,7 +70,7 @@ namespace karrigell {
                "   try:",
                + +call(boost::bind(print::enumChoices, _1, boost::cref(e))),
                "   except Exception, ex:",
-               "      add_error('Error in '+property_name+':' + str(ex))"
+               "      v.addError('Error in '+label+':' + str(ex))"
       );
 
 	}

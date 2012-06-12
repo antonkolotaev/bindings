@@ -20,7 +20,7 @@ namespace karrigell {
       out << "result_members = [";
       out << +foreach_x(results, printResultElement);
       out << "]";
-      out << "printResultSeries(table, result_members, %BGCOLOR_BASE%)";
+      out << "v.printResultSeries(result_members)";
    }
     
 	inline void generatePricingMethod(Ctx & ctx, PricingMethod const & met)
@@ -34,14 +34,14 @@ namespace karrigell {
 			("ENTITY_NAME", "method")
 			<< (seq, 
 			   foreach_x(met.members, print::includeEnums),
-			   "def %OBJ%_%MODEL_NAME%_%FAMILY_NAME%_%METHOD_NAME%(table, %OBJ%, v):",
-				"   v.setMethod(pricings.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME%, '%METHOD_NAME%')", "",
-            "   v.ctx.reload = run_computation",
-				"   method = v.method",
+			   "from premia.mod.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME% import %METHOD_NAME%",
+			   "def %OBJ%_%MODEL_NAME%_%FAMILY_NAME%_%METHOD_NAME%(v):",
+				"   v.setMethod(%METHOD_NAME%, '%METHOD_NAME%')", "",
+ 				"   method = v.method",
 				+foreach_x(met.members, print::Table),
 				+call(boost::bind(print::Iterables, _1, boost::cref(met.members))),
 				+call(boost::bind(printIterateCheckBoxes, _1, boost::cref(met.results))),
-				"   return %OBJ%"
+				"   return v"
 			);
 	}
 

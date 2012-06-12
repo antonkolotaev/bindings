@@ -38,7 +38,7 @@ namespace karrigell {
 		}
 
 		/// returns path to the directory where enumerations will be generated
-		fs::path enumDir() const { return base_path_ / "enum"; } 
+		fs::path enumDir() const { return package_dir_ / "enum"; } 
 
 		/// \param e a reference to a enum type
 		/// returns path to a file where the enumeration should be generated
@@ -46,13 +46,13 @@ namespace karrigell {
 
 		/// creates a directory
 		/// \param p path to directory
-		void create(fs::path const & p) const 	{	fs::create_directory(p);	}
+		void create(fs::path const & p) const 	{	createDir(p);	}
 
 		/// adds .py extension to a string
 		static std::string py(std::string const & p) { return p + ".py"; }
 
 		/// returns a path to the directory where models and pricings will be generated
-		fs::path mod() const {	return base_path_ / "mod"; 	}
+		fs::path mod() const {	return package_dir_ / "mod"; 	}
 
 		/// returns a path to the directory where the model and its pricing methods will be generated
 		fs::path dir(Model const & m) const {	return mod() / m.ID();		}
@@ -61,7 +61,7 @@ namespace karrigell {
 		fs::path filename(Model const & m) const { 	return dir(m) / "model.py"; }
 
 		/// returns path to directory holding all options
-		fs::path opt() const { return base_path_ / "opt"; }
+		fs::path opt() const { return package_dir_ / "opt"; }
 
 		/// returns path to a directory holding options of the given option family 
 		fs::path dir(Family const & f) const { return opt() / f.name; }

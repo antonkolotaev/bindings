@@ -33,12 +33,13 @@ namespace karrigell {
 			("ENTITY_NAME", "option")
 			<< (seq, 
 			   foreach_x(opt.vars, print::includeEnums),
-			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(table, %OBJ%, v):",
-			   "   v.setOption(options.%FAMILY_NAME%.%OPT_NAME%, '%FAMILY_NAME%', '%OPT_NAME%')",
+			   "from premia.opt.%FAMILY_NAME%.%OPT_NAME% import %OPT_NAME%",
+			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(v):",
+			   "   v.setOption(%OPT_NAME%, '%FAMILY_NAME%', '%OPT_NAME%')",
 			   "   opt = v.option",
 				+foreach_x(opt.vars, print::Table),
 				+call(boost::bind(print::Iterables, _1, boost::cref(opt.vars))),
-				"   return %OBJ%"
+				"   return v"
 			);
 
 		Formatter ff(ctx.methodsFile(opt));
