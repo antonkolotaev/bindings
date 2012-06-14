@@ -241,28 +241,9 @@ def processIteration(ctx, obj, entity, colors):
 
 #Include(r'premia/scalar.py')
 
-def loadVectorCompact(property_name, vlabel, pmem):
-    try:
-       if vlabel + '__c' in REQUEST:
-         val = float(REQUEST[vlabel + '__c'])
-         for i in range(len(pmem)):                 
-            pmem[i] = val
-       else:
-          for i in range(len(pmem)):
-             src = vlabel + "[" + str(i) + "]"
-             if src in REQUEST: 
-                pmem[i] = float(REQUEST[src])
-    except Exception, ex:
-       add_error('Error in' + property_name + ':' + str(ex))
-
-def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
-   pmem = getattr(obj, propname)
-   clrinc()
-   mode = None
-   
-   #if ctx.reload and not history_mode:
-   #   loadVectorCompact(propname, vlabel, pmem)
-
+def loadVectorCompact(property_name, vlabel, obj):
+   pmem = getattr(obj, property_name)
+  
    if vlabel + '__t' in REQUEST:
       if REQUEST[vlabel + '__t'] == '0':
          mode = 0
@@ -273,17 +254,31 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
          mode = 0
       else:
          mode = 1
+   setattr(obj, '__mode_'+property_name, mode)
 
-   if not history_mode:
+   try:
+       if vlabel + '__c' in REQUEST:
+         val = float(REQUEST[vlabel + '__c'])
+         for i in range(len(pmem)):                 
+            pmem[i] = val
+       else:
+          for i in range(len(pmem)):
+             src = vlabel + "[" + str(i) + "]"
+             if src in REQUEST: 
+                pmem[i] = float(REQUEST[src])
+   except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
+
+def renderVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
+   pmem = getattr(obj, propname)
+   clrinc()
+
+   mode = getattr(obj, '__mode_'+propname)
+   
+   if not ctx.history_mode:
       L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
       
    if mode == 0:
-      ctx.iterables.append(label)
-      ctx.iterables_corr.append(vlabel + '__c')
-      ctx.iterables_getter.append(lambda: pmem[0])
-      def F(x):
-         for i in range(len(pmem)): pmem[i] = x          
-      ctx.iterables_setter.append(F)
 
       if not history_mode:
          L.select(value=0)
@@ -292,15 +287,8 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
          table <= TR(TD(mc),bgcolor=clr(colors,clridx))
       else:
          table <= TR(TD(label, align='right') + TD(pmem[0]) + TD(''),bgcolor=clr(colors,clridx))
-            
-      
 
    if mode == 1:
-      for i in range(len(pmem)): 
-         ctx.iterables.append(label + '[' + str(i) + ']')
-         ctx.iterables_corr.append(vlabel + str(i))
-      ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-      ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
    
       if not history_mode:   
          L.select(value=1)
@@ -314,15 +302,40 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
             return s + "]"
          table <= TR(TD(label, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=clr(colors,clridx))
 
+
+
+def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
+
+   #renderVectorCompact(ctx, table, colors, obj, propname, label, vlabel)
+
+   pmem = getattr(obj, propname)
+
+   mode = getattr(obj, '__mode_'+propname)
+      
+   if mode == 0:
+      ctx.iterables.append(label)
+      ctx.iterables_corr.append(vlabel + '__c')
+      ctx.iterables_getter.append(lambda: pmem[0])
+      def F(x):
+         for i in range(len(pmem)): pmem[i] = x          
+      ctx.iterables_setter.append(F)
+
+   if mode == 1:
+      for i in range(len(pmem)): 
+         ctx.iterables.append(label + '[' + str(i) + ']')
+         ctx.iterables_corr.append(vlabel + str(i))
+      ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+      ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+
 def loadScalar(ctx, property_name, vlabel, obj, conv):
     try:
        if not ctx.history_mode and ctx.reload and vlabel in ctx.REQUEST:
           setattr(obj, property_name, conv(ctx.REQUEST[vlabel]))
     except Exception, ex:
        add_error('Error in '+ property_name +':' + str(ex))
+       
+def renderScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
 
-def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
-   #loadScalar(ctx, propname, vlabel, obj, conv)
    if not ctx.history_mode:
       mc = INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname))      
    else:
@@ -330,6 +343,11 @@ def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onCh
       constr = ''
       
    table <= rowinc(colors, label, mc, constr)
+
+def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
+
+   #renderScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv)
+   
    if iterable:
       ctx.iterables.append(label)
       ctx.iterables_corr.append(vlabel)
@@ -366,10 +384,8 @@ class Loader(object):
                             friendlyName,
                             fullName):
    
-      pmem = getattr(self.entity, self.correctedName)
-      
       if self.ctx.reload and not self.ctx.history_mode:
-         loadVectorCompact(correctedName, fullName, pmem)
+         loadVectorCompact(correctedName, fullName, self.entity)
 
    def processVector(self,
                      correctedName,
@@ -389,6 +405,89 @@ class Loader(object):
       enum.process(friendlyName, fullName, EnumLoader(self, memberField))
       
    def printResultSeries(self, result_members): pass
+
+class Renderer(object):
+
+   def __init__(self, table, colors):
+      self.table = table
+      self.colors = colors
+      self.ctx = Ctx()
+      self.ctx.history_mode = history_mode
+      self.ctx.REQUEST = REQUEST
+      
+   def clrinc(self): clrinc()
+   @property
+   def currentColor(self): return clr(self.colors,clridx)
+   
+   def addError(self, msg): add_error(msg)
+      
+   def processScalar(self,
+                     correctedName,
+                     printableName,
+                     fullName,
+                     constraint,
+                     onChange,
+                     isIterable,
+                     converter):
+      
+      renderScalar(
+         self.ctx, 
+         self.table, 
+         self.colors, 
+         self.entity,
+         correctedName,
+         printableName,
+         fullName,
+         constraint,
+         onChange,
+         isIterable,
+         converter)
+         
+   def processVectorCompact(self,
+                            correctedName,
+                            friendlyName,
+                            fullName):
+   
+      renderVectorCompact(
+         self.ctx, 
+         self.table, 
+         self.colors,
+         self.entity,
+         correctedName, 
+         friendlyName, 
+         fullName)   
+
+   def processVector(self,
+                     correctedName,
+                     friendlyName,
+                     fullName):
+   
+      renderVector(
+         self.ctx, 
+         self.table, 
+         self.colors,
+         self.entity,
+         correctedName, 
+         friendlyName, 
+         fullName)   
+
+   def processEnum(self,
+                   enumModule,
+                   friendlyName,
+                   memberField,
+                   fullName):
+      
+      enumModule.process(friendlyName, fullName, 
+         EnumRenderer(self, memberField))
+      
+   def processIteration(self):
+      pass 
+      #processIteration(self.ctx, 
+      #   self.entity, self.entityLabel, self.colors) 
+         
+   def printResultSeries(self, result_members):
+      pass
+      #printResultSeries(self.table, result_members, self.colors)
 
 class Visitor(object):
 
@@ -500,20 +599,18 @@ class EnumLoader(Loader):
    @property
    def entity(self):
       return self.member._value
-   
-class EnumVisitor(Visitor):
+
+class EnumRenderer(Renderer):
 
    def __init__(self, source, member):
-      super(EnumVisitor, self).__init__(source.table, source.colors)
+      super(EnumRenderer, self).__init__(source.table, source.colors)
       self.ctx = source.ctx
       self.member = member
-      #self.loader = EnumLoader(source, member)
       
    def setLabels(self, label, vlabel, labels, has_params):
    
       self.clrinc()
       
-      #self.loader.setLabels(label, vlabel, labels, has_params)
       e = labels.index(self.member._labels[self.member._value.key()])
          
       if has_params:
@@ -528,6 +625,40 @@ class EnumVisitor(Visitor):
       else:
          self.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=self.currentColor)
       
+      return e
+   
+   def setChoice(self, setter):   
+      pass
+   
+   @property
+   def entity(self):
+      return self.member._value
+   
+class EnumVisitor(Visitor):
+
+   def __init__(self, source, member):
+      super(EnumVisitor, self).__init__(source.table, source.colors)
+      self.ctx = source.ctx
+      self.member = member
+      
+   def setLabels(self, label, vlabel, labels, has_params):
+   
+      #self.clrinc()
+      
+      e = labels.index(self.member._labels[self.member._value.key()])
+      """   
+      if has_params:
+         L = SELECT(name = vlabel, onchange='submit();').from_list(labels)
+      else:
+         L = SELECT(name = vlabel).from_list(labels)
+         
+      L.select(value=e)
+      
+      if self.ctx.history_mode:
+         self.table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=self.currentColor)
+      else:
+         self.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=self.currentColor)
+      """
       return e
    
    def setChoice(self, setter):
@@ -556,6 +687,23 @@ class ModelLoader(Loader):
       
       if self.model == None: 
          self.model = modelFactory()
+
+class ModelRenderer(Renderer):
+
+   def __init__(self, table, model=None):
+      super(ModelRenderer,self).__init__(table, mod_colors)
+      self.model = model  
+   
+   @property
+   def entity(self):
+      return self.model   
+      
+   @property
+   def entityLabel(self):
+      return 'model'   
+
+   def setModel(self, modelFactory, modelName):
+      printModelType(self.table, modelName)
                    
 class ModelVisitor(Visitor):
 
@@ -572,11 +720,8 @@ class ModelVisitor(Visitor):
       return 'model'   
 
    def setModel(self, modelFactory, modelName):
-      
-      #if self.model == None: 
-      #   self.model = modelFactory()
-      
-      printModelType(self.table, modelName)
+      pass
+      #printModelType(self.table, modelName)
 
 class OptionLoader(Loader):
 
@@ -596,6 +741,24 @@ class OptionLoader(Loader):
       
       if self.option == None:
          self.option = optionFactory()
+
+class OptionRenderer(Renderer):
+
+   def __init__(self, table, option=None):
+      super(OptionRenderer,self).__init__(table, opt_colors)
+      self.option = option
+      
+   @property
+   def entity(self):
+      return self.option   
+
+   @property
+   def entityLabel(self):
+      return 'option'   
+
+   def setOption(self, optionFactory, familyName, optionName):
+      printFamilyType(self.table, familyName)
+      printOptionType(self.table, optionName)
       
             
 class OptionVisitor(Visitor):
@@ -613,12 +776,9 @@ class OptionVisitor(Visitor):
       return 'option'   
 
    def setOption(self, optionFactory, familyName, optionName):
-      
-      #if self.option == None:
-      #   self.option = optionFactory()
-         
-      printFamilyType(self.table, familyName)
-      printOptionType(self.table, optionName)
+      pass
+      #printFamilyType(self.table, familyName)
+      #printOptionType(self.table, optionName)
       
 class MethodLoader(Loader):
 
@@ -639,6 +799,25 @@ class MethodLoader(Loader):
       if self.method == None: 
          self.method = methodFactory()
 
+class MethodRenderer(Renderer):
+
+   def __init__(self, table, method=None):
+      super(MethodRenderer,self).__init__(table, met_colors)
+      self.method = method
+      self.ctx.reload = run_computation
+
+   @property
+   def entity(self):
+      return self.method
+
+   @property
+   def entityLabel(self):
+      return 'method'   
+
+   def setMethod(self, methodFactory, methodName):
+      pass
+      #printMethodType(self.table, methodName)
+
 class MethodVisitor(Visitor):
 
    def __init__(self, table, method=None):
@@ -655,8 +834,6 @@ class MethodVisitor(Visitor):
       return 'method'   
 
    def setMethod(self, methodFactory, methodName):
-      #if self.method == None: 
-      #   self.method = methodFactory()
       printMethodType(self.table, methodName)
       
 
@@ -892,18 +1069,12 @@ def lookupMethod(m,f,meth):
    exec 'from kspremia.mod.'+m+'.'+m+'_'+f+'.'+meth+' import method_'+m+'_'+f+'_'+meth
    return eval('method_'+m+'_'+f+'_'+meth)
    
-modelLoader = ModelLoader(model)
-
 visitModel = lookupModel(_m)
-
-model = visitModel(modelLoader).model
-
+model = visitModel(ModelLoader(model)).model
+visitModel(ModelRenderer(table_model, model))
 modelVisitor = ModelVisitor(table_model, model)
-
 visitModel(modelVisitor)
-
 modelVisitor.processIteration()
-
 model = modelVisitor.model
 
 print "m=",_m, model
@@ -945,8 +1116,8 @@ def printOptionType(table, option_type):
 clridx = 1
 
 visitOption = lookupOption(_f, _o)
-optionLoader = OptionLoader(opt)
-opt = visitOption(optionLoader).option
+opt = visitOption(OptionLoader(opt)).option
+visitOption(OptionRenderer(table_option, opt))
 optionVisitor = OptionVisitor(table_option, opt)
 visitOption(optionVisitor)
 optionVisitor.processIteration()
@@ -977,8 +1148,8 @@ def printMethodType(table, method_type):
    table <= rowinc(met_colors, B('Pricing method:'), mc)
 
 visitMethod = lookupMethod(_m,_f,_meth)
-methodLoader = MethodLoader(method)
-method = visitMethod(methodLoader).method
+method = visitMethod(MethodLoader(method)).method
+visitMethod(MethodRenderer(table_method, method))
 methodVisitor = MethodVisitor(table_method, method)
 visitMethod(methodVisitor)
 methodVisitor.processIteration()
@@ -1360,13 +1531,17 @@ for hh_idx in range(len(session.history)):
    model_list = eval('assets.' + asset_id + '.models()')
 
    model = h[1]
+   visitModel = lookupModel(model.ID())
+   visitModel(ModelRenderer(table_model_h, model))
    modelVisitor = ModelVisitor(table_model_h, model)
-   lookupModel(model.ID())(modelVisitor)
+   visitModel(modelVisitor)
    modelVisitor.processIteration()
 
    opt = h[2]
+   visitOption = lookupOption(opt.familyName(), type(opt).__name__)
+   visitOption(OptionRenderer(table_opt_h, opt))
    optionVisitor = OptionVisitor(table_opt_h, opt)
-   lookupOption(opt.familyName(), type(opt).__name__)(optionVisitor)
+   visitOption(optionVisitor)
    optionVisitor.processIteration()   
 
    method = h[3]
@@ -1378,9 +1553,10 @@ for hh_idx in range(len(session.history)):
    
    #print h_idx, res_labels
    
+   visitMethod = lookupMethod(model.ID(), opt.familyName(), type(method).__name__)
+   visitMethod(MethodRenderer(table_meth_h, method))
    methodVisitor = MethodVisitor(table_meth_h, method)
-   lookupMethod(model.ID(), opt.familyName(), type(method).__name__)(
-      methodVisitor)
+   visitMethod(methodVisitor)
    methodVisitor.processIteration()
       
    if res_t == None and res <> None:
