@@ -24,27 +24,27 @@ namespace karrigell {
 		Formatter out(ctx.filename(e));
 
       out << "from HTMLTags import *";
-
+      
       out("ENUM_NAME", e.label)
-	    << "def process_%ENUM_NAME%(label, vlabel, v):";
-
+	    << "def process(label, vlabel, v):";
+/*
       out << (seq,
             "   if vlabel not in v.ctx.REQUEST:",
             "      v.ctx.REQUEST[vlabel] = '0'");
 
 	    
-	    out.incindent();
 	    
 	    out << "v.clrinc()";
-	    
+*/	    
+	    out.incindent();
 	    out << (seq, "labels = [", +foreach_x(e.members, printEnumChoices), "]");  
-	    
+/*	    
 	    out << (seq,
             "if v.ctx.history_mode:",
             "   e = labels.index(v.member._labels[v.member._value.key()])",
             "else:",
             "   e = int(v.ctx.REQUEST[vlabel])");
-	    
+*/	    
 	    bool has_params = false;
 	    
 	    BOOST_FOREACH(api::Enum::Members::const_reference p, e.members)
@@ -53,6 +53,9 @@ namespace karrigell {
 	            has_params = true;
 	    }
 	    
+	    out("CHANGE", has_params ? "True" : "False") 
+	         << "e = v.setLabels(label, vlabel, labels,%CHANGE%)";
+/*	    
 	    out("CHANGE", has_params ? ", onchange='submit();'": "") 
 	       << "L = SELECT(name = vlabel%CHANGE%).from_list(labels)";
       
@@ -61,7 +64,7 @@ namespace karrigell {
        out << "   v.table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=v.currentColor)";
        out << "else:";
        out << "   v.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=v.currentColor)";
-				
+*/			
 		 out.decindent();
 
 

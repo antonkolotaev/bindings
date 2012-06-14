@@ -33,8 +33,8 @@ def loadVector(property_name, vlabel, pmem):
 
 def processVector(ctx, table, colors, obj, propname, label, vlabel):
    pmem = getattr(obj, propname)
-   if ctx.reload and not history_mode:
-      loadVector(propname, vlabel, pmem)
+   #if ctx.reload and not history_mode:
+   #   loadVector(propname, vlabel, pmem)
    printVector(table, colors, label, vlabel, pmem)
    iterVector(ctx, pmem, label, vlabel)
 

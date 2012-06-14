@@ -39,7 +39,6 @@ namespace karrigell {
 				"   v.setMethod(%METHOD_NAME%, '%METHOD_NAME%')", "",
  				"   method = v.method",
 				+foreach_x(met.members, print::Table),
-				+call(boost::bind(print::Iterables, _1, boost::cref(met.members))),
 				+call(boost::bind(printIterateCheckBoxes, _1, boost::cref(met.results))),
 				"   return v"
 			);

@@ -25,7 +25,6 @@ namespace karrigell {
 			   "   v.setModel(%MODEL_NAME%, '%MODEL_NAME%')",
 			   "   model = v.model",
 				+foreach_x(m.members, print::Table),
-				+call(boost::bind(print::Iterables, _1, boost::cref(m.members))),
 				"   return v"
 			);
 	}

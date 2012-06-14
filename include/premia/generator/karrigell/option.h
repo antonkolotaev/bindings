@@ -38,7 +38,6 @@ namespace karrigell {
 			   "   v.setOption(%OPT_NAME%, '%FAMILY_NAME%', '%OPT_NAME%')",
 			   "   opt = v.option",
 				+foreach_x(opt.vars, print::Table),
-				+call(boost::bind(print::Iterables, _1, boost::cref(opt.vars))),
 				"   return v"
 			);
 

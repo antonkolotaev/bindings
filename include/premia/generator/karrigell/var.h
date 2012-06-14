@@ -28,7 +28,8 @@ namespace karrigell {
 	            out("IDX",idx)("LABEL", em.second.label) 
 	                << (seq, 
 	                "if e == %IDX%:", +(seq, 
-	                    "v.member.set_%LABEL%()",
+	                    "v.setChoice(lambda x: x.set_%LABEL%())", 
+	                    //"v.member.set_%LABEL%()",
 	                    foreach_x(em.second.params, enumParams)));
 	            ++idx;
 	        }
@@ -146,7 +147,7 @@ namespace karrigell {
 			void operator() (EnumValue const & e) 
 			{
 			    out("ENUM_TYPE", e.type->label) 
-				   << "v.processEnum(%ENUM_TYPE%.process_%ENUM_TYPE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
+				   << "v.processEnum(%ENUM_TYPE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
 			}
 		private:
 			Formatter & out;
@@ -176,12 +177,6 @@ namespace karrigell {
 		   TableEx(out("PREFIX", std::string("'")+symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str())+"'"), vr);
 		}
 
-
-        inline void Iterables(Formatter& out, VarList const &vars)
-        {
-            out << (seq, 
-                  "v.processIteration()");
-        }
 	}
 
 
