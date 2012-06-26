@@ -16,11 +16,12 @@ def renderVector(table, colors, label, vlabel, pmem):
 def iterVector(ctx, pmem, label, vlabel):
    
    for i in range(len(pmem)): 
-      ctx.iterables.append(label + '[' + str(i) + ']')
-      ctx.iterables_corr.append(vlabel + str(i))
+      ctx._iterables.append(label + '[' + str(i) + ']')
+      ctx._iterables_corr.append(vlabel + str(i))
 
-   ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-   ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+   ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+   ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+   
 
 def loadVector(property_name, vlabel, pmem):
     try:
@@ -37,4 +38,6 @@ def processVector(ctx, table, colors, obj, propname, label, vlabel):
    #   loadVector(propname, vlabel, pmem)
    #renderVector(table, colors, label, vlabel, pmem)
    iterVector(ctx, pmem, label, vlabel)
+
+
 

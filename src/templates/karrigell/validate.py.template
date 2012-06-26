@@ -43,6 +43,13 @@ def checkbox(vname,checked=True, disabled = False):
                 checked=checked, 
                 disabled = disabled) 
    
+"""
+ModelIteration: (same for Option and Method iteration)
+   - list of iterable field names: idx -> printable_name
+   - function to get iterable field corrected names by its index: idx -> corrected_name
+   - function to get iterable field getter by its index: idx -> (() -> FieldValue)
+   - function to get iterable field setter by its index: idx -> (FieldValue -> ()) 
+"""
 
 
 # This class contains arrays representing possible iteration over some entity parameter
@@ -52,25 +59,107 @@ def checkbox(vname,checked=True, disabled = False):
 # If a parameter is of PNLVECTCOMPACT type of size N, 
 #     these array contain N its components if it is heterogenous, or 1 component if homogenous
 # If a parameter if ENUM type, its parameters, if any, appear in these arrays 
-# iterables  - printable labels for iterable parameters. Type: string list
-# iterables_corr - corrected names for variables. Type: string list
-# iterables_getter - functions returning parameter's value from the entity.
+# _iterables  - printable labels for iterable parameters. Type: string list
+# _iterables_corr - corrected names for variables. Type: string list
+# _iterables_getter - functions returning parameter's value from the entity.
 #                    Type: list<() -> (int | double)>
-# iterables_setter - functions setting parameter's value in the entity.
+# _iterables_setter - functions setting parameter's value in the entity.
 #                    Type: list<(int | double) -> ()>
 # TODO: introduce IterableParam class
 # reload : bool  - flag showing should we try to load entity params from the form sent
-class Ctx:
+class Iterables:
 
-   def __init__(self):
+   def __init__(self, parent):
       # 
-      self.iterables = ['No iteration']
-      self.iterables_corr = ['']
-      self.iterables_getter = ['']
-      self.iterables_setter = ['']
+      self._iterables = ['No iteration']
+      self._iterables_corr = ['']
+      self._iterables_getter = ['']
+      self._iterables_setter = ['']
+      self._iterables = ['No iteration']
       self.reload = True
+      self.parent = parent
       
-Include(r'premia/vector.py')
+   def __len__(self): return len(self._iterables)
+      
+   @property
+   def entity(self):
+      return self.parent.entity
+  
+   @property
+   def labels(self):
+      return self._iterables
+      
+   def checkIdx(self, idx):
+      assert 0 <= idx and idx < len(self._iterables_corr)
+      
+   def getCorrectedName(self, idx):
+      self.checkIdx(idx)
+      return self._iterables_corr[idx]
+      
+   def lookupByCorrectedName(self, correctedName):
+      if correctedName in self._iterables_corr: 
+         return self._iterables_corr.index(correctedName)
+      else:
+         return 0
+   
+      
+   def getGetter(self, idx):
+      self.checkIdx(idx)
+      return self._iterables_getter[idx]
+
+   def getSetter(self, idx):
+      self.checkIdx(idx)
+      return self._iterables_setter[idx]
+ 
+def renderVector(table, colors, fullName, friendlyName, pmem):
+   def mc(fullName, friendlyName):
+      if not history_mode:
+         return INPUT(name=fullName,value=friendlyName)
+      else:
+         return friendlyName
+   def rc(s):
+      if not history_mode:
+         return s  
+      else:
+         return ''    
+   clrinc()
+   table <= TR(TD(friendlyName, align='right',rowspan=len(pmem)) + 
+               TD(mc(fullName + '[0]',pmem[0])) + 
+               TD(rc('R'),
+               rowspan=len(pmem)),
+               bgcolor=clr(colors,clridx))
+               
+   table <= Sum([TR(TD(mc(fullName + '[' + str(i) + ']',pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
+
+def iterVector(ctx, pmem, label, vlabel):
+   
+   for i in range(len(pmem)): 
+      ctx._iterables.append(label + '[' + str(i) + ']')
+      ctx._iterables_corr.append(vlabel + str(i))
+
+   ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+   ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+   
+
+def loadVector(property_name, vlabel, pmem):
+    try:
+       for i in range(len(pmem)):
+          src = vlabel + "[" + str(i) + "]"
+          if src in REQUEST: 
+             pmem[i] = float(REQUEST[src])
+    except Exception, ex:
+       add_error('Error in' + property_name + ':' + str(ex))
+
+def processVector(ctx, table, colors, obj, propname, label, vlabel):
+   pmem = getattr(obj, propname)
+   #if ctx.reload and not history_mode:
+   #   loadVector(propname, vlabel, pmem)
+   #renderVector(table, colors, label, vlabel, pmem)
+   iterVector(ctx, pmem, label, vlabel)
+
+
+      
+#Include(r'premia/vector.py')
 #Include(r'premia/vector_compact.py')
 #Include(r'premia/process_iteration.py')   
 
@@ -196,19 +285,14 @@ def processIteration(ctx, obj, entity, colors):
          iterate_idx = 0
 
       old_idx = G['oldit'][entity]
-      #print "old_idx=",old_idx, "iterate_idx=", iterate_idx
-      if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
-         #print iterate_idx >= len(ctx.iterables_corr), G['_il'], ctx.iterables_corr, iterate_idx  
-         if iterate_idx >= len(ctx.iterables_corr) or G['_il'] <> ctx.iterables_corr[iterate_idx]:
-            if G['_il'] in ctx.iterables_corr: 
-               iterate_idx = ctx.iterables_corr.index(G['_il'])
-            else:
-               iterate_idx = 0
-            #print "==>", iterate_idx
 
-      iterate_value_vlabel = iterate_vlabel + '_' + ctx.iterables_corr[iterate_idx]
+      if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
+         if iterate_idx >= len(ctx) or G['_il'] <> ctx.getCorrectedName(iterate_idx):
+            iterate_idx = lookupByCorrectedName(G['il'])
+
+      iterate_value_vlabel = iterate_vlabel + '_' + ctx.getCorrectedName(iterate_idx)
          
-      table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod(iterate_vlabel, ctx.iterables, ctx.iterables[iterate_idx]))+TD(),bgcolor=clr(colors,clridx)))
+      table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod(iterate_vlabel, ctx.labels, ctx.labels[iterate_idx]))+TD(),bgcolor=clr(colors,clridx)))
       
       if iterate_idx <> 0:
       
@@ -217,7 +301,7 @@ def processIteration(ctx, obj, entity, colors):
          if iterate_value_vlabel in REQUEST:
             old_value = REQUEST[iterate_value_vlabel]
          else:
-            old_value = ctx.iterables_getter[iterate_idx]()
+            old_value = ctx.getGetter(iterate_idx)()
             
          table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name=iterate_value_vlabel,value=old_value))+TD(),bgcolor=clr(colors,clridx)))
          
@@ -232,10 +316,10 @@ def processIteration(ctx, obj, entity, colors):
          
          G['_iterate_' + entity] = str(iterate_idx)
          G['iterate_object'] = obj
-         G['iterate_label'] = ctx.iterables_corr[iterate_idx] 
-         G['iterate_name'] = ctx.iterables[iterate_idx]
-         G['iteration_getter'] = ctx.iterables_getter[iterate_idx]
-         G['iteration_setter'] = ctx.iterables_setter[iterate_idx]
+         G['iterate_label'] = ctx.getCorrectedName(iterate_idx) 
+         G['iterate_name'] = ctx.labels[iterate_idx]
+         G['iteration_getter'] = ctx.getGetter(iterate_idx)
+         G['iteration_setter'] = ctx.getSetter(iterate_idx)
          if iterate_value_vlabel in REQUEST:
             G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
 
@@ -306,26 +390,24 @@ def renderVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
 
 def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
 
-   #renderVectorCompact(ctx, table, colors, obj, propname, label, vlabel)
-
    pmem = getattr(obj, propname)
 
    mode = getattr(obj, '__mode_'+propname)
       
    if mode == 0:
-      ctx.iterables.append(label)
-      ctx.iterables_corr.append(vlabel + '__c')
-      ctx.iterables_getter.append(lambda: pmem[0])
+      ctx._iterables.append(label)
+      ctx._iterables_corr.append(vlabel + '__c')
+      ctx._iterables_getter.append(lambda: pmem[0])
       def F(x):
          for i in range(len(pmem)): pmem[i] = x          
-      ctx.iterables_setter.append(F)
+      ctx._iterables_setter.append(F)
 
    if mode == 1:
       for i in range(len(pmem)): 
-         ctx.iterables.append(label + '[' + str(i) + ']')
-         ctx.iterables_corr.append(vlabel + str(i))
-      ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-      ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+         ctx._iterables.append(label + '[' + str(i) + ']')
+         ctx._iterables_corr.append(vlabel + str(i))
+      ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+      ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
 
 def loadScalar(ctx, property_name, vlabel, obj, conv):
     try:
@@ -346,18 +428,17 @@ def renderScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onCha
 
 def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
 
-   #renderScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv)
-   
    if iterable:
-      ctx.iterables.append(label)
-      ctx.iterables_corr.append(vlabel)
-      ctx.iterables_getter.append(lambda: getattr(obj, propname))
-      ctx.iterables_setter.append(lambda x: setattr(obj, propname, x)) 
+      ctx._iterables.append(label)
+      ctx._iterables_corr.append(vlabel)
+      ctx._iterables_getter.append(lambda: getattr(obj, propname))
+      ctx._iterables_setter.append(lambda x: setattr(obj, propname, x)) 
       
 class Loader(object):
 
    def __init__(self):
-      self.ctx = Ctx()
+      self.ctx = Iterables(self)
+      a = len(self.ctx._iterables)
       self.ctx.history_mode = history_mode
       self.ctx.REQUEST = REQUEST
 
@@ -411,7 +492,7 @@ class Renderer(object):
    def __init__(self, table, colors):
       self.table = table
       self.colors = colors
-      self.ctx = Ctx()
+      self.ctx = Iterables(self)
       self.ctx.history_mode = history_mode
       self.ctx.REQUEST = REQUEST
       
@@ -461,15 +542,15 @@ class Renderer(object):
                      correctedName,
                      friendlyName,
                      fullName):
-   
+                     
+      pmem = getattr(self.entity, correctedName)
+      
       renderVector(
-         self.ctx, 
          self.table, 
          self.colors,
-         self.entity,
-         correctedName, 
+         fullName,
          friendlyName, 
-         fullName)   
+         pmem)   
 
    def processEnum(self,
                    enumModule,
@@ -494,7 +575,7 @@ class Visitor(object):
    def __init__(self, table, colors):
       self.table = table
       self.colors = colors
-      self.ctx = Ctx()
+      self.ctx = Iterables(self)
       self.ctx.history_mode = history_mode
       self.ctx.REQUEST = REQUEST
       
@@ -642,23 +723,7 @@ class EnumVisitor(Visitor):
       self.member = member
       
    def setLabels(self, label, vlabel, labels, has_params):
-   
-      #self.clrinc()
-      
       e = labels.index(self.member._labels[self.member._value.key()])
-      """   
-      if has_params:
-         L = SELECT(name = vlabel, onchange='submit();').from_list(labels)
-      else:
-         L = SELECT(name = vlabel).from_list(labels)
-         
-      L.select(value=e)
-      
-      if self.ctx.history_mode:
-         self.table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=self.currentColor)
-      else:
-         self.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=self.currentColor)
-      """
       return e
    
    def setChoice(self, setter):
