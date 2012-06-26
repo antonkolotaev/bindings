@@ -8,6 +8,7 @@ Include('import.py')
 
 from kspremia.result_kinds import *
 from kspremia import enum
+from kspremia import vector
 
 # object defining per-user data   
 session = Session()
@@ -288,7 +289,7 @@ def processIteration(ctx, obj, entity, colors):
 
       if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
          if iterate_idx >= len(ctx) or G['_il'] <> ctx.getCorrectedName(iterate_idx):
-            iterate_idx = lookupByCorrectedName(G['il'])
+            iterate_idx = ctx.lookupByCorrectedName(G['il'])
 
       iterate_value_vlabel = iterate_vlabel + '_' + ctx.getCorrectedName(iterate_idx)
          
@@ -441,6 +442,7 @@ class Loader(object):
       a = len(self.ctx._iterables)
       self.ctx.history_mode = history_mode
       self.ctx.REQUEST = REQUEST
+      self.REQUEST = REQUEST
 
    def addError(self, msg): add_error(msg)
       
@@ -475,7 +477,7 @@ class Loader(object):
    
       pmem = getattr(self.entity, correctedName)
       if self.ctx.reload and not self.ctx.history_mode:
-         loadVector(correctedName, fullName, pmem)
+         vector.load(self, correctedName, fullName, pmem)
 
    def processEnum(self,
                    enum,
@@ -545,7 +547,8 @@ class Renderer(object):
                      
       pmem = getattr(self.entity, correctedName)
       
-      renderVector(
+      vector.render(
+         self,
          self.table, 
          self.colors,
          fullName,
@@ -626,7 +629,7 @@ class Visitor(object):
                      friendlyName,
                      fullName):
    
-      processVector(
+      vector.getIterables(
          self.ctx, 
          self.table, 
          self.colors,
