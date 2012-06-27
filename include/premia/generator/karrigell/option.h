@@ -33,6 +33,7 @@ namespace karrigell {
 			("ENTITY_NAME", "option")
 			<< (seq, 
 			   foreach_x(opt.vars, print::includeEnums),
+			   call(print::commonHeader),			   
 			   "from premia.opt.%FAMILY_NAME%.%OPT_NAME% import %OPT_NAME%",
 			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(v):",
 			   "   v.setOption(%OPT_NAME%, '%FAMILY_NAME%', '%OPT_NAME%')",

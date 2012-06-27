@@ -24,7 +24,7 @@ namespace karrigell {
 	    bool has_params = false;
 	    
 	    BOOST_FOREACH(api::Enum::Members::const_reference p, e.members)
-	    {
+	    { 
 	        if (!p.second.params.empty())
 	            has_params = true;
 	    }
@@ -32,7 +32,8 @@ namespace karrigell {
 		Formatter(ctx.filename(e))
 		   ("CHANGE", has_params ? "True" : "False")
 		   << (seq, 
-		      "def process(label, vlabel, v):", +(seq,
+		      call(print::commonHeader),			   
+			  "def process(label, vlabel, v):", +(seq,
 		         "labels = [", 
 		            +foreach_x(e.members, printEnumChoices), 
 		         "]",

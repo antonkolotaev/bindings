@@ -20,6 +20,7 @@ namespace karrigell {
 			("ENTITY_NAME", "model")
 			<< (seq, 
 			   foreach_x(m.members, print::includeEnums),
+			   call(print::commonHeader),			   
 			   "from premia.mod.%ID%.model import %MODEL_NAME%",
 			   "def %OBJ%_%ID%(v):",
 			   "   v.setModel(%MODEL_NAME%, '%MODEL_NAME%')",

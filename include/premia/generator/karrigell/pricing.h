@@ -34,6 +34,7 @@ namespace karrigell {
 			("ENTITY_NAME", "method")
 			<< (seq, 
 			   foreach_x(met.members, print::includeEnums),
+			   call(print::commonHeader),
 			   "from premia.mod.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME% import %METHOD_NAME%",
 			   "def %OBJ%_%MODEL_NAME%_%FAMILY_NAME%_%METHOD_NAME%(v):",
 				"   v.setMethod(%METHOD_NAME%, '%METHOD_NAME%')", "",

@@ -281,28 +281,17 @@ class Loader(object):
 
    def __init__(self):
       self.ctx = Iterables(self)
-      a = len(self.ctx._iterables)
-      self.ctx.history_mode = history_mode
-      self.ctx.REQUEST = REQUEST
+      self.ctx.history_mode = history_mode   # to be removed
+      self.ctx.REQUEST = REQUEST             # to be removed
       self.REQUEST = REQUEST
+      self.history_mode = history_mode
+
+   @property
+   def reload(self): return self.ctx.reload
 
    def addError(self, msg): add_error(msg)
       
-   def processScalar(self,
-                     correctedName,
-                     printableName,
-                     fullName,
-                     constraint,
-                     onChange,
-                     isIterable,
-                     converter):
-
-      scalar.load(
-         self, 
-         correctedName, 
-         fullName,
-         self.entity,
-         converter)
+   def processScalar(self, field):   field.load(self)
          
    def processVectorCompact(self,
                             correctedName,
@@ -338,6 +327,8 @@ class Renderer(object):
       self.colors = colors
       self.ctx = Iterables(self)
       self.ctx.history_mode = history_mode
+      self.history_mode = history_mode
+      self.REQUEST = REQUEST
       self.ctx.REQUEST = REQUEST
       
    def clrinc(self): clrinc()
@@ -346,27 +337,7 @@ class Renderer(object):
    
    def addError(self, msg): add_error(msg)
       
-   def processScalar(self,
-                     correctedName,
-                     printableName,
-                     fullName,
-                     constraint,
-                     onChange,
-                     isIterable,
-                     converter):
-      
-      scalar.render(
-         self, 
-         self.table, 
-         self.colors, 
-         self.entity,
-         correctedName,
-         printableName,
-         fullName,
-         constraint,
-         onChange,
-         isIterable,
-         converter)
+   def processScalar(self, field):  field.render(self)
          
    def processVectorCompact(self,
                             correctedName,
@@ -430,27 +401,7 @@ class Visitor(object):
    
    def addError(self, msg): add_error(msg)
       
-   def processScalar(self,
-                     correctedName,
-                     printableName,
-                     fullName,
-                     constraint,
-                     onChange,
-                     isIterable,
-                     converter):
-      
-      scalar.getIterables(
-         self.ctx, 
-         self.table, 
-         self.colors, 
-         self.entity,
-         correctedName,
-         printableName,
-         fullName,
-         constraint,
-         onChange,
-         isIterable,
-         converter)
+   def processScalar(self, field):  field.getIterables(self)
          
    def processVectorCompact(self,
                             correctedName,

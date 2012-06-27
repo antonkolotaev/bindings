@@ -61,12 +61,19 @@ namespace karrigell {
 		private:
 			Formatter & out;
 		};
-		
-		inline void includeEnums(Formatter &out, NamedVar const &vr)
+
+      inline void includeEnums(Formatter &out, NamedVar const &vr)
 		{
 		   include_enums(out).apply(vr.value);
 		}
-		
+
+      inline void commonHeader(Formatter &out)
+      {
+         out << (seq,
+            "from kspremia.scalar import Scalar"
+            );            
+      }
+
 		template <class Scalar>
 			std::string const & tostr(api::Range<Scalar> const * c)
 		{
@@ -125,13 +132,13 @@ namespace karrigell {
 				   ("SYMB", symbol<Scalar>())
 				   ("CONV", converter<Scalar>())
 				   ("ITERABLE", iterable ? "True" : "False")	
-				   << "v.processScalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%)"
+				   << "v.processScalar(Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%))"
 ;
 			}
 
 			void operator () (std::string const & i)  
 			{
-			   out << "v.processScalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str)";
+			   out << "v.processScalar(Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str))";
 			}
 
 			void operator () (std::vector<double> const & i) 

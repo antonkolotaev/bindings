@@ -1,29 +1,53 @@
 from HTMLTags import *
 
-def load(v, property_name, vlabel, obj, conv):
-    try:
-       ctx = v.ctx
-       if not ctx.history_mode and ctx.reload and vlabel in ctx.REQUEST:
-          setattr(obj, property_name, conv(ctx.REQUEST[vlabel]))
-    except Exception, ex:
-       v.addError('Error in '+ property_name +':' + str(ex))
-       
-def render(v, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
+class Scalar (object):
+  
+   def __init__(self, correctedName,
+                     printableName,
+                     fullName,
+                     constraint,
+                     onChange,
+                     isIterable,
+                     converter):
+      self.correctedName = correctedName
+      self.printableName = printableName
+      self.fullName = fullName
+      self.constraint = constraint
+      self.onChange = onChange
+      self.iterable = isIterable
+      self.fromString = converter
 
-   ctx = v.ctx
-   if not ctx.history_mode:
-      mc = INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname))      
-   else:
-      mc = getattr(obj, propname)
-      constr = ''
-   
-   v.clrinc()   
-   table <= (TR(TD(label,align='right') + TD(mc)+TD(constr),bgcolor=v.currentColor)) 
 
-def getIterables(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
+   def load(self, v):
+       try:
+          if not v.history_mode and v.reload and self.fullName in v.REQUEST:
+             setattr(v.entity, self.correctedName, self.fromString(v.REQUEST[self.fullName]))
+       except Exception, ex:
+          v.addError('Error in '+ self.correctedName +':' + str(ex))
+          
+   def render(self, v):
 
-   if iterable:
-      ctx._iterables.append(label)
-      ctx._iterables_corr.append(vlabel)
-      ctx._iterables_getter.append(lambda: getattr(obj, propname))
-      ctx._iterables_setter.append(lambda x: setattr(obj, propname, x)) 
+      ctx = v.ctx
+      if not v.history_mode:
+         mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.correctedName))      
+      else:
+         mc = getattr(v.entity, self.correctedName)
+      
+      v.clrinc()   
+      v.table <= (TR(
+                     TD(self.printableName,align='right') + 
+                     TD(mc)+
+                     TD(self.constraint),
+                     bgcolor=v.currentColor
+                    )) 
+
+   def getIterables(self, v):
+      ctx = v.ctx
+
+      if self.iterable:
+         ctx._iterables.append(self.printableName)
+         ctx._iterables_corr.append(self.fullName)
+         ctx._iterables_getter.append(lambda: getattr(v.entity, self.correctedName))
+         ctx._iterables_setter.append(lambda x: setattr(v.entity, self.correctedName, x))
+
+def f(): pass
