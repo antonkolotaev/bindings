@@ -1,27 +1,10 @@
-def loadVectorCompact(property_name, vlabel, pmem):
-    try:
-       if vlabel + '__c' in REQUEST:
-         val = float(REQUEST[vlabel + '__c'])
-         for i in range(len(pmem)):                 
-            pmem[i] = val
-       else:
-          for i in range(len(pmem)):
-             src = vlabel + "[" + str(i) + "]"
-             if src in REQUEST: 
-                pmem[i] = float(REQUEST[src])
-    except Exception, ex:
-       add_error('Error in' + property_name + ':' + str(ex))
+from HTMLTags import *
 
-def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
-   pmem = getattr(obj, propname)
-   clrinc()
-   mode = None
-   
-   if ctx.reload and not history_mode:
-      loadVectorCompact(propname, vlabel, pmem)
-
-   if vlabel + '__t' in REQUEST:
-      if REQUEST[vlabel + '__t'] == '0':
+def load(v, property_name, vlabel, obj):
+   pmem = getattr(obj, property_name)
+  
+   if vlabel + '__t' in v.ctx.REQUEST:
+      if v.ctx.REQUEST[vlabel + '__t'] == '0':
          mode = 0
       else:
          mode = 1
@@ -30,45 +13,75 @@ def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
          mode = 0
       else:
          mode = 1
+   setattr(obj, '__mode_'+property_name, mode)
 
-   if not history_mode:
+   try:
+       if vlabel + '__c' in v.ctx.REQUEST:
+         val = float(v.ctx.REQUEST[vlabel + '__c'])
+         for i in range(len(pmem)):                 
+            pmem[i] = val
+       else:
+          for i in range(len(pmem)):
+             src = vlabel + "[" + str(i) + "]"
+             if src in v.ctx.REQUEST: 
+                pmem[i] = float(v.ctx.REQUEST[src])
+   except Exception, ex:
+       v.addError('Error in' + property_name + ':' + str(ex))
+
+def render(v, table, colors, obj, propname, label, vlabel):
+   ctx = v.ctx
+   pmem = getattr(obj, propname)
+   v.clrinc()
+
+   mode = getattr(obj, '__mode_'+propname)
+   
+   if not ctx.history_mode:
       L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
       
    if mode == 0:
-      ctx.iterables.append(label)
-      ctx.iterables_corr.append(vlabel + '__c')
-      ctx.iterables_getter.append(lambda: pmem[0])
-      def F(x):
-         for i in range(len(pmem)): pmem[i] = x          
-      ctx.iterables_setter.append(F)
 
-      if not history_mode:
+      if not ctx.history_mode:
          L.select(value=0)
-         table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
+         table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=v.currentColor)
          mc = INPUT(name=vlabel + '__c',value=pmem[0])
-         table <= TR(TD(mc),bgcolor=clr(colors,clridx))
+         table <= TR(TD(mc),bgcolor=v.currentColor)
       else:
-         table <= TR(TD(label, align='right') + TD(pmem[0]) + TD(''),bgcolor=clr(colors,clridx))
-            
-      
+         table <= TR(TD(label, align='right') + TD(pmem[0]) + TD(''),bgcolor=v.currentColor)
 
    if mode == 1:
-      for i in range(len(pmem)): 
-         ctx.iterables.append(label + '[' + str(i) + ']')
-         ctx.iterables_corr.append(vlabel + str(i))
-      ctx.iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-      ctx.iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
    
-      if not history_mode:   
+      if not ctx.history_mode:   
          L.select(value=1)
-         table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
-         table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
+         table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=v.currentColor)
+         table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=v.currentColor) for i in range(0,len(pmem))])
       else:
          def as_string(arr):
             s = "["
             for x in arr:
-               s += x
-               s += ";"
+               s += str(x) + ";"
             return s + "]"
-         table <= TR(TD(label, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=clr(colors,clridx))
+         table <= TR(TD(label, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=v.currentColor)
 
+
+def getIterables(v, table, colors, obj, propname, label, vlabel):
+
+   ctx = v.ctx
+
+   pmem = getattr(obj, propname)
+
+   mode = getattr(obj, '__mode_'+propname)
+      
+   if mode == 0:
+      ctx._iterables.append(label)
+      ctx._iterables_corr.append(vlabel + '__c')
+      ctx._iterables_getter.append(lambda: pmem[0])
+      def F(x):
+         for i in range(len(pmem)): pmem[i] = x          
+      ctx._iterables_setter.append(F)
+
+   if mode == 1:
+      for i in range(len(pmem)): 
+         ctx._iterables.append(label + '[' + str(i) + ']')
+         ctx._iterables_corr.append(vlabel + str(i))
+      ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+      ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))

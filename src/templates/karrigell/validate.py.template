@@ -9,6 +9,7 @@ Include('import.py')
 from kspremia.result_kinds import *
 from kspremia import enum
 from kspremia import vector
+from kspremia import vector_compact
 
 # object defining per-user data   
 session = Session()
@@ -112,57 +113,6 @@ class Iterables:
       self.checkIdx(idx)
       return self._iterables_setter[idx]
  
-def renderVector(table, colors, fullName, friendlyName, pmem):
-   def mc(fullName, friendlyName):
-      if not history_mode:
-         return INPUT(name=fullName,value=friendlyName)
-      else:
-         return friendlyName
-   def rc(s):
-      if not history_mode:
-         return s  
-      else:
-         return ''    
-   clrinc()
-   table <= TR(TD(friendlyName, align='right',rowspan=len(pmem)) + 
-               TD(mc(fullName + '[0]',pmem[0])) + 
-               TD(rc('R'),
-               rowspan=len(pmem)),
-               bgcolor=clr(colors,clridx))
-               
-   table <= Sum([TR(TD(mc(fullName + '[' + str(i) + ']',pmem[i])),bgcolor=clr(colors,clridx)) for i in range(1,len(pmem))])
-
-def iterVector(ctx, pmem, label, vlabel):
-   
-   for i in range(len(pmem)): 
-      ctx._iterables.append(label + '[' + str(i) + ']')
-      ctx._iterables_corr.append(vlabel + str(i))
-
-   ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-   ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
-   
-
-def loadVector(property_name, vlabel, pmem):
-    try:
-       for i in range(len(pmem)):
-          src = vlabel + "[" + str(i) + "]"
-          if src in REQUEST: 
-             pmem[i] = float(REQUEST[src])
-    except Exception, ex:
-       add_error('Error in' + property_name + ':' + str(ex))
-
-def processVector(ctx, table, colors, obj, propname, label, vlabel):
-   pmem = getattr(obj, propname)
-   #if ctx.reload and not history_mode:
-   #   loadVector(propname, vlabel, pmem)
-   #renderVector(table, colors, label, vlabel, pmem)
-   iterVector(ctx, pmem, label, vlabel)
-
-
-      
-#Include(r'premia/vector.py')
-#Include(r'premia/vector_compact.py')
-#Include(r'premia/process_iteration.py')   
 
 # Depends on:
 #   - clrinc, clridx
@@ -289,7 +239,7 @@ def processIteration(ctx, obj, entity, colors):
 
       if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
          if iterate_idx >= len(ctx) or G['_il'] <> ctx.getCorrectedName(iterate_idx):
-            iterate_idx = ctx.lookupByCorrectedName(G['il'])
+            iterate_idx = ctx.lookupByCorrectedName(G['_il'])
 
       iterate_value_vlabel = iterate_vlabel + '_' + ctx.getCorrectedName(iterate_idx)
          
@@ -324,91 +274,6 @@ def processIteration(ctx, obj, entity, colors):
          if iterate_value_vlabel in REQUEST:
             G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
 
-#Include(r'premia/scalar.py')
-
-def loadVectorCompact(property_name, vlabel, obj):
-   pmem = getattr(obj, property_name)
-  
-   if vlabel + '__t' in REQUEST:
-      if REQUEST[vlabel + '__t'] == '0':
-         mode = 0
-      else:
-         mode = 1
-   else:
-      if all(map(lambda x: x == pmem[0], pmem)):
-         mode = 0
-      else:
-         mode = 1
-   setattr(obj, '__mode_'+property_name, mode)
-
-   try:
-       if vlabel + '__c' in REQUEST:
-         val = float(REQUEST[vlabel + '__c'])
-         for i in range(len(pmem)):                 
-            pmem[i] = val
-       else:
-          for i in range(len(pmem)):
-             src = vlabel + "[" + str(i) + "]"
-             if src in REQUEST: 
-                pmem[i] = float(REQUEST[src])
-   except Exception, ex:
-       add_error('Error in' + property_name + ':' + str(ex))
-
-def renderVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
-   pmem = getattr(obj, propname)
-   clrinc()
-
-   mode = getattr(obj, '__mode_'+propname)
-   
-   if not ctx.history_mode:
-      L = SELECT(name = vlabel+ '__t', onchange='submit();').from_list(['Constant','Array'])
-      
-   if mode == 0:
-
-      if not history_mode:
-         L.select(value=0)
-         table <= TR(TD(label, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=clr(colors,clridx))
-         mc = INPUT(name=vlabel + '__c',value=pmem[0])
-         table <= TR(TD(mc),bgcolor=clr(colors,clridx))
-      else:
-         table <= TR(TD(label, align='right') + TD(pmem[0]) + TD(''),bgcolor=clr(colors,clridx))
-
-   if mode == 1:
-   
-      if not history_mode:   
-         L.select(value=1)
-         table <= TR(TD(label, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=clr(colors,clridx))
-         table <= Sum([TR(TD(INPUT(name=vlabel + '[' + str(i) + ']',value=pmem[i])),bgcolor=clr(colors,clridx)) for i in range(0,len(pmem))])
-      else:
-         def as_string(arr):
-            s = "["
-            for x in arr:
-               s += str(x) + ";"
-            return s + "]"
-         table <= TR(TD(label, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=clr(colors,clridx))
-
-
-
-def processVectorCompact(ctx, table, colors, obj, propname, label, vlabel):
-
-   pmem = getattr(obj, propname)
-
-   mode = getattr(obj, '__mode_'+propname)
-      
-   if mode == 0:
-      ctx._iterables.append(label)
-      ctx._iterables_corr.append(vlabel + '__c')
-      ctx._iterables_getter.append(lambda: pmem[0])
-      def F(x):
-         for i in range(len(pmem)): pmem[i] = x          
-      ctx._iterables_setter.append(F)
-
-   if mode == 1:
-      for i in range(len(pmem)): 
-         ctx._iterables.append(label + '[' + str(i) + ']')
-         ctx._iterables_corr.append(vlabel + str(i))
-      ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-      ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
 
 def loadScalar(ctx, property_name, vlabel, obj, conv):
     try:
@@ -468,7 +333,7 @@ class Loader(object):
                             fullName):
    
       if self.ctx.reload and not self.ctx.history_mode:
-         loadVectorCompact(correctedName, fullName, self.entity)
+         vector_compact.load(self, correctedName, fullName, self.entity)
 
    def processVector(self,
                      correctedName,
@@ -531,8 +396,8 @@ class Renderer(object):
                             friendlyName,
                             fullName):
    
-      renderVectorCompact(
-         self.ctx, 
+      vector_compact.render(
+         self, 
          self.table, 
          self.colors,
          self.entity,
@@ -615,8 +480,8 @@ class Visitor(object):
                             friendlyName,
                             fullName):
    
-      processVectorCompact(
-         self.ctx, 
+      vector_compact.getIterables(
+         self, 
          self.table, 
          self.colors,
          self.entity,
