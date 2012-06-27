@@ -10,6 +10,7 @@ from kspremia.result_kinds import *
 from kspremia import enum
 from kspremia import vector
 from kspremia import vector_compact
+from kspremia import scalar
 
 # object defining per-user data   
 session = Session()
@@ -275,30 +276,6 @@ def processIteration(ctx, obj, entity, colors):
             G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
 
 
-def loadScalar(ctx, property_name, vlabel, obj, conv):
-    try:
-       if not ctx.history_mode and ctx.reload and vlabel in ctx.REQUEST:
-          setattr(obj, property_name, conv(ctx.REQUEST[vlabel]))
-    except Exception, ex:
-       add_error('Error in '+ property_name +':' + str(ex))
-       
-def renderScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
-
-   if not ctx.history_mode:
-      mc = INPUT(name=vlabel,onchange=onChange,value=getattr(obj, propname))      
-   else:
-      mc = getattr(obj, propname)
-      constr = ''
-      
-   table <= rowinc(colors, label, mc, constr)
-
-def processScalar(ctx, table, colors, obj, propname, label, vlabel, constr, onChange, iterable, conv):
-
-   if iterable:
-      ctx._iterables.append(label)
-      ctx._iterables_corr.append(vlabel)
-      ctx._iterables_getter.append(lambda: getattr(obj, propname))
-      ctx._iterables_setter.append(lambda x: setattr(obj, propname, x)) 
       
 class Loader(object):
 
@@ -320,8 +297,8 @@ class Loader(object):
                      isIterable,
                      converter):
 
-      loadScalar(
-         self.ctx, 
+      scalar.load(
+         self, 
          correctedName, 
          fullName,
          self.entity,
@@ -378,8 +355,8 @@ class Renderer(object):
                      isIterable,
                      converter):
       
-      renderScalar(
-         self.ctx, 
+      scalar.render(
+         self, 
          self.table, 
          self.colors, 
          self.entity,
@@ -462,7 +439,7 @@ class Visitor(object):
                      isIterable,
                      converter):
       
-      processScalar(
+      scalar.getIterables(
          self.ctx, 
          self.table, 
          self.colors, 
