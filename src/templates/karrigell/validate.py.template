@@ -291,33 +291,10 @@ class Loader(object):
 
    def addError(self, msg): add_error(msg)
       
-   def processScalar(self, field):   field.load(self)
-         
-   def processVectorCompact(self,
-                            correctedName,
-                            friendlyName,
-                            fullName):
-   
-      if self.ctx.reload and not self.ctx.history_mode:
-         vector_compact.load(self, correctedName, fullName, self.entity)
+   def process(self, field):   field.load(self)
 
-   def processVector(self,
-                     correctedName,
-                     friendlyName,
-                     fullName):
-   
-      pmem = getattr(self.entity, correctedName)
-      if self.ctx.reload and not self.ctx.history_mode:
-         vector.load(self, correctedName, fullName, pmem)
+   def enumVisitor(self): return EnumLoader   
 
-   def processEnum(self,
-                   enum,
-                   friendlyName,
-                   memberField,
-                   fullName):
-      
-      enum.process(friendlyName, fullName, EnumLoader(self, memberField))
-      
    def printResultSeries(self, result_members): pass
 
 class Renderer(object):
@@ -337,46 +314,10 @@ class Renderer(object):
    
    def addError(self, msg): add_error(msg)
       
-   def processScalar(self, field):  field.render(self)
+   def process(self, field):  field.render(self)
+
+   def enumVisitor(self): return EnumRenderer
          
-   def processVectorCompact(self,
-                            correctedName,
-                            friendlyName,
-                            fullName):
-   
-      vector_compact.render(
-         self, 
-         self.table, 
-         self.colors,
-         self.entity,
-         correctedName, 
-         friendlyName, 
-         fullName)   
-
-   def processVector(self,
-                     correctedName,
-                     friendlyName,
-                     fullName):
-                     
-      pmem = getattr(self.entity, correctedName)
-      
-      vector.render(
-         self,
-         self.table, 
-         self.colors,
-         fullName,
-         friendlyName, 
-         pmem)   
-
-   def processEnum(self,
-                   enumModule,
-                   friendlyName,
-                   memberField,
-                   fullName):
-      
-      enumModule.process(friendlyName, fullName, 
-         EnumRenderer(self, memberField))
-      
    def processIteration(self):
       pass 
       #processIteration(self.ctx, 
@@ -401,45 +342,10 @@ class Visitor(object):
    
    def addError(self, msg): add_error(msg)
       
-   def processScalar(self, field):  field.getIterables(self)
+   def process(self, field):  field.getIterables(self)
+
+   def enumVisitor(self): return EnumVisitor   
          
-   def processVectorCompact(self,
-                            correctedName,
-                            friendlyName,
-                            fullName):
-   
-      vector_compact.getIterables(
-         self, 
-         self.table, 
-         self.colors,
-         self.entity,
-         correctedName, 
-         friendlyName, 
-         fullName)   
-
-   def processVector(self,
-                     correctedName,
-                     friendlyName,
-                     fullName):
-   
-      vector.getIterables(
-         self.ctx, 
-         self.table, 
-         self.colors,
-         self.entity,
-         correctedName, 
-         friendlyName, 
-         fullName)   
-
-   def processEnum(self,
-                   enumModule,
-                   friendlyName,
-                   memberField,
-                   fullName):
-      
-      enumModule.process(friendlyName, fullName, 
-         EnumVisitor(self, memberField))
-      
    def processIteration(self):
    
       processIteration(self.ctx, 

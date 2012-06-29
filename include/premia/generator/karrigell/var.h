@@ -54,7 +54,7 @@ namespace karrigell {
 			void operator() (EnumValue const & e) 
 			{
 				out("ENUM_NAME", e.type->label) 
-				   << "from kspremia.enum import %ENUM_NAME%";
+				   << "from kspremia.enum.%ENUM_NAME% import %ENUM_NAME%";
 			}
 			
 			
@@ -70,7 +70,9 @@ namespace karrigell {
       inline void commonHeader(Formatter &out)
       {
          out << (seq,
-            "from kspremia.scalar import Scalar"
+            "from kspremia.scalar import Scalar",
+            "from kspremia.vector import Vector",
+            "from kspremia.vector_compact import VectorCompact"
             );            
       }
 
@@ -132,29 +134,29 @@ namespace karrigell {
 				   ("SYMB", symbol<Scalar>())
 				   ("CONV", converter<Scalar>())
 				   ("ITERABLE", iterable ? "True" : "False")	
-				   << "v.processScalar(Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%))"
+				   << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%).process(v)"
 ;
 			}
 
 			void operator () (std::string const & i)  
 			{
-			   out << "v.processScalar(Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str))";
+			   out << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str).process(v)";
 			}
 
 			void operator () (std::vector<double> const & i) 
 			{
 			   if (src && src->Vtype==PNLVECTCOMPACT)
 			      out 
-			      << "v.processVectorCompact('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
+			      << "VectorCompact('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%').process(v)";
 			   else
 			      out 
-			      << "v.processVector('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%')";
+			      << "Vector('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%').process(v)";
 			}
 			
 			void operator() (EnumValue const & e) 
 			{
 			    out("ENUM_TYPE", e.type->label) 
-				   << "v.processEnum(%ENUM_TYPE%, '%FRIENDLY_NAME%', %OBJ%._%VAR_NAME%, %PREFIX%+'_%VAR_NAME%')";
+				   << "%ENUM_TYPE%('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%').process(v)";
 			}
 		private:
 			Formatter & out;

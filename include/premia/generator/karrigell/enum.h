@@ -31,37 +31,28 @@ namespace karrigell {
 
 		Formatter(ctx.filename(e))
 		   ("CHANGE", has_params ? "True" : "False")
+		   ("NAME", e.label)
 		   << (seq, 
-		      call(print::commonHeader),			   
-			  "def process(label, vlabel, v):", +(seq,
-		         "labels = [", 
-		            +foreach_x(e.members, printEnumChoices), 
-		         "]",
-		         "e = v.setLabels(label, vlabel, labels,%CHANGE%)",
-               "try:",
-                  +call(boost::bind(print::enumChoices, _1, boost::cref(e))),
-               "except Exception, ex:",
-               "   v.addError('Error in '+label+':' + str(ex))"
-		   ));
-/*
-      out("ENUM_NAME", e.label)
-	    << "def process(label, vlabel, v):";
-	    out.incindent();
-	    out << (seq, "labels = [", +foreach_x(e.members, printEnumChoices), "]");  
-	    
-	    out("CHANGE", has_params ? "True" : "False") 
-	         << "e = v.setLabels(label, vlabel, labels,%CHANGE%)";
-		 out.decindent();
-
-
-       out 
-            << (seq,
-               "   try:",
-               + +call(boost::bind(print::enumChoices, _1, boost::cref(e))),
-               "   except Exception, ex:",
-               "      v.addError('Error in '+label+':' + str(ex))"
-      );
-*/
+		      call(print::commonHeader),	
+		     "from kspremia.field_base import *",
+		     "class %NAME%(FieldBase):", +(seq, 	
+		     	  "def __init__(self, propertyName, friendlyName, fullName):",
+		     	  "	super(%NAME%, self).__init__(propertyName, friendlyName, fullName)",
+		     	  "",   
+				  "def process(self, pv):", +(seq,
+				  		"label = self.friendlyName",
+				  		"vlabel = self.fullName",
+				  		"member = getattr(pv.entity, self.propertyName)",
+				  		"v = pv.enumVisitor()(pv, member)",
+			         "labels = [", 
+			            +foreach_x(e.members, printEnumChoices), 
+			         "]",
+			         "e = v.setLabels(label, vlabel, labels,%CHANGE%)",
+	               "try:",
+	                  +call(boost::bind(print::enumChoices, _1, boost::cref(e))),
+	               "except Exception, ex:",
+	               "   v.addError('Error in '+label+':' + str(ex))"
+		   )));
 	}
 
 	inline Ctx& operator << (Ctx & ctx, Enums const & enums)

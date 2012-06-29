@@ -1,48 +1,68 @@
 from HTMLTags import *
+from kspremia.field_base import *
 
-def idxFullName(fullName, idx):
-   return fullName + '[' + str(idx) + ']'
+def brackets(s, i):
+  return s + '[' + str(i) + ']'
 
-def render(v, table, colors, fullName, friendlyName, pmem):
-   def mc(fullName, toShow):
-      if not v.ctx.history_mode:
+class Vector(FieldBase):
+
+  def __init__(self,
+               propertyName,
+               friendlyName,
+               fullName):
+    super(Vector,self).__init__(propertyName,friendlyName,fullName)
+
+  def render(self, v):
+
+    pmem = getattr(v.entity, self.propertyName)
+
+    def mc(idx):
+      fullName = brackets(self.fullName, idx)
+      toShow = pmem[idx]
+      if not v.history_mode:
          return INPUT(name=fullName,value=toShow)
       else:
-         return friendlyName
-   def rc(s):
-      if not v.ctx.history_mode:
+         return toShow
+    def rc(s):
+      if not v.history_mode:
          return s  
       else:
          return ''    
-   v.clrinc()
-   table <= TR(TD(friendlyName, align='right',rowspan=len(pmem)) + 
-               TD(mc(idxFullName(fullName, 0),pmem[0])) + 
-               TD(rc('R'),
-               rowspan=len(pmem)),
-               bgcolor=v.currentColor)
+    v.clrinc()
+    v.table <= TR(TD(self.friendlyName, align='right',rowspan=len(pmem)) + 
+                  TD(mc(0)) + 
+                  TD(rc('R'),
+                  rowspan=len(pmem)),
+                  bgcolor=v.currentColor)
                
-   table <= Sum(
-                [TR(TD(mc(idxFullName(fullName, i),pmem[i])),
+    v.table <= Sum(
+                   [TR(TD(mc(i)),
                      bgcolor=v.currentColor) for i in range(1,len(pmem))]
-               )
+                  )
 
-def load(ctx, property_name, vlabel, pmem):
-    try:
-       for i in range(len(pmem)):
-          src = idxFullName(vlabel, i)
-          if src in ctx.REQUEST: 
-             pmem[i] = float(ctx.REQUEST[src])
-    except Exception, ex:
-       ctx.addError('Error in' + property_name + ':' + str(ex))
+  def load(self, v):
 
-def getIterables(ctx, table, colors, obj, propname, label, vlabel):
+      pmem = getattr(v.entity, self.propertyName)
+      if v.reload and not v.history_mode:
+        try:
+           for i in range(len(pmem)):
+              src = brackets(self.fullName, i)
+              if src in v.REQUEST: 
+                 pmem[i] = float(v.REQUEST[src])
+        except Exception, ex:
+           v.addError('Error in' + self.propertyName + ':' + str(ex))
 
-   pmem = getattr(obj, propname)
+  def getIterables(self, v):
 
-   for i in range(len(pmem)): 
-      ctx._iterables.append(idxFullName(label, i))
-      ctx._iterables_corr.append(vlabel + str(i))
+    ctx = v.ctx
 
-   ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
-   ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+    pmem = getattr(v.entity, self.propertyName)
 
+    for i in range(len(pmem)): 
+      ctx._iterables.append(brackets(self.friendlyName, i))
+      ctx._iterables_corr.append(self.fullName + str(i))
+
+    ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
+    ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+
+def f(): pass
