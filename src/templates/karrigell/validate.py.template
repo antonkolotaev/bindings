@@ -322,7 +322,7 @@ class Renderer(object):
       pass
       #printResultSeries(self.table, result_members, self.colors)
 
-class Visitor(object):
+class IterablesExtractor(object):
 
    def __init__(self, table, colors):
       self.table = table
@@ -339,7 +339,7 @@ class Visitor(object):
       
    def process(self, field):  field.getIterables(self)
 
-   def enumVisitor(self): return EnumVisitor   
+   def enumVisitor(self): return EnumIterablesExtractor   
          
    def printResultSeries(self, result_members):
    
@@ -407,10 +407,10 @@ class EnumRenderer(Renderer):
    def entity(self):
       return self.member._value
    
-class EnumVisitor(Visitor):
+class EnumIterablesExtractor(IterablesExtractor):
 
    def __init__(self, source, member):
-      super(EnumVisitor, self).__init__(source.table, source.colors)
+      super(EnumIterablesExtractor, self).__init__(source.table, source.colors)
       self.ctx = source.ctx
       self.member = member
       
@@ -462,10 +462,10 @@ class ModelRenderer(Renderer):
    def setModel(self, modelFactory, modelName):
       printModelType(self.table, modelName)
                    
-class ModelVisitor(Visitor):
+class ModelIterablesExtractor(IterablesExtractor):
 
    def __init__(self, table, model=None):
-      super(ModelVisitor,self).__init__(table, mod_colors)
+      super(ModelIterablesExtractor,self).__init__(table, mod_colors)
       self.model = model  
    
    @property
@@ -518,10 +518,10 @@ class OptionRenderer(Renderer):
       printOptionType(self.table, optionName)
       
             
-class OptionVisitor(Visitor):
+class OptionIterablesExtractor(IterablesExtractor):
 
    def __init__(self, table, option=None):
-      super(OptionVisitor,self).__init__(table, opt_colors)
+      super(OptionIterablesExtractor,self).__init__(table, opt_colors)
       self.option = option
       
    @property
@@ -575,10 +575,10 @@ class MethodRenderer(Renderer):
       pass
       #printMethodType(self.table, methodName)
 
-class MethodVisitor(Visitor):
+class MethodIterablesExtractor(IterablesExtractor):
 
    def __init__(self, table, method=None):
-      super(MethodVisitor,self).__init__(table, met_colors)
+      super(MethodIterablesExtractor,self).__init__(table, met_colors)
       self.method = method
       self.ctx.reload = run_computation
 
@@ -861,10 +861,10 @@ def lookupMethod(m,f,meth):
 visitModel = lookupModel(_m)
 model = visitModel(ModelLoader(model)).model
 visitModel(ModelRenderer(table_model, model))
-modelVisitor = ModelVisitor(table_model, model)
-visitModel(modelVisitor)
-processIteration(modelVisitor.ctx, model, 'model', mod_colors)
-model = modelVisitor.model
+modelIterablesExtractor = ModelIterablesExtractor(table_model, model)
+visitModel(modelIterablesExtractor)
+processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
+model = modelIterablesExtractor.model
 
 print "m=",_m, model
 
@@ -907,10 +907,10 @@ clridx = 1
 visitOption = lookupOption(_f, _o)
 opt = visitOption(OptionLoader(opt)).option
 visitOption(OptionRenderer(table_option, opt))
-optionVisitor = OptionVisitor(table_option, opt)
-visitOption(optionVisitor)
-processIteration(optionVisitor.ctx, opt, 'option', opt_colors)
-opt = optionVisitor.option
+optionIterablesExtractor = OptionIterablesExtractor(table_option, opt)
+visitOption(optionIterablesExtractor)
+processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)
+opt = optionIterablesExtractor.option
 
 print "_f=",_f, "_o=",_o, opt
 
@@ -939,10 +939,10 @@ def printMethodType(table, method_type):
 visitMethod = lookupMethod(_m,_f,_meth)
 method = visitMethod(MethodLoader(method)).method
 visitMethod(MethodRenderer(table_method, method))
-methodVisitor = MethodVisitor(table_method, method)
-visitMethod(methodVisitor)
-processIteration(methodVisitor.ctx, method, 'method', met_colors)
-method = methodVisitor.method
+methodIterablesExtractor = MethodIterablesExtractor(table_method, method)
+visitMethod(methodIterablesExtractor)
+processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
+method = methodIterablesExtractor.method
 
 print "_meth=",_meth, method
 
@@ -1322,16 +1322,16 @@ for hh_idx in range(len(session.history)):
    model = h[1]
    visitModel = lookupModel(model.ID())
    visitModel(ModelRenderer(table_model_h, model))
-   modelVisitor = ModelVisitor(table_model_h, model)
-   visitModel(modelVisitor)
-   processIteration(modelVisitor.ctx, model, 'model', mod_colors)
+   modelIterablesExtractor = ModelIterablesExtractor(table_model_h, model)
+   visitModel(modelIterablesExtractor)
+   processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
 
    opt = h[2]
    visitOption = lookupOption(opt.familyName(), type(opt).__name__)
    visitOption(OptionRenderer(table_opt_h, opt))
-   optionVisitor = OptionVisitor(table_opt_h, opt)
-   visitOption(optionVisitor)
-   processIteration(optionVisitor.ctx, opt, 'option', opt_colors)   
+   optionIterablesExtractor = OptionIterablesExtractor(table_opt_h, opt)
+   visitOption(optionIterablesExtractor)
+   processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)   
 
    method = h[3]
    res_labels = h[4]
@@ -1344,9 +1344,9 @@ for hh_idx in range(len(session.history)):
    
    visitMethod = lookupMethod(model.ID(), opt.familyName(), type(method).__name__)
    visitMethod(MethodRenderer(table_meth_h, method))
-   methodVisitor = MethodVisitor(table_meth_h, method)
-   visitMethod(methodVisitor)
-   processIteration(methodVisitor.ctx, method, 'method', met_colors)
+   methodIterablesExtractor = MethodIterablesExtractor(table_meth_h, method)
+   visitMethod(methodIterablesExtractor)
+   processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
       
    if res_t == None and res <> None:
       printScalarResult(table_meth_h, res)
