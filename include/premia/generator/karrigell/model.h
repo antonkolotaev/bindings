@@ -25,11 +25,7 @@ namespace karrigell {
 			   "def underlyingType(): return %MODEL_NAME%", "",
 			   "def name(): return '%MODEL_NAME%'", "",
 			   "def fields():",
-			   	+(seq, "return [", +foreach_x(m.members, print::Field), "]"), "",
-			   "def %OBJ%_%ID%(v):",
-			   "   v.setModel(underlyingType(), name())",
-				"   for x in fields(): x.process(v)",
-				"   return v"
+			   	+(seq, "return [", +foreach_x(m.members, print::Field), "]"), ""
 			);
 	}
 

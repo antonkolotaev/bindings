@@ -814,17 +814,49 @@ def printModelType(table, model_type):
 
 """
 
+def processModel(m):
+   def inner(v):
+      v.setModel(m.underlyingType(), m.name())
+      for x in m.fields(): x.process(v)
+      return v   
+   return inner
+
+def processOption(m):
+   def inner(v):
+      v.setOption(m.underlyingType(), m.familyName(), m.name())
+      for x in m.fields(): x.process(v)
+      return v
+   return inner
+
+def processMethod(m):
+   def inner(v):
+      v.setMethod(m.underlyingType(), m.name())
+      for x in m.fields(): x.process(v)
+      v.printResultSeries(m.resultFields())
+      return v      
+   return inner
+
+def myImport(m):
+   exec 'import ' + m
+   return eval(m)
+
+def getModelModule(m): 
+   return myImport('kspremia.mod.' + m + '.model')
+
+def getOptionModule(f,o):
+   return myImport('kspremia.opt.'+f+'.'+o)    
+
+def getMethodModule(m,f,meth): 
+   return myImport('kspremia.mod.'+m+'.'+m+'_'+f+'.'+meth)
+
 def lookupModel(m):
-   exec 'from kspremia.mod.' + m + '.model import model_' + m
-   return eval('model_' + m)   
+   return processModel(getModelModule(m))
    
 def lookupOption(f,o):
-   exec 'from kspremia.opt.'+f+'.'+o+' import opt_'+f+'_'+o  
-   return eval('opt_'+f+'_'+o)
+   return processOption(getOptionModule(f,o))
 
 def lookupMethod(m,f,meth):
-   exec 'from kspremia.mod.'+m+'.'+m+'_'+f+'.'+meth+' import method_'+m+'_'+f+'_'+meth
-   return eval('method_'+m+'_'+f+'_'+meth)
+   return processMethod(getMethodModule(m,f,meth))
    
 visitModel = lookupModel(_m)
 model = visitModel(ModelLoader(model)).model

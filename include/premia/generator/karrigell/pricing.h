@@ -41,12 +41,7 @@ namespace karrigell {
 			   "def fields():",
 			   	+(seq, "return [", +foreach_x(met.members, print::Field), "]"), "",
 			   "def resultFields():",
-			   	+(seq, "return [", +foreach_x(met.results, printResultElement), "]"), "",
-			   "def %OBJ%_%MODEL_NAME%_%FAMILY_NAME%_%METHOD_NAME%(v):",
-			   "   v.setMethod(underlyingType(), name())",
-				"   for x in fields(): x.process(v)",
-				"   v.printResultSeries(resultFields())",
-				"   return v"
+			   	+(seq, "return [", +foreach_x(met.results, printResultElement), "]"), ""
 			);
 	}
 

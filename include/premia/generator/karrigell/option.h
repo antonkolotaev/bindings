@@ -39,11 +39,7 @@ namespace karrigell {
 			   "def name(): return '%OPT_NAME%'", "",
 			   "def familyName(): return '%FAMILY_NAME%'", "",
 			   "def fields():",
-			   	+(seq, "return [", +foreach_x(opt.vars, print::Field), "]"), "",
-			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(v):",
-			   "   v.setOption(underlyingType(), familyName(), name())",
-				"   for x in fields(): x.process(v)",
-				"   return v"
+			   	+(seq, "return [", +foreach_x(opt.vars, print::Field), "]"), ""
 			);
 
 		Formatter ff(ctx.methodsFile(opt));
