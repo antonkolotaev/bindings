@@ -318,11 +318,6 @@ class Renderer(object):
 
    def enumVisitor(self): return EnumRenderer
          
-   def processIteration(self):
-      pass 
-      #processIteration(self.ctx, 
-      #   self.entity, self.entityLabel, self.colors) 
-         
    def printResultSeries(self, result_members):
       pass
       #printResultSeries(self.table, result_members, self.colors)
@@ -345,11 +340,6 @@ class Visitor(object):
    def process(self, field):  field.getIterables(self)
 
    def enumVisitor(self): return EnumVisitor   
-         
-   def processIteration(self):
-   
-      processIteration(self.ctx, 
-         self.entity, self.entityLabel, self.colors) 
          
    def printResultSeries(self, result_members):
    
@@ -841,7 +831,7 @@ model = visitModel(ModelLoader(model)).model
 visitModel(ModelRenderer(table_model, model))
 modelVisitor = ModelVisitor(table_model, model)
 visitModel(modelVisitor)
-modelVisitor.processIteration()
+processIteration(modelVisitor.ctx, model, 'model', mod_colors)
 model = modelVisitor.model
 
 print "m=",_m, model
@@ -887,7 +877,7 @@ opt = visitOption(OptionLoader(opt)).option
 visitOption(OptionRenderer(table_option, opt))
 optionVisitor = OptionVisitor(table_option, opt)
 visitOption(optionVisitor)
-optionVisitor.processIteration()
+processIteration(optionVisitor.ctx, opt, 'option', opt_colors)
 opt = optionVisitor.option
 
 print "_f=",_f, "_o=",_o, opt
@@ -919,7 +909,7 @@ method = visitMethod(MethodLoader(method)).method
 visitMethod(MethodRenderer(table_method, method))
 methodVisitor = MethodVisitor(table_method, method)
 visitMethod(methodVisitor)
-methodVisitor.processIteration()
+processIteration(methodVisitor.ctx, method, 'method', met_colors)
 method = methodVisitor.method
 
 print "_meth=",_meth, method
@@ -1302,14 +1292,14 @@ for hh_idx in range(len(session.history)):
    visitModel(ModelRenderer(table_model_h, model))
    modelVisitor = ModelVisitor(table_model_h, model)
    visitModel(modelVisitor)
-   modelVisitor.processIteration()
+   processIteration(modelVisitor.ctx, model, 'model', mod_colors)
 
    opt = h[2]
    visitOption = lookupOption(opt.familyName(), type(opt).__name__)
    visitOption(OptionRenderer(table_opt_h, opt))
    optionVisitor = OptionVisitor(table_opt_h, opt)
    visitOption(optionVisitor)
-   optionVisitor.processIteration()   
+   processIteration(optionVisitor.ctx, opt, 'option', opt_colors)   
 
    method = h[3]
    res_labels = h[4]
@@ -1324,7 +1314,7 @@ for hh_idx in range(len(session.history)):
    visitMethod(MethodRenderer(table_meth_h, method))
    methodVisitor = MethodVisitor(table_meth_h, method)
    visitMethod(methodVisitor)
-   methodVisitor.processIteration()
+   processIteration(methodVisitor.ctx, method, 'method', met_colors)
       
    if res_t == None and res <> None:
       printScalarResult(table_meth_h, res)

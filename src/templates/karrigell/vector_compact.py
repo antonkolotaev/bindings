@@ -105,3 +105,5 @@ class VectorCompact(FieldBase):
            ctx._iterables_corr.append(self.fullName + str(i))
         ctx._iterables_getter.extend(map(lambda x: (lambda: x), pmem))
         ctx._iterables_setter.extend(map(lambda i: (lambda z: pmem.__setitem__(i, z)), range(len(pmem))))
+
+def f(): pass
