@@ -275,93 +275,68 @@ def processIteration(ctx, obj, entity, colors):
          if iterate_value_vlabel in REQUEST:
             G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
 
-
-      
-class Loader(object):
+class VisitorBase(object):
 
    def __init__(self):
-      self.ctx = Iterables(self)
-      self.ctx.history_mode = history_mode   # to be removed
-      self.ctx.REQUEST = REQUEST             # to be removed
       self.REQUEST = REQUEST
       self.history_mode = history_mode
-
-   @property
-   def reload(self): return self.ctx.reload
+      self.reload = True
 
    def addError(self, msg): add_error(msg)
+
+
+class Loader(VisitorBase):
+
+   def __init__(self):
+      VisitorBase.__init__(self)
+
+   def enumVisitor(self): return EnumLoader   
       
    def process(self, field):   field.load(self)
 
-   def enumVisitor(self): return EnumLoader   
-
-   def printResultSeries(self, result_members): pass
-
-class Renderer(object):
+class Renderer(VisitorBase):
 
    def __init__(self, table, colors):
+      VisitorBase.__init__(self)
       self.table = table
       self.colors = colors
-      self.ctx = Iterables(self)
-      self.ctx.history_mode = history_mode
-      self.history_mode = history_mode
-      self.REQUEST = REQUEST
-      self.ctx.REQUEST = REQUEST
       
    def clrinc(self): clrinc()
    @property
    def currentColor(self): return clr(self.colors,clridx)
    
-   def addError(self, msg): add_error(msg)
-      
    def process(self, field):  field.render(self)
 
    def enumVisitor(self): return EnumRenderer
-         
-   def printResultSeries(self, result_members):
-      pass
-      #printResultSeries(self.table, result_members, self.colors)
+        
+ 
+class IterablesExtractor(VisitorBase):
 
-class IterablesExtractor(object):
-
-   def __init__(self, table, colors):
-      self.table = table
-      self.colors = colors
+   def __init__(self):
+      VisitorBase.__init__(self)
       self.ctx = Iterables(self)
-      self.ctx.history_mode = history_mode
-      self.ctx.REQUEST = REQUEST
       
-   def clrinc(self): clrinc()
-   @property
-   def currentColor(self): return clr(self.colors,clridx)
-   
    def addError(self, msg): add_error(msg)
       
    def process(self, field):  field.getIterables(self)
 
    def enumVisitor(self): return EnumIterablesExtractor   
          
-   def printResultSeries(self, result_members):
-   
-      printResultSeries(self.table, result_members, self.colors)
-      
-      
 class EnumLoader(Loader):
 
    def __init__(self, source, member):
       super(EnumLoader,self).__init__()
-      self.ctx = source.ctx
       self.member = member
       
    def setLabels(self, label, vlabel, labels, has_params):
    
-      if vlabel not in self.ctx.REQUEST:
-         self.ctx.REQUEST[vlabel] = '0'
+      if vlabel not in self.REQUEST:
+         self.REQUEST[vlabel] = '0'
       
-      if self.ctx.history_mode:
+      if self.history_mode:
          e = labels.index(self.member._labels[self.member._value.key()])
       else:
-         e = int(self.ctx.REQUEST[vlabel])
+         e = int(self.REQUEST[vlabel])
          
       return e
    
@@ -377,7 +352,6 @@ class EnumRenderer(Renderer):
 
    def __init__(self, source, member):
       super(EnumRenderer, self).__init__(source.table, source.colors)
-      self.ctx = source.ctx
       self.member = member
       
    def setLabels(self, label, vlabel, labels, has_params):
@@ -393,7 +367,7 @@ class EnumRenderer(Renderer):
          
       L.select(value=e)
       
-      if self.ctx.history_mode:
+      if self.history_mode:
          self.table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=self.currentColor)
       else:
          self.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=self.currentColor)
@@ -410,7 +384,7 @@ class EnumRenderer(Renderer):
 class EnumIterablesExtractor(IterablesExtractor):
 
    def __init__(self, source, member):
-      super(EnumIterablesExtractor, self).__init__(source.table, source.colors)
+      super(EnumIterablesExtractor, self).__init__()
       self.ctx = source.ctx
       self.member = member
       
@@ -426,10 +400,9 @@ class EnumIterablesExtractor(IterablesExtractor):
    def entity(self):
       return self.member._value
 
-class ModelLoader(Loader):
+class ModelVisitorBase(object):
 
    def __init__(self, model=None):
-      super(ModelLoader,self).__init__()
       self.model = model  
    
    @property
@@ -440,159 +413,130 @@ class ModelLoader(Loader):
    def entityLabel(self):
       return 'model'   
 
+class ModelLoader(Loader, ModelVisitorBase):
+
+   def __init__(self, model=None):
+      Loader.__init__(self)
+      ModelVisitorBase.__init__(self, model)
+
    def setModel(self, modelFactory, modelName):
-      
       if self.model == None: 
          self.model = modelFactory()
 
-class ModelRenderer(Renderer):
+class ModelRenderer(Renderer, ModelVisitorBase):
 
    def __init__(self, table, model=None):
-      super(ModelRenderer,self).__init__(table, mod_colors)
-      self.model = model  
+      Renderer.__init__(self, table, mod_colors)
+      ModelVisitorBase.__init__(self, model)
    
-   @property
-   def entity(self):
-      return self.model   
-      
-   @property
-   def entityLabel(self):
-      return 'model'   
-
    def setModel(self, modelFactory, modelName):
       printModelType(self.table, modelName)
                    
-class ModelIterablesExtractor(IterablesExtractor):
+class ModelIterablesExtractor(IterablesExtractor, ModelVisitorBase):
 
-   def __init__(self, table, model=None):
-      super(ModelIterablesExtractor,self).__init__(table, mod_colors)
-      self.model = model  
+   def __init__(self, model=None):
+      IterablesExtractor.__init__(self)
+      ModelVisitorBase.__init__(self, model)
+   
+   def setModel(self, modelFactory, modelName):
+      pass
+
+class OptionVisitorBase(object):
+
+   def __init__(self, option=None):
+      self.option = option  
    
    @property
    def entity(self):
-      return self.model   
-      
-   @property
-   def entityLabel(self):
-      return 'model'   
-
-   def setModel(self, modelFactory, modelName):
-      pass
-      #printModelType(self.table, modelName)
-
-class OptionLoader(Loader):
-
-   def __init__(self, option=None):
-      super(OptionLoader,self).__init__()
-      self.option = option
-      
-   @property
-   def entity(self):
       return self.option   
-
+      
    @property
    def entityLabel(self):
       return 'option'   
 
+class OptionLoader(Loader, OptionVisitorBase):
+
+   def __init__(self, option=None):
+      Loader.__init__(self)
+      OptionVisitorBase.__init__(self, option)
+      
    def setOption(self, optionFactory, familyName, optionName):
       
       if self.option == None:
          self.option = optionFactory()
 
-class OptionRenderer(Renderer):
+class OptionRenderer(Renderer, OptionVisitorBase):
 
    def __init__(self, table, option=None):
-      super(OptionRenderer,self).__init__(table, opt_colors)
-      self.option = option
+      Renderer.__init__(self, table, opt_colors)
+      OptionVisitorBase.__init__(self,option)
       
-   @property
-   def entity(self):
-      return self.option   
-
-   @property
-   def entityLabel(self):
-      return 'option'   
-
    def setOption(self, optionFactory, familyName, optionName):
       printFamilyType(self.table, familyName)
       printOptionType(self.table, optionName)
       
             
-class OptionIterablesExtractor(IterablesExtractor):
+class OptionIterablesExtractor(IterablesExtractor, OptionVisitorBase):
 
-   def __init__(self, table, option=None):
-      super(OptionIterablesExtractor,self).__init__(table, opt_colors)
-      self.option = option
+   def __init__(self, option=None):
+      IterablesExtractor.__init__(self)
+      OptionVisitorBase.__init__(self, option)
       
-   @property
-   def entity(self):
-      return self.option   
-
-   @property
-   def entityLabel(self):
-      return 'option'   
-
    def setOption(self, optionFactory, familyName, optionName):
       pass
-      #printFamilyType(self.table, familyName)
-      #printOptionType(self.table, optionName)
-      
-class MethodLoader(Loader):
+
+class MethodVisitorBase(object):
 
    def __init__(self, method=None):
-      super(MethodLoader,self).__init__()
-      self.method = method
-      self.ctx.reload = run_computation
-
+      self.method = method  
+      self.reload = run_computation
+   
    @property
    def entity(self):
-      return self.method
-
+      return self.method   
+      
    @property
    def entityLabel(self):
-      return 'method'   
+      return 'method'  
+
+   def setMethod(self, methodFactory, methodName):
+      pass
+      
+   def printResultSeries(self, result_members):
+      pass
+
+
+      
+class MethodLoader(Loader, MethodVisitorBase):
+
+   def __init__(self, method=None):
+      Loader.__init__(self)
+      MethodVisitorBase.__init__(self, method)
 
    def setMethod(self, methodFactory, methodName):
       if self.method == None: 
          self.method = methodFactory()
 
-class MethodRenderer(Renderer):
+ 
+class MethodRenderer(Renderer, MethodVisitorBase):
 
    def __init__(self, table, method=None):
-      super(MethodRenderer,self).__init__(table, met_colors)
-      self.method = method
-      self.ctx.reload = run_computation
-
-   @property
-   def entity(self):
-      return self.method
-
-   @property
-   def entityLabel(self):
-      return 'method'   
-
-   def setMethod(self, methodFactory, methodName):
-      pass
-      #printMethodType(self.table, methodName)
-
-class MethodIterablesExtractor(IterablesExtractor):
-
-   def __init__(self, table, method=None):
-      super(MethodIterablesExtractor,self).__init__(table, met_colors)
-      self.method = method
-      self.ctx.reload = run_computation
-
-   @property
-   def entity(self):
-      return self.method
-
-   @property
-   def entityLabel(self):
-      return 'method'   
+      Renderer.__init__(self, table, met_colors)
+      MethodVisitorBase.__init__(self, method)
 
    def setMethod(self, methodFactory, methodName):
       printMethodType(self.table, methodName)
-      
+
+   def printResultSeries(self, result_members):
+      printResultSeries(self.table, result_members, self.colors)
+
+
+class MethodIterablesExtractor(IterablesExtractor, MethodVisitorBase):
+
+   def __init__(self, method=None):
+      IterablesExtractor.__init__(self)
+      MethodVisitorBase.__init__(self, method)
+
 
 iterate_object = None
 iterate_label = '_'
@@ -861,7 +805,7 @@ def lookupMethod(m,f,meth):
 visitModel = lookupModel(_m)
 model = visitModel(ModelLoader(model)).model
 visitModel(ModelRenderer(table_model, model))
-modelIterablesExtractor = ModelIterablesExtractor(table_model, model)
+modelIterablesExtractor = ModelIterablesExtractor(model)
 visitModel(modelIterablesExtractor)
 processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
 model = modelIterablesExtractor.model
@@ -907,7 +851,7 @@ clridx = 1
 visitOption = lookupOption(_f, _o)
 opt = visitOption(OptionLoader(opt)).option
 visitOption(OptionRenderer(table_option, opt))
-optionIterablesExtractor = OptionIterablesExtractor(table_option, opt)
+optionIterablesExtractor = OptionIterablesExtractor(opt)
 visitOption(optionIterablesExtractor)
 processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)
 opt = optionIterablesExtractor.option
@@ -939,7 +883,7 @@ def printMethodType(table, method_type):
 visitMethod = lookupMethod(_m,_f,_meth)
 method = visitMethod(MethodLoader(method)).method
 visitMethod(MethodRenderer(table_method, method))
-methodIterablesExtractor = MethodIterablesExtractor(table_method, method)
+methodIterablesExtractor = MethodIterablesExtractor(method)
 visitMethod(methodIterablesExtractor)
 processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
 method = methodIterablesExtractor.method
@@ -1322,14 +1266,14 @@ for hh_idx in range(len(session.history)):
    model = h[1]
    visitModel = lookupModel(model.ID())
    visitModel(ModelRenderer(table_model_h, model))
-   modelIterablesExtractor = ModelIterablesExtractor(table_model_h, model)
+   modelIterablesExtractor = ModelIterablesExtractor(model)
    visitModel(modelIterablesExtractor)
    processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
 
    opt = h[2]
    visitOption = lookupOption(opt.familyName(), type(opt).__name__)
    visitOption(OptionRenderer(table_opt_h, opt))
-   optionIterablesExtractor = OptionIterablesExtractor(table_opt_h, opt)
+   optionIterablesExtractor = OptionIterablesExtractor(opt)
    visitOption(optionIterablesExtractor)
    processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)   
 
@@ -1344,7 +1288,7 @@ for hh_idx in range(len(session.history)):
    
    visitMethod = lookupMethod(model.ID(), opt.familyName(), type(method).__name__)
    visitMethod(MethodRenderer(table_meth_h, method))
-   methodIterablesExtractor = MethodIterablesExtractor(table_meth_h, method)
+   methodIterablesExtractor = MethodIterablesExtractor(method)
    visitMethod(methodIterablesExtractor)
    processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
       

@@ -25,7 +25,6 @@ class Scalar (FieldBase):
           
    def render(self, v):
 
-      ctx = v.ctx
       if not v.history_mode:
          mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  
          rc = self.constraint    
