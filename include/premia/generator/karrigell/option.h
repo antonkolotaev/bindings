@@ -35,10 +35,14 @@ namespace karrigell {
 			   foreach_x(opt.vars, print::includeEnums),
 			   call(print::commonHeader),			   
 			   "from premia.opt.%FAMILY_NAME%.%OPT_NAME% import %OPT_NAME%",
+			   "def underlyingType(): return %OPT_NAME%", "",
+			   "def name(): return '%OPT_NAME%'", "",
+			   "def familyName(): return '%FAMILY_NAME%'", "",
+			   "def fields():",
+			   	+(seq, "return [", +foreach_x(opt.vars, print::Field), "]"), "",
 			   "def %OBJ%_%FAMILY_NAME%_%OPT_NAME%(v):",
-			   "   v.setOption(%OPT_NAME%, '%FAMILY_NAME%', '%OPT_NAME%')",
-			   "   opt = v.option",
-				+foreach_x(opt.vars, print::Table),
+			   "   v.setOption(underlyingType(), familyName(), name())",
+				"   for x in fields(): x.process(v)",
 				"   return v"
 			);
 

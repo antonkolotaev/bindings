@@ -20,12 +20,15 @@ namespace karrigell {
 			("ENTITY_NAME", "model")
 			<< (seq, 
 			   foreach_x(m.members, print::includeEnums),
-			   call(print::commonHeader),			   
+			   call(print::commonHeader),	
 			   "from premia.mod.%ID%.model import %MODEL_NAME%",
+			   "def underlyingType(): return %MODEL_NAME%", "",
+			   "def name(): return '%MODEL_NAME%'", "",
+			   "def fields():",
+			   	+(seq, "return [", +foreach_x(m.members, print::Field), "]"), "",
 			   "def %OBJ%_%ID%(v):",
-			   "   v.setModel(%MODEL_NAME%, '%MODEL_NAME%')",
-			   "   model = v.model",
-				+foreach_x(m.members, print::Table),
+			   "   v.setModel(underlyingType(), name())",
+				"   for x in fields(): x.process(v)",
 				"   return v"
 			);
 	}

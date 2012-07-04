@@ -36,11 +36,16 @@ namespace karrigell {
 			   foreach_x(met.members, print::includeEnums),
 			   call(print::commonHeader),
 			   "from premia.mod.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME% import %METHOD_NAME%",
+			   "def underlyingType(): return %METHOD_NAME%", "",
+			   "def name(): return '%METHOD_NAME%'", "",
+			   "def fields():",
+			   	+(seq, "return [", +foreach_x(met.members, print::Field), "]"), "",
+			   "def resultFields():",
+			   	+(seq, "return [", +foreach_x(met.results, printResultElement), "]"), "",
 			   "def %OBJ%_%MODEL_NAME%_%FAMILY_NAME%_%METHOD_NAME%(v):",
-				"   v.setMethod(%METHOD_NAME%, '%METHOD_NAME%')", "",
- 				"   method = v.method",
-				+foreach_x(met.members, print::Table),
-				+call(boost::bind(printIterateCheckBoxes, _1, boost::cref(met.results))),
+			   "   v.setMethod(underlyingType(), name())",
+				"   for x in fields(): x.process(v)",
+				"   v.printResultSeries(resultFields())",
 				"   return v"
 			);
 	}

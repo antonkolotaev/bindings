@@ -186,6 +186,68 @@ namespace karrigell {
 		   TableEx(out("PREFIX", std::string("'")+symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str())+"'"), vr);
 		}
 
+		struct field_printer : var_visitor<field_printer>
+		{
+			field_printer(Formatter & out, VAR const *src, bool iterable) : out(out), src(src), iterable(iterable) {}
+			
+			template <class Scalar>
+				void operator () (Numeric<Scalar> const & i) 
+			{
+				out("CONSTR",tostr(i.constraint))
+				   ("SYMB", symbol<Scalar>())
+				   ("CONV", converter<Scalar>())
+				   ("ITERABLE", iterable ? "True" : "False")	
+				   << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%),"
+;
+			}
+
+			void operator () (std::string const & i)  
+			{
+			   out << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str),";
+			}
+
+			void operator () (std::vector<double> const & i) 
+			{
+			   if (src && src->Vtype==PNLVECTCOMPACT)
+			      out 
+			      << "VectorCompact('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%'),";
+			   else
+			      out 
+			      << "Vector('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%'),";
+			}
+			
+			void operator() (EnumValue const & e) 
+			{
+			    out("ENUM_TYPE", e.type->label) 
+				   << "%ENUM_TYPE%('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%'),";
+			}
+		private:
+			Formatter & out;
+         VAR const * src;
+         bool iterable;
+		};
+		
+		inline void FieldVal(Formatter & out, NamedVar const & vr)
+		{
+		   if (vr.has_setter) std::cout << vr.name << std::endl;
+		   std::string submit = vr.has_setter ? ", onchange='submit();'": "";
+		   std::string onchange = vr.has_setter ? "'submit();'": "''";
+			field_printer(out("SUBMIT", submit)("ONCHANGE",onchange), vr.src, vr.iterable).apply(vr.value);
+		}
+
+		inline void FieldEx(Formatter & out, NamedVar const & vr)
+		{
+		    std::string star;
+			out("VAR_NAME", vr.name)
+			   ("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)
+               ("FRIENDLY_NAME", vr.src->Vname)
+			   << (seq, call(boost::bind(FieldVal, _1, vr)));
+		}
+
+		inline void Field(Formatter & out, NamedVar const & vr)
+		{
+		   FieldEx(out("PREFIX", std::string("'")+symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str())+"'"), vr);
+		}
 	}
 
 
