@@ -21,16 +21,10 @@ class VectorCompact(FieldBase):
        pmem = getattr(v.entity, self.propertyName)
       
        if self.varnameType in v.REQUEST:
-          if v.REQUEST[self.varnameType] == '0':
-             mode = 0
-          else:
-             mode = 1
+          isConstant = v.REQUEST[self.varnameType] == '0'
        else:
-          if all(map(lambda x: x == pmem[0], pmem)):
-             mode = 0
-          else:
-             mode = 1
-       setattr(v.entity, self.propnameMode, mode)
+          isConstant = all(map(lambda x: x == pmem[0], pmem))
+       setattr(v.entity, self.propnameMode, isConstant)
 
        if self.varnameConst in v.REQUEST:
          val = float(v.REQUEST[self.varnameConst])
@@ -45,16 +39,15 @@ class VectorCompact(FieldBase):
   def render(self, v):
 
     pmem = getattr(v.entity, self.propertyName)
-    mode = getattr(v.entity, self.propnameMode)
+    isConstant = getattr(v.entity, self.propnameMode)
 
     L = SELECT(name = self.varnameType, onchange='submit();').from_list(['Constant','Array'])
 
-    if mode == 0:
+    if isConstant:
       L.select(value=0)
       mc = INPUT(name=self.varnameConst,value=pmem[0])
       v.spannedRows(self.friendlyName, [L,mc],'R')
-
-    if mode == 1:
+    else:
       def mc(i): 
           return INPUT(name=self.varnameIdx(i),value=pmem[i])
       L.select(value=1)
@@ -63,12 +56,11 @@ class VectorCompact(FieldBase):
   def renderHistory(self, v):
 
     pmem = getattr(v.entity, self.propertyName)
-    mode = getattr(v.entity, self.propnameMode)
+    isConstant = getattr(v.entity, self.propnameMode)
      
-    if mode == 0:
+    if isConstant:
       v.row(self.friendlyName, pmem[0])
-
-    if mode == 1:
+    else:
       v.spannedRows(self.friendlyName, pmem)
 
   def getIterables(self, v):
@@ -77,17 +69,16 @@ class VectorCompact(FieldBase):
 
      pmem = getattr(v.entity, self.propertyName)
 
-     mode = getattr(v.entity, self.propnameMode)
+     isConstant = getattr(v.entity, self.propnameMode)
         
-     if mode == 0:
+     if isConstant:
         ctx._iterables.append(self.friendlyName)
         ctx._iterables_corr.append(self.varnameConst)
         ctx._iterables_getter.append(lambda: pmem[0])
         def F(x):
            for i in range(len(pmem)): pmem[i] = x          
         ctx._iterables_setter.append(F)
-
-     if mode == 1:
+     else:
         for i in range(len(pmem)): 
            ctx._iterables.append(self.varnameIdx(i))
            ctx._iterables_corr.append(self.fullName + str(i))
