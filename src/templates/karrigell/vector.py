@@ -17,18 +17,14 @@ class Vector(FieldBase):
     pmem = getattr(v.entity, self.propertyName)
 
     def mc(idx):
-      fullName = brackets(self.fullName, idx)
-      toShow = pmem[idx]
-      if not v.history_mode:
-         return INPUT(name=fullName,value=toShow)
-      else:
-         return toShow
-    def rc(s):
-      if not v.history_mode:
-         return s  
-      else:
-         return ''    
-    v.spannedRows(self.friendlyName, map(mc, range(len(pmem))), rc('R'))
+      return INPUT(name=brackets(self.fullName, idx),value=pmem[idx])
+
+    v.spannedRows(self.friendlyName, map(mc, range(len(pmem))), 'R')
+
+  def renderHistory(self, v):
+
+    pmem = getattr(v.entity, self.propertyName)
+    v.spannedRows(self.friendlyName, pmem)
 
   def load(self, v):
 

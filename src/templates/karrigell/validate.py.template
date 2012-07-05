@@ -305,11 +305,15 @@ class Renderer(VisitorBase):
    @property
    def currentColor(self): return clr(self.colors,clridx)
    
-   def process(self, field):  field.render(self)
+   def process(self, field):  
+      if not self.history_mode:
+         field.render(self)
+      else:
+         field.renderHistory(self)
 
    def enumVisitor(self): return EnumRenderer
 
-   def row(self, c1, c2, c3):
+   def row(self, c1, c2, c3=''):
       self.clrinc()   
       self.table <= (TR(
                      TD(c1,align='right') + 
@@ -318,7 +322,7 @@ class Renderer(VisitorBase):
                      bgcolor=self.currentColor
                      )) 
 
-   def spannedRows(self, c1, c2s, c3):
+   def spannedRows(self, c1, c2s, c3=''):
       self.clrinc()
       self.table <= TR(TD(c1, align='right',rowspan=len(c2s)) + 
                        TD(c2s[0]) + 
@@ -376,8 +380,6 @@ class EnumRenderer(Renderer):
       
    def setLabels(self, label, vlabel, labels, has_params):
    
-      self.clrinc()
-      
       e = labels.index(self.member._labels[self.member._value.key()])
          
       if has_params:
@@ -388,9 +390,9 @@ class EnumRenderer(Renderer):
       L.select(value=e)
       
       if self.history_mode:
-         self.table <= TR(TD(label,align='right') + TD(labels[e])+TD(),bgcolor=self.currentColor)
+         self.row(label, labels[e])
       else:
-         self.table <= TR(TD(label,align='right') + TD(L)+TD(),bgcolor=self.currentColor)
+         self.row(label, L)
       
       return e
    
@@ -413,9 +415,8 @@ class EnumIterablesExtractor(IterablesExtractor):
       return e
    
    def setChoice(self, setter):
-   
-      setter(self.member)
-   
+      pass
+    
    @property
    def entity(self):
       return self.member._value
@@ -828,7 +829,7 @@ visitModel(ModelRenderer(table_model, model))
 modelIterablesExtractor = ModelIterablesExtractor(model)
 visitModel(modelIterablesExtractor)
 processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
-model = modelIterablesExtractor.model
+#model = modelIterablesExtractor.model
 
 print "m=",_m, model
 

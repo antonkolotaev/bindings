@@ -24,15 +24,11 @@ class Scalar (FieldBase):
           v.addError('Error in '+ self.propertyName +':' + str(ex))
           
    def render(self, v):
+      mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  
+      v.row(self.friendlyName, mc, self.constraint)
 
-      if not v.history_mode:
-         mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  
-         rc = self.constraint    
-      else:
-         mc = getattr(v.entity, self.propertyName)
-         rc = ''
-      
-      v.row(self.friendlyName, mc, rc)
+   def renderHistory(self, v):
+      v.row(self.friendlyName, getattr(v.entity, self.propertyName))
 
    def getIterables(self, v):
       ctx = v.ctx
