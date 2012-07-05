@@ -18,8 +18,6 @@ class VectorCompact(FieldBase):
 
   def load(self, v):
 
-     if v.reload and not v.history_mode:
-
        pmem = getattr(v.entity, self.propertyName)
       
        if self.varnameType in v.REQUEST:
@@ -34,18 +32,15 @@ class VectorCompact(FieldBase):
              mode = 1
        setattr(v.entity, self.propnameMode, mode)
 
-       try:
-           if self.varnameConst in v.REQUEST:
-             val = float(v.REQUEST[self.varnameConst])
-             for i in range(len(pmem)):                 
-                pmem[i] = val
-           else:
-              for i in range(len(pmem)):
-                 src = self.varnameIdx(i)
-                 if src in v.REQUEST: 
-                    pmem[i] = float(v.REQUEST[src])
-       except Exception, ex:
-           v.addError('Error in' + self.propertyName + ':' + str(ex))
+       if self.varnameConst in v.REQUEST:
+         val = float(v.REQUEST[self.varnameConst])
+         for i in range(len(pmem)):                 
+            pmem[i] = val
+       else:
+          for i in range(len(pmem)):
+             src = self.varnameIdx(i)
+             if src in v.REQUEST: 
+                pmem[i] = float(v.REQUEST[src])
 
   def render(self, v):
 
@@ -74,7 +69,6 @@ class VectorCompact(FieldBase):
       v.row(self.friendlyName, pmem[0])
 
     if mode == 1:
-
       v.spannedRows(self.friendlyName, pmem)
 
   def getIterables(self, v):

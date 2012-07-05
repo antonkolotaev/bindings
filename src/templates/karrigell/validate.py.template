@@ -292,7 +292,13 @@ class Loader(VisitorBase):
 
    def enumVisitor(self): return EnumLoader   
       
-   def process(self, field):   field.load(self)
+   def process(self, field):  
+      try:
+         if not self.history_mode and self.reload:
+            field.load(self)
+      except Exception, ex:
+         v.addError('Error in '+ field.propertyName +':' + str(ex))
+
 
 class Renderer(VisitorBase):
 

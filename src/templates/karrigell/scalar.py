@@ -17,11 +17,8 @@ class Scalar (FieldBase):
       self.fromString = converter
 
    def load(self, v):
-       try:
-          if not v.history_mode and v.reload and self.fullName in v.REQUEST:
-             setattr(v.entity, self.propertyName, self.fromString(v.REQUEST[self.fullName]))
-       except Exception, ex:
-          v.addError('Error in '+ self.propertyName +':' + str(ex))
+      if self.fullName in v.REQUEST:
+         setattr(v.entity, self.propertyName, self.fromString(v.REQUEST[self.fullName]))
           
    def render(self, v):
       mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  

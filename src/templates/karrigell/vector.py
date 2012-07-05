@@ -29,14 +29,10 @@ class Vector(FieldBase):
   def load(self, v):
 
       pmem = getattr(v.entity, self.propertyName)
-      if v.reload and not v.history_mode:
-        try:
-           for i in range(len(pmem)):
-              src = brackets(self.fullName, i)
-              if src in v.REQUEST: 
-                 pmem[i] = float(v.REQUEST[src])
-        except Exception, ex:
-           v.addError('Error in' + self.propertyName + ':' + str(ex))
+      for i in range(len(pmem)):
+        src = brackets(self.fullName, i)
+        if src in v.REQUEST: 
+           pmem[i] = float(v.REQUEST[src])
 
   def getIterables(self, v):
 
