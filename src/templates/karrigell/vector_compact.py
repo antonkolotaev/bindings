@@ -49,9 +49,7 @@ class VectorCompact(FieldBase):
 
   def render(self, v):
 
-     ctx = v.ctx
      pmem = getattr(v.entity, self.propertyName)
-     v.clrinc()
 
      mode = getattr(v.entity, self.propnameMode)
      
@@ -62,25 +60,23 @@ class VectorCompact(FieldBase):
 
         if not v.history_mode:
            L.select(value=0)
-           v.table <= TR(TD(self.friendlyName, align='right',rowspan=2) + TD(L) + TD('',rowspan=2),bgcolor=v.currentColor)
            mc = INPUT(name=self.varnameConst,value=pmem[0])
-           v.table <= TR(TD(mc),bgcolor=v.currentColor)
+           v.spannedRows(self.friendlyName, [L,mc],'R')
         else:
-           v.table <= TR(TD(self.friendlyName, align='right') + TD(pmem[0]) + TD(''),bgcolor=v.currentColor)
+           v.row(self.friendlyName, pmem[0], '')
 
      if mode == 1:
      
-        if not ctx.history_mode:   
+        if not v.history_mode:   
            L.select(value=1)
-           v.table <= TR(TD(self.friendlyName, align='right',rowspan=len(pmem)+1) + TD(L) + TD('R',rowspan=len(pmem)+1),bgcolor=v.currentColor)
-           v.table <= Sum([TR(TD(INPUT(name=self.varnameIdx(i),value=pmem[i])),bgcolor=v.currentColor) for i in range(0,len(pmem))])
+           v.spannedRows(self.friendlyName, [L]+[INPUT(name=self.varnameIdx(i),value=pmem[i]) for i in range(len(pmem))], 'R')
         else:
            def as_string(arr):
               s = "["
               for x in arr:
                  s += str(x) + ";"
               return s + "]"
-           v.table <= TR(TD(self.friendlyName, align='right') + TD(as_string(pmem)) + TD(''),bgcolor=v.currentColor)
+           v.row(self.friendlyName, as_string(pmem), '')
 
 
   def getIterables(self, v):

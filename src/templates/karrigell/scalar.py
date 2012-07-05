@@ -32,13 +32,7 @@ class Scalar (FieldBase):
          mc = getattr(v.entity, self.propertyName)
          rc = ''
       
-      v.clrinc()   
-      v.table <= (TR(
-                     TD(self.friendlyName,align='right') + 
-                     TD(mc)+
-                     TD(rc),
-                     bgcolor=v.currentColor
-                    )) 
+      v.row(self.friendlyName, mc, rc)
 
    def getIterables(self, v):
       ctx = v.ctx

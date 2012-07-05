@@ -308,6 +308,26 @@ class Renderer(VisitorBase):
    def process(self, field):  field.render(self)
 
    def enumVisitor(self): return EnumRenderer
+
+   def row(self, c1, c2, c3):
+      self.clrinc()   
+      self.table <= (TR(
+                     TD(c1,align='right') + 
+                     TD(c2)+
+                     TD(c3),
+                     bgcolor=self.currentColor
+                     )) 
+
+   def spannedRows(self, c1, c2s, c3):
+      self.clrinc()
+      self.table <= TR(TD(c1, align='right',rowspan=len(c2s)) + 
+                       TD(c2s[0]) + 
+                       TD(c3, rowspan=len(c2s)),
+                       bgcolor=self.currentColor)
+               
+      self.table <= Sum([TR(TD(c2s[i]), bgcolor=self.currentColor) for i in range(1,len(c2s))])
+
+
         
  
 class IterablesExtractor(VisitorBase):

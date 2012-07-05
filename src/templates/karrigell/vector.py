@@ -28,17 +28,7 @@ class Vector(FieldBase):
          return s  
       else:
          return ''    
-    v.clrinc()
-    v.table <= TR(TD(self.friendlyName, align='right',rowspan=len(pmem)) + 
-                  TD(mc(0)) + 
-                  TD(rc('R'),
-                  rowspan=len(pmem)),
-                  bgcolor=v.currentColor)
-               
-    v.table <= Sum(
-                   [TR(TD(mc(i)),
-                     bgcolor=v.currentColor) for i in range(1,len(pmem))]
-                  )
+    v.spannedRows(self.friendlyName, map(mc, range(len(pmem))), rc('R'))
 
   def load(self, v):
 
