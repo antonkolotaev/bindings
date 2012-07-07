@@ -291,6 +291,13 @@ class Loader(VisitorBase):
       VisitorBase.__init__(self)
 
    def enumVisitor(self): return EnumLoader   
+
+   def get(self, key, func):
+      if key in self.REQUEST:
+         func(self.REQUEST[key])
+         return True
+      else:
+         return False
       
    def process(self, field):  
       try:

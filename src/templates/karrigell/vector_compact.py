@@ -19,22 +19,22 @@ class VectorCompact(FieldBase):
   def load(self, v):
 
        pmem = getattr(v.entity, self.propertyName)
+
+       isConstant = v.REQUEST[self.varnameType] == '0' \
+                      if self.varnameType in v.REQUEST \
+                      else all(map(lambda x: x == pmem[0], pmem))
+
+       def fillPmem(val):
+          for i in range(len(pmem)):
+            pmem[i] = float(val)
+
       
-       if self.varnameType in v.REQUEST:
-          isConstant = v.REQUEST[self.varnameType] == '0'
-       else:
-          isConstant = all(map(lambda x: x == pmem[0], pmem))
        setattr(v.entity, self.propnameMode, isConstant)
 
-       if self.varnameConst in v.REQUEST:
-         val = float(v.REQUEST[self.varnameConst])
-         for i in range(len(pmem)):                 
-            pmem[i] = val
-       else:
+       if not v.get(self.varnameConst, fillPmem):
           for i in range(len(pmem)):
-             src = self.varnameIdx(i)
-             if src in v.REQUEST: 
-                pmem[i] = float(v.REQUEST[src])
+            def setitem(x): pmem[i] = float(x)
+            v.get(self.varnameIdx(i), setitem)
 
   def render(self, v):
 

@@ -30,9 +30,8 @@ class Vector(FieldBase):
 
       pmem = getattr(v.entity, self.propertyName)
       for i in range(len(pmem)):
-        src = brackets(self.fullName, i)
-        if src in v.REQUEST: 
-           pmem[i] = float(v.REQUEST[src])
+        def setItem(x): pmem[i] = float(x)
+        v.get(brackets(self.fullName, i), setItem)
 
   def getIterables(self, v):
 

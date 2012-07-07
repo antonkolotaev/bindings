@@ -17,8 +17,8 @@ class Scalar (FieldBase):
       self.fromString = converter
 
    def load(self, v):
-      if self.fullName in v.REQUEST:
-         setattr(v.entity, self.propertyName, self.fromString(v.REQUEST[self.fullName]))
+      v.get(self.fullName, 
+         lambda x: setattr(v.entity, self.propertyName, self.fromString(x)))
           
    def render(self, v):
       mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  
