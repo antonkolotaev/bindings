@@ -278,9 +278,7 @@ def processIteration(ctx, obj, entity, colors):
 class VisitorBase(object):
 
    def __init__(self):
-      self.REQUEST = REQUEST
       self.history_mode = history_mode
-      self.reload = True
 
    def addError(self, msg): add_error(msg)
 
@@ -289,7 +287,9 @@ class Loader(VisitorBase):
 
    def __init__(self):
       VisitorBase.__init__(self)
-
+      self.REQUEST = REQUEST
+      self.reload = True
+      
    def enumVisitor(self): return EnumLoader   
 
    def get(self, key, func):
@@ -344,8 +344,12 @@ class Renderer(VisitorBase):
                
       self.table <= Sum([TR(TD(c2s[i]), bgcolor=self.currentColor) for i in range(1,len(c2s))])
 
+class HistoricalRenderer(Renderer):
 
+   def __init__(self, table, colors):
+      Renderer.__init__(self, table, colors)
         
+   def enumVisitor(self): return EnumHistoricalRenderer
  
 class IterablesExtractor(VisitorBase):
 
@@ -402,10 +406,28 @@ class EnumRenderer(Renderer):
          
       L.select(value=e)
       
-      if self.history_mode:
-         self.row(label, labels[e])
-      else:
-         self.row(label, L)
+      self.row(label, L)
+      
+      return e
+   
+   def setChoice(self, setter):   
+      pass
+   
+   @property
+   def entity(self):
+      return self.member._value
+
+class EnumHistoricalRenderer(HistoricalRenderer):
+
+   def __init__(self, source, member):
+      HistoricalRenderer.__init__(self, source.table, source.colors)
+      self.member = member
+      
+   def setLabels(self, label, vlabel, labels, has_params):
+   
+      e = labels.index(self.member._labels[self.member._value.key()])
+         
+      self.row(label, labels[e])
       
       return e
    
@@ -464,8 +486,18 @@ class ModelRenderer(Renderer, ModelVisitorBase):
       ModelVisitorBase.__init__(self, model)
    
    def setModel(self, modelFactory, modelName):
-      printModelType(self.table, modelName)
+      mc = enum_submit('model', model_list, modelName)
+      self.row(B('Model:'), mc)
                    
+class ModelHistoricalRenderer(HistoricalRenderer, ModelVisitorBase):
+
+   def __init__(self, table, model=None):
+      HistoricalRenderer.__init__(self, table, mod_colors)
+      ModelVisitorBase.__init__(self, model)
+   
+   def setModel(self, modelFactory, modelName):
+      self.row(B('Model:'), modelName)                   
+
 class ModelIterablesExtractor(IterablesExtractor, ModelVisitorBase):
 
    def __init__(self, model=None):
@@ -506,9 +538,21 @@ class OptionRenderer(Renderer, OptionVisitorBase):
       OptionVisitorBase.__init__(self,option)
       
    def setOption(self, optionFactory, familyName, optionName):
-      printFamilyType(self.table, familyName)
-      printOptionType(self.table, optionName)
+      mc = enum_submit_mod('family', model.families(), familyName)
+      rc = enum_submit('option', pricing_options(_m,_f), optionName)
+
+      self.row(B('Family:'), mc)
+      self.row(B('Option:'), rc)
+
+class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
+
+   def __init__(self, table, option=None):
+      HistoricalRenderer.__init__(self, table, opt_colors)
+      OptionVisitorBase.__init__(self,option)
       
+   def setOption(self, optionFactory, familyName, optionName):
+      self.row(B('Family:'), familyName)
+      self.row(B('Option:'), optionName)
             
 class OptionIterablesExtractor(IterablesExtractor, OptionVisitorBase):
 
@@ -559,7 +603,19 @@ class MethodRenderer(Renderer, MethodVisitorBase):
       MethodVisitorBase.__init__(self, method)
 
    def setMethod(self, methodFactory, methodName):
-      printMethodType(self.table, methodName)
+      self.row(B('Pricing method:'), enum_submit('pricing_method', methods, methodName))
+
+   def printResultSeries(self, result_members):
+      printResultSeries(self.table, result_members, self.colors)
+
+class MethodHistoricalRenderer(HistoricalRenderer, MethodVisitorBase):
+
+   def __init__(self, table, method=None):
+      HistoricalRenderer.__init__(self, table, met_colors)
+      MethodVisitorBase.__init__(self, method)
+
+   def setMethod(self, methodFactory, methodName):
+      self.row(B('Pricing method:'), methodName)
 
    def printResultSeries(self, result_members):
       printResultSeries(self.table, result_members, self.colors)
@@ -1299,14 +1355,14 @@ for hh_idx in range(len(session.history)):
 
    model = h[1]
    visitModel = lookupModel(model.ID())
-   visitModel(ModelRenderer(table_model_h, model))
+   visitModel(ModelHistoricalRenderer(table_model_h, model))
    modelIterablesExtractor = ModelIterablesExtractor(model)
    visitModel(modelIterablesExtractor)
    processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
 
    opt = h[2]
    visitOption = lookupOption(opt.familyName(), type(opt).__name__)
-   visitOption(OptionRenderer(table_opt_h, opt))
+   visitOption(OptionHistoricalRenderer(table_opt_h, opt))
    optionIterablesExtractor = OptionIterablesExtractor(opt)
    visitOption(optionIterablesExtractor)
    processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)   
@@ -1321,7 +1377,7 @@ for hh_idx in range(len(session.history)):
    #print h_idx, res_labels
    
    visitMethod = lookupMethod(model.ID(), opt.familyName(), type(method).__name__)
-   visitMethod(MethodRenderer(table_meth_h, method))
+   visitMethod(MethodHistoricalRenderer(table_meth_h, method))
    methodIterablesExtractor = MethodIterablesExtractor(method)
    visitMethod(methodIterablesExtractor)
    processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
