@@ -576,9 +576,9 @@ class OptionVisitorBase(object):
 
 class OptionLoader(Loader, OptionVisitorBase):
 
-   def __init__(self, option=None):
+   def __init__(self, state):
       Loader.__init__(self)
-      OptionVisitorBase.__init__(self, option)
+      OptionVisitorBase.__init__(self, None)
       
    def setOption(self, optionFactory, familyName, optionName):
       
@@ -587,12 +587,13 @@ class OptionLoader(Loader, OptionVisitorBase):
 
 class OptionRenderer(Renderer, OptionVisitorBase):
 
-   def __init__(self, table, option=None):
-      Renderer.__init__(self, table, opt_colors)
-      OptionVisitorBase.__init__(self,option)
+   def __init__(self, state):
+      Renderer.__init__(self, state.parent.family.table, opt_colors)
+      OptionVisitorBase.__init__(self,state.obj)
+      self.state = state
       
    def setOption(self, optionFactory, familyName, optionName):
-      rc = enum_submit('option', pricing_options(_m,_f), optionName)
+      rc = enum_submit('option', self.state.options, optionName)
       self.row(B('Option:'), rc)
 
 class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
@@ -607,9 +608,9 @@ class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
             
 class OptionIterablesExtractor(IterablesExtractor, OptionVisitorBase):
 
-   def __init__(self, option=None):
+   def __init__(self, state):
       IterablesExtractor.__init__(self)
-      OptionVisitorBase.__init__(self, option)
+      OptionVisitorBase.__init__(self, state.obj)
       
    def setOption(self, optionFactory, familyName, optionName):
       pass
@@ -1078,6 +1079,60 @@ class FamilyState(object):
       table <= (TR(TD(B('Family:'),align='right') + TD(mc)+TD(),bgcolor=opt_colors[0]))
       return table
 
+class OptionState(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+
+   @cached_property
+   def request(self):
+      return saved_REQUEST
+
+   @cached_property
+   def options(self):
+      return pricing_options(self.parent.model.id,self.parent.family.id)
+
+   @cached_property
+   def old_id(self):
+      if 'o' in self.request:
+         return self.request['o']
+      else:
+         return 'CallEuro'  # to be generalized
+
+   @cached_property
+   def id(self):
+      if self.parent.family.idChanged:
+         return self.options[0].__name__
+      else:
+         if 'option' in self.request:
+            return self.options[int(self.request['option'])].__name__
+         else:
+            return self.old_id
+
+   @cached_property
+   def idChanged(self):
+      return self.old_id <> self.id
+
+   @cached_property
+   def visit(self):
+      return lookupOption(self.parent.family.id, self.id)
+
+   @cached_property
+   def obj(self):
+      return self.visit(OptionLoader(self)).option
+
+   @cached_property
+   def familyTable(self):
+      return self.parent.family.table
+
+   @cached_property
+   def table(self):
+      return self.visit(OptionRenderer(self)).table
+
+   @cached_property
+   def iterables(self):
+      return self.visit(OptionIterablesExtractor(self)).ctx
+
 """
 Class representing a single run.
 """
@@ -1087,6 +1142,7 @@ class State(object):
       self.asset = AssetState(self)
       self.model = ModelState(self)
       self.family = FamilyState(self)
+      self.option = OptionState(self)
    
 state = State()
 model = state.model.obj
@@ -1140,14 +1196,17 @@ def printOptionType(table, option_type):
 clridx = 1
 
 table = table_option = state.family.table
+opt = state.option.obj
+table = table_option = state.option.table
+option_iterables = state.option.iterables
 
-visitOption = lookupOption(_f, _o)
-opt = visitOption(OptionLoader(opt)).option
-visitOption(OptionRenderer(table_option, opt))
-optionIterablesExtractor = OptionIterablesExtractor(opt)
-visitOption(optionIterablesExtractor)
-processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)
-opt = optionIterablesExtractor.option
+#visitOption = lookupOption(_f, _o)
+#opt = visitOption(OptionLoader(opt)).option
+#visitOption(OptionRenderer(table_option, opt))
+#optionIterablesExtractor = OptionIterablesExtractor(opt)
+#visitOption(optionIterablesExtractor)
+processIteration(option_iterables, opt, 'option', opt_colors)
+#opt = optionIterablesExtractor.option
 
 print "_f=",_f, "_o=",_o, opt
 
@@ -1563,9 +1622,6 @@ for hh_idx in range(len(session.history)):
    opt = h[2]
    visitOption = lookupOption(opt.familyName(), type(opt).__name__)
    visitOption(OptionHistoricalRenderer(table_opt_h, opt))
-   optionIterablesExtractor = OptionIterablesExtractor(opt)
-   visitOption(optionIterablesExtractor)
-   processIteration(optionIterablesExtractor.ctx, opt, 'option', opt_colors)   
 
    method = h[3]
    res_labels = h[4]
