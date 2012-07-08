@@ -12,6 +12,23 @@ from kspremia import vector
 from kspremia import vector_compact
 from kspremia import scalar
 
+class cached_property(object):
+    '''A read-only @property that is only evaluated once. The value is cached
+    on the object itself rather than the function or class; this should prevent
+    memory leakage.'''
+    def __init__(self, fget, doc=None):
+        self.fget = fget
+        self.__doc__ = doc or fget.__doc__
+        self.__name__ = fget.__name__
+        self.__module__ = fget.__module__
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        obj.__dict__[self.__name__] = result = self.fget(obj)
+        return result
+
+
 # object defining per-user data   
 session = Session()
 
@@ -471,9 +488,9 @@ class ModelVisitorBase(object):
 
 class ModelLoader(Loader, ModelVisitorBase):
 
-   def __init__(self, model=None):
+   def __init__(self, state):
       Loader.__init__(self)
-      ModelVisitorBase.__init__(self, model)
+      ModelVisitorBase.__init__(self, None)
 
    def setModel(self, modelFactory, modelName):
       if self.model == None: 
@@ -481,12 +498,13 @@ class ModelLoader(Loader, ModelVisitorBase):
 
 class ModelRenderer(Renderer, ModelVisitorBase):
 
-   def __init__(self, table, model=None):
-      Renderer.__init__(self, table, mod_colors)
-      ModelVisitorBase.__init__(self, model)
+   def __init__(self, state):
+      Renderer.__init__(self, state.assetTable, mod_colors)
+      self.state = state
+      ModelVisitorBase.__init__(self, state.obj)
    
    def setModel(self, modelFactory, modelName):
-      mc = enum_submit('model', model_list, modelName)
+      mc = enum_submit('model', self.state.models, modelName)
       self.row(B('Model:'), mc)
                    
 class ModelHistoricalRenderer(HistoricalRenderer, ModelVisitorBase):
@@ -500,9 +518,9 @@ class ModelHistoricalRenderer(HistoricalRenderer, ModelVisitorBase):
 
 class ModelIterablesExtractor(IterablesExtractor, ModelVisitorBase):
 
-   def __init__(self, model=None):
+   def __init__(self, state):
       IterablesExtractor.__init__(self)
-      ModelVisitorBase.__init__(self, model)
+      ModelVisitorBase.__init__(self, state.obj)
    
    def setModel(self, modelFactory, modelName):
       pass
@@ -794,6 +812,8 @@ clridx = 0
 
 model_list = eval('assets.' + _a + '.models()')
 
+saved_m = _m 
+
 if 'model' in REQUEST:
    new_model = model_list[int(_model)].ID()
    if _m <> new_model:
@@ -891,13 +911,67 @@ def lookupOption(f,o):
 
 def lookupMethod(m,f,meth):
    return processMethod(getMethodModule(m,f,meth))
+
+"""
+Class representing a single run.
+"""
+class ModelState(object):
+
+   @cached_property
+   def models(self):
+      return eval('assets.' + _a + '.models()')
+
+   @cached_property
+   def old_id(self):
+      return saved_m
+
+   @cached_property
+   def id(self):
+      if 'model' in REQUEST:
+         return self.models[int(REQUEST['model'])].ID()
+      else:
+         return saved_m
+
+   @cached_property
+   def idChanged(self):
+      return self.old_id <> self.id
+
+   @cached_property
+   def visit(self):
+      return lookupModel(self.id)
+
+   @cached_property
+   def obj(self):
+      return self.visit(ModelLoader(self)).model
+
+   @cached_property
+   def assetTable(self):
+      return table_model
+
+   @cached_property
+   def table(self):
+      return self.visit(ModelRenderer(self)).table
+
+   @cached_property
+   def iterables(self):
+      return self.visit(ModelIterablesExtractor(self)).ctx
+
+class State(object):
+
+   def __init__(self):
+      self.model = ModelState()
    
+state = State()
+model = state.model.obj
+table = table_model = state.model.table
+model_iterables = state.model.iterables
+
 visitModel = lookupModel(_m)
-model = visitModel(ModelLoader(model)).model
-visitModel(ModelRenderer(table_model, model))
-modelIterablesExtractor = ModelIterablesExtractor(model)
-visitModel(modelIterablesExtractor)
-processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
+#model = visitModel(ModelLoader(model)).model
+#visitModel(ModelRenderer(table_model, model))
+#modelIterablesExtractor = ModelIterablesExtractor(model)
+#visitModel(modelIterablesExtractor)
+processIteration(model_iterables, model, 'model', mod_colors)
 #model = modelIterablesExtractor.model
 
 print "m=",_m, model
@@ -1356,9 +1430,6 @@ for hh_idx in range(len(session.history)):
    model = h[1]
    visitModel = lookupModel(model.ID())
    visitModel(ModelHistoricalRenderer(table_model_h, model))
-   modelIterablesExtractor = ModelIterablesExtractor(model)
-   visitModel(modelIterablesExtractor)
-   processIteration(modelIterablesExtractor.ctx, model, 'model', mod_colors)
 
    opt = h[2]
    visitOption = lookupOption(opt.familyName(), type(opt).__name__)
