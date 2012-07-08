@@ -2,6 +2,9 @@ from HTMLTags import *
 from Queue import Empty
 from multiprocessing import Process,Queue
 from time import time
+from copy import copy
+
+saved_REQUEST = copy(REQUEST)
 
 Include('import.py')
 #Include(r'premia/result_kinds.py')
@@ -806,7 +809,7 @@ def printAsset(table, asset_id):
    table <= (TR(TD((B('Asset Type:')),align='right') + TD(mc)+TD(),bgcolor=mod_colors[0]))
 
 
-printAsset(table, _a)
+#printAsset(table, _a)
 
 clridx = 0
 
@@ -912,25 +915,77 @@ def lookupOption(f,o):
 def lookupMethod(m,f,meth):
    return processMethod(getMethodModule(m,f,meth))
 
+class AssetState(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+
+   @cached_property
+   def request(self):
+      return saved_REQUEST
+
+   @cached_property
+   def assets(self):
+      return assets.all()
+
+   @cached_property
+   def old_id(self):
+      if 'a' in self.request:
+         return self.request['a']
+      else:
+         return 'equity_Black_Scholes_type'  # to be generalized
+
+   @cached_property
+   def id(self):
+      if 'asset_type' in self.request:
+         return self.assets[int(self.request['asset_type'])].__name__
+      else:
+         return self.old_id
+
+   @cached_property
+   def idChanged(self):
+      return self.old_id <> self.id
+
+   @cached_property
+   def table(self):
+      mc = enum_submit('asset_type', self.assets, self.id)
+      table = TABLE(Class="content")
+      table <= (TR(TD((B('Asset Type:')),align='right') + TD(mc)+TD(),bgcolor=mod_colors[0]))
+      return table
+
+
 """
 Class representing a single run.
 """
 class ModelState(object):
 
+   def __init__(self, parent):
+      self.parent = parent
+
+   @cached_property
+   def request(self):
+      return saved_REQUEST
+
    @cached_property
    def models(self):
-      return eval('assets.' + _a + '.models()')
+      return eval('assets.' + self.parent.asset.id + '.models()')
 
    @cached_property
    def old_id(self):
-      return saved_m
+      if 'm' in self.request:
+         return self.request['m']
+      else:
+         return 'BS1D'  # to be generalized
 
    @cached_property
    def id(self):
-      if 'model' in REQUEST:
-         return self.models[int(REQUEST['model'])].ID()
+      if self.parent.asset.idChanged:
+         return self.models[0].ID()
       else:
-         return saved_m
+         if 'model' in self.request:
+            return self.models[int(self.request['model'])].ID()
+         else:
+            return self.old_id
 
    @cached_property
    def idChanged(self):
@@ -946,7 +1001,7 @@ class ModelState(object):
 
    @cached_property
    def assetTable(self):
-      return table_model
+      return self.parent.asset.table
 
    @cached_property
    def table(self):
@@ -959,7 +1014,8 @@ class ModelState(object):
 class State(object):
 
    def __init__(self):
-      self.model = ModelState()
+      self.asset = AssetState(self)
+      self.model = ModelState(self)
    
 state = State()
 model = state.model.obj
