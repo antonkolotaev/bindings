@@ -639,9 +639,9 @@ class MethodVisitorBase(object):
       
 class MethodLoader(Loader, MethodVisitorBase):
 
-   def __init__(self, method=None):
+   def __init__(self, state):
       Loader.__init__(self)
-      MethodVisitorBase.__init__(self, method)
+      MethodVisitorBase.__init__(self, None)
 
    def setMethod(self, methodFactory, methodName):
       if self.method == None: 
@@ -650,12 +650,13 @@ class MethodLoader(Loader, MethodVisitorBase):
  
 class MethodRenderer(Renderer, MethodVisitorBase):
 
-   def __init__(self, table, method=None):
-      Renderer.__init__(self, table, met_colors)
-      MethodVisitorBase.__init__(self, method)
+   def __init__(self, state):
+      Renderer.__init__(self, state.origTable, met_colors)
+      MethodVisitorBase.__init__(self, state.obj)
+      self.state = state
 
    def setMethod(self, methodFactory, methodName):
-      self.row(B('Pricing method:'), enum_submit('pricing_method', methods, methodName))
+      self.row(B('Pricing method:'), enum_submit('pricing_method', self.state.methods, methodName))
 
    def printResultSeries(self, result_members):
       printResultSeries(self.table, result_members, self.colors)
@@ -675,9 +676,9 @@ class MethodHistoricalRenderer(HistoricalRenderer, MethodVisitorBase):
 
 class MethodIterablesExtractor(IterablesExtractor, MethodVisitorBase):
 
-   def __init__(self, method=None):
+   def __init__(self, state):
       IterablesExtractor.__init__(self)
-      MethodVisitorBase.__init__(self, method)
+      MethodVisitorBase.__init__(self, state.obj)
 
 
 iterate_object = None
@@ -1133,6 +1134,63 @@ class OptionState(object):
    def iterables(self):
       return self.visit(OptionIterablesExtractor(self)).ctx
 
+class MethodState(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+
+   @cached_property
+   def request(self):
+      return saved_REQUEST
+
+   @cached_property
+   def methods(self):
+      m = self.parent.model.id
+      f = self.parent.family.id
+      opt = self.parent.option.obj
+      return [x for x in eval('pricings.' + m + '.' + m + '_' + f + '.all()') if type(opt) in x.options()]
+
+   @cached_property
+   def old_id(self):
+      if 'meth' in self.request:
+         return self.request['meth']
+      else:
+         return 'CF_Call'  # to be generalized
+
+   @cached_property
+   def id(self):
+      if self.parent.option.idChanged or self.parent.model.idChanged:
+         return self.methods[0].__name__
+      else:
+         if 'pricing_method' in self.request:
+            return self.methods[int(self.request['pricing_method'])].__name__
+         else:
+            return self.old_id
+
+   @cached_property
+   def idChanged(self):
+      return self.old_id <> self.id
+
+   @cached_property
+   def visit(self):
+      return lookupMethod(self.parent.model.id, self.parent.family.id, self.id)
+
+   @cached_property
+   def obj(self):
+      return self.visit(MethodLoader(self)).method
+
+   @cached_property
+   def origTable(self):
+      return TABLE(Class="content")
+
+   @cached_property
+   def table(self):
+      return self.visit(MethodRenderer(self)).table
+
+   @cached_property
+   def iterables(self):
+      return self.visit(MethodIterablesExtractor(self)).ctx
+
 """
 Class representing a single run.
 """
@@ -1143,6 +1201,7 @@ class State(object):
       self.model = ModelState(self)
       self.family = FamilyState(self)
       self.option = OptionState(self)
+      self.method = MethodState(self)
    
 state = State()
 model = state.model.obj
@@ -1232,13 +1291,17 @@ def printMethodType(table, method_type):
       mc = method_type
    table <= rowinc(met_colors, B('Pricing method:'), mc)
 
-visitMethod = lookupMethod(_m,_f,_meth)
-method = visitMethod(MethodLoader(method)).method
-visitMethod(MethodRenderer(table_method, method))
-methodIterablesExtractor = MethodIterablesExtractor(method)
-visitMethod(methodIterablesExtractor)
-processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
-method = methodIterablesExtractor.method
+method = state.method.obj
+table = table_method = state.method.table
+method_iterables = state.method.iterables
+
+#visitMethod = lookupMethod(_m,_f,_meth)
+#method = visitMethod(MethodLoader(method)).method
+#visitMethod(MethodRenderer(table_method, method))
+#methodIterablesExtractor = MethodIterablesExtractor(method)
+#visitMethod(methodIterablesExtractor)
+processIteration(method_iterables, method, 'method', met_colors)
+#method = methodIterablesExtractor.method
 
 print "_meth=",_meth, method
 
@@ -1634,9 +1697,6 @@ for hh_idx in range(len(session.history)):
    
    visitMethod = lookupMethod(model.ID(), opt.familyName(), type(method).__name__)
    visitMethod(MethodHistoricalRenderer(table_meth_h, method))
-   methodIterablesExtractor = MethodIterablesExtractor(method)
-   visitMethod(methodIterablesExtractor)
-   processIteration(methodIterablesExtractor.ctx, method, 'method', met_colors)
       
    if res_t == None and res <> None:
       printScalarResult(table_meth_h, res)
