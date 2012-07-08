@@ -326,6 +326,39 @@ class Loader(VisitorBase):
       except Exception, ex:
          v.addError('Error in '+ field.propertyName +':' + str(ex))
 
+class EntityTable(TABLE):
+
+   def __init__(self, colors):
+      TABLE.__init__(self, Class="content")
+      self.colors = colors
+      self.clridx = 0
+
+   def clrinc(self): 
+      self.clridx = self.clridx + 1
+      if self.clridx >= len(self.colors):
+         self.clridx = 0
+
+   @property
+   def currentColor(self): 
+      return self.colors[self.clridx]
+
+   def row(self, c1, c2, c3=''):
+      self.clrinc()   
+      self     <= (TR(
+                     TD(c1,align='right') + 
+                     TD(c2)+
+                     TD(c3),
+                     bgcolor=self.currentColor
+                     )) 
+
+   def spannedRows(self, c1, c2s, c3=''):
+      self.clrinc()
+      self       <= TR(TD(c1, align='right',rowspan=len(c2s)) + 
+                       TD(c2s[0]) + 
+                       TD(c3, rowspan=len(c2s)),
+                       bgcolor=self.currentColor)
+               
+      self       <= Sum([TR(TD(c2s[i]), bgcolor=self.currentColor) for i in range(1,len(c2s))])
 
 class Renderer(VisitorBase):
 
@@ -559,10 +592,7 @@ class OptionRenderer(Renderer, OptionVisitorBase):
       OptionVisitorBase.__init__(self,option)
       
    def setOption(self, optionFactory, familyName, optionName):
-      mc = enum_submit_mod('family', model.families(), familyName)
       rc = enum_submit('option', pricing_options(_m,_f), optionName)
-
-      self.row(B('Family:'), mc)
       self.row(B('Option:'), rc)
 
 class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
@@ -954,9 +984,6 @@ class AssetState(object):
       return table
 
 
-"""
-Class representing a single run.
-"""
 class ModelState(object):
 
    def __init__(self, parent):
@@ -1011,11 +1038,55 @@ class ModelState(object):
    def iterables(self):
       return self.visit(ModelIterablesExtractor(self)).ctx
 
+class FamilyState(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+
+   @cached_property
+   def request(self):
+      return saved_REQUEST
+
+   @cached_property
+   def families(self):
+      return self.parent.model.obj.families()
+
+   @cached_property
+   def old_id(self):
+      if 'f' in self.request:
+         return self.request['f']
+      else:
+         return 'STD'  # to be generalized
+
+   @cached_property
+   def id(self):
+      if self.parent.model.idChanged:
+         return self.families[0]
+      elif 'family' in self.request:
+         return self.families[int(self.request['family'])]
+      else:
+         return self.old_id
+
+   @cached_property
+   def idChanged(self):
+      return self.old_id <> self.id
+
+   @cached_property
+   def table(self):
+      mc = enum_submit_mod('family', self.families, self.id)
+      table = TABLE(Class="content")
+      table <= (TR(TD(B('Family:'),align='right') + TD(mc)+TD(),bgcolor=opt_colors[0]))
+      return table
+
+"""
+Class representing a single run.
+"""
 class State(object):
 
    def __init__(self):
       self.asset = AssetState(self)
       self.model = ModelState(self)
+      self.family = FamilyState(self)
    
 state = State()
 model = state.model.obj
@@ -1067,6 +1138,8 @@ def printOptionType(table, option_type):
    table <= rowinc(opt_colors, B('Option:'), mc)
 
 clridx = 1
+
+table = table_option = state.family.table
 
 visitOption = lookupOption(_f, _o)
 opt = visitOption(OptionLoader(opt)).option
