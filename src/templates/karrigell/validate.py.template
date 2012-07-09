@@ -236,33 +236,62 @@ def printResultSeries(table, results, colors):
             printGraphSerieEx(table, vlabel, friendly, colors, result_kinds[vlabel][0])
          printGraphSerieEx(table, 'Time', 'Computation Time', colors, False)
 
+class IterationState(object):
+
+   def __init__(self, obj, iterables, idx, iterateTo, stepsNo):
+      self.obj = obj
+      self.idx = idx
+      self.label = iterables.getCorrectedName(idx) 
+      self.name = iterables.labels[idx]
+      self.getter = iterables.getGetter(idx)
+      self.setter = iterables.getSetter(idx)
+      self.iterateTo = iterateTo
+      self.stepsNo = stepsNo
+
+
 # Depends on:
 #  - colors
 #  - globals
 
-def processIteration(ctx, obj, entity, colors):
+#def processIteration(ctx, obj, entity, colors):
+def processIteration(state):
+
+   ctx = state.iterables
+   obj = state.obj
+   entity = state.entityLabel
+   colors = state.colors
+   table = state.table
 
    if not history_mode:
       G = globals()
       
       clrinc()
       # obtaining name of the variable containing iteration index for 'entity'
-      iterate_vlabel = 'iterate_'+entity
+      iterate_vlabel = state.iterateVlabel
       _iterate_vlabel = '_iterate_'+entity   
       
       # getting iteration index for 'entity'
-      if _iterate_vlabel in G:   
-         iterate_idx = int(G[_iterate_vlabel])
-      else:
-         iterate_idx = 0
+      #if _iterate_vlabel in G:   
+      #   iterate_idx = int(G[_iterate_vlabel])
+      #else:
+      #   iterate_idx = 0
 
-      old_idx = G['oldit'][entity]
 
-      if old_idx == iterate_idx and 'il' in REQUEST and iterate_idx <> 0:
-         if iterate_idx >= len(ctx) or G['_il'] <> ctx.getCorrectedName(iterate_idx):
-            iterate_idx = ctx.lookupByCorrectedName(G['_il'])
+      #old_idx = G['oldit'][entity]
 
-      iterate_value_vlabel = iterate_vlabel + '_' + ctx.getCorrectedName(iterate_idx)
+      iterate_idx = state.iterationIdx
+      old_idx = state.oldIterationIdx
+
+      iterationLabel = state.iterationLabel
+      """
+      if state.oldIterationIdx == state.iterationIdx and state.iterationLabel <> None and state.iterationIdx <> 0:
+         if state.iterationIdx >= len(state.iterables) or state.iterationLabel <> state.iterables.getCorrectedName(state.iterationIdx):
+            iterate_idx = state.iterables.lookupByCorrectedName(state.iterationLabel)
+      """
+
+      iterate_idx = state.fixedIterationIdx
+
+      iterate_value_vlabel = state.iterateValueVlabel
          
       table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod(iterate_vlabel, ctx.labels, ctx.labels[iterate_idx]))+TD(),bgcolor=clr(colors,clridx)))
       
@@ -270,18 +299,25 @@ def processIteration(ctx, obj, entity, colors):
       
          clrinc()
 
+         old_value = state.oldIterationValue
+         
+         """
          if iterate_value_vlabel in REQUEST:
             old_value = REQUEST[iterate_value_vlabel]
          else:
             old_value = ctx.getGetter(iterate_idx)()
-            
+         """
+
          table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name=iterate_value_vlabel,value=old_value))+TD(),bgcolor=clr(colors,clridx)))
          
+         """
          if 'iteration_steps' in REQUEST:
             steps_no = REQUEST['iteration_steps']
          else:
             steps_no = 10
-          
+         """
+
+         steps_no = state.iterationStepNumber 
          
          clrinc()      
          table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(colors,clridx)))
@@ -947,7 +983,7 @@ def lookupOption(f,o):
 def lookupMethod(m,f,meth):
    return processMethod(getMethodModule(m,f,meth))
 
-class AssetState(object):
+class StateBase(object):
 
    def __init__(self, parent):
       self.parent = parent
@@ -955,6 +991,47 @@ class AssetState(object):
    @cached_property
    def request(self):
       return saved_REQUEST
+
+   @cached_property
+   def iterationLabel(self):
+      return self.request['il'] if 'il' in self.request else None
+
+   @cached_property
+   def fixedIterationIdx(state):
+      if state.oldIterationIdx == state.iterationIdx and state.iterationLabel <> None and state.iterationIdx <> 0:
+         if state.iterationIdx >= len(state.iterables) or state.iterationLabel <> state.iterables.getCorrectedName(state.iterationIdx):
+            return state.iterables.lookupByCorrectedName(state.iterationLabel)
+      return state.iterationIdx
+
+   @cached_property
+   def iterateVlabel(self):
+      return 'iterate_' + self.entityLabel
+
+   @cached_property
+   def iterateValueVlabel(self):
+      return self.iterateVlabel + '_' + self.iterables.getCorrectedName(self.fixedIterationIdx)
+
+   @cached_property
+   def oldIterationValue(self):
+      if self.iterateValueVlabel in self.request:
+         return float(self.request[self.iterateValueVlabel])
+      else:
+         return self.iterables.getGetter(self.fixedIterationIdx)()
+
+   @cached_property
+   def iterationStepNumber(self):
+      return int(self.request['iteration_steps']) if 'iteration_steps' in self.request else 10
+
+   @cached_property
+   def iteration(self):
+      if self.fixedIterationIdx == 0:
+         return None
+      else:
+         return IterationState(self.obj, self.iterables, self.fixedIterationIdx, self.oldIterationValue, self.iterationStepNumber)
+
+
+
+class AssetState(StateBase):
 
    @cached_property
    def assets(self):
@@ -986,14 +1063,15 @@ class AssetState(object):
       return table
 
 
-class ModelState(object):
+class ModelState(StateBase):
 
-   def __init__(self, parent):
-      self.parent = parent
+   @property
+   def entityLabel(self):
+      return 'model'
 
-   @cached_property
-   def request(self):
-      return saved_REQUEST
+   @property
+   def colors(self):
+      return mod_colors
 
    @cached_property
    def models(self):
@@ -1040,14 +1118,28 @@ class ModelState(object):
    def iterables(self):
       return self.visit(ModelIterablesExtractor(self)).ctx
 
-class FamilyState(object):
-
-   def __init__(self, parent):
-      self.parent = parent
+   @cached_property
+   def oldIterationIdx(self):
+      return int(self.request['im'] if 'im' in self.request else '0')
 
    @cached_property
-   def request(self):
-      return saved_REQUEST
+   def srcIterationIdx(self):
+      return int(self.request['iterate_model'] if 'iterate_model' in self.request else '0') 
+
+   @cached_property
+   def iterationIdx(self):
+      if self.idChanged or \
+         self.parent.option.iterationIdxChanged or \
+         self.parent.method.iterationIdxChanged:
+            return 0
+      else:
+         return self.srcIterationIdx  
+
+   @cached_property
+   def iterationIdxChanged(self):
+      return self.oldIterationIdx <> self.srcIterationIdx
+
+class FamilyState(StateBase):
 
    @cached_property
    def families(self):
@@ -1080,14 +1172,15 @@ class FamilyState(object):
       table <= (TR(TD(B('Family:'),align='right') + TD(mc)+TD(),bgcolor=opt_colors[0]))
       return table
 
-class OptionState(object):
+class OptionState(StateBase):
 
-   def __init__(self, parent):
-      self.parent = parent
+   @property
+   def entityLabel(self):
+      return 'option'
 
-   @cached_property
-   def request(self):
-      return saved_REQUEST
+   @property
+   def colors(self):
+      return opt_colors
 
    @cached_property
    def options(self):
@@ -1134,14 +1227,36 @@ class OptionState(object):
    def iterables(self):
       return self.visit(OptionIterablesExtractor(self)).ctx
 
-class MethodState(object):
-
-   def __init__(self, parent):
-      self.parent = parent
+   @cached_property
+   def oldIterationIdx(self):
+      return int(self.request['io'] if 'io' in self.request else '0')
 
    @cached_property
-   def request(self):
-      return saved_REQUEST
+   def srcIterationIdx(self):
+      return int(self.request['iterate_option'] if 'iterate_option' in self.request else '0') 
+
+   @cached_property
+   def iterationIdx(self):
+      if self.idChanged or \
+         self.parent.model.iterationIdxChanged or \
+         self.parent.method.iterationIdxChanged:
+            return 0
+      else:
+         return self.srcIterationIdx  
+
+   @cached_property
+   def iterationIdxChanged(self):
+      return self.oldIterationIdx <> self.srcIterationIdx
+
+class MethodState(StateBase):
+
+   @property
+   def entityLabel(self):
+      return 'method'
+
+   @property
+   def colors(self):
+      return met_colors
 
    @cached_property
    def methods(self):
@@ -1191,6 +1306,27 @@ class MethodState(object):
    def iterables(self):
       return self.visit(MethodIterablesExtractor(self)).ctx
 
+   @cached_property
+   def oldIterationIdx(self):
+      return int(self.request['ip'] if 'ip' in self.request else '0')
+
+   @cached_property
+   def srcIterationIdx(self):
+      return int(self.request['iterate_method'] if 'iterate_method' in self.request else '0') 
+
+   @cached_property
+   def iterationIdx(self):
+      if self.idChanged or \
+         self.parent.option.iterationIdxChanged or \
+         self.parent.model.iterationIdxChanged:
+            return 0
+      else:
+         return self.srcIterationIdx  
+
+   @cached_property
+   def iterationIdxChanged(self):
+      return self.oldIterationIdx <> self.srcIterationIdx
+
 """
 Class representing a single run.
 """
@@ -1202,6 +1338,10 @@ class State(object):
       self.family = FamilyState(self)
       self.option = OptionState(self)
       self.method = MethodState(self)
+
+   @cached_property
+   def iteration(self):
+      return self.model.iteration or self.option.iteration or self.method.iteration
    
 state = State()
 model = state.model.obj
@@ -1213,7 +1353,7 @@ visitModel = lookupModel(_m)
 #visitModel(ModelRenderer(table_model, model))
 #modelIterablesExtractor = ModelIterablesExtractor(model)
 #visitModel(modelIterablesExtractor)
-processIteration(model_iterables, model, 'model', mod_colors)
+processIteration(state.model)
 #model = modelIterablesExtractor.model
 
 print "m=",_m, model
@@ -1264,7 +1404,7 @@ option_iterables = state.option.iterables
 #visitOption(OptionRenderer(table_option, opt))
 #optionIterablesExtractor = OptionIterablesExtractor(opt)
 #visitOption(optionIterablesExtractor)
-processIteration(option_iterables, opt, 'option', opt_colors)
+processIteration(state.option)
 #opt = optionIterablesExtractor.option
 
 print "_f=",_f, "_o=",_o, opt
@@ -1300,7 +1440,7 @@ method_iterables = state.method.iterables
 #visitMethod(MethodRenderer(table_method, method))
 #methodIterablesExtractor = MethodIterablesExtractor(method)
 #visitMethod(methodIterablesExtractor)
-processIteration(method_iterables, method, 'method', met_colors)
+processIteration(state.method)
 #method = methodIterablesExtractor.method
 
 print "_meth=",_meth, method
@@ -1332,12 +1472,12 @@ if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
             res.append(("Time", end - begin))
             q.put(res)
 
-        def G(opt,model,q, itobj, itname, itlimit, itcount, itgetter, itsetter):
-            initial = itgetter()            
-            for i in range(itcount):
+        def G(opt,model,q, iteration):
+            initial = iteration.getter()            
+            for i in range(iteration.stepsNo):
                 begin = time()
-                if itcount > 1:
-                    x = initial + 1. * i / (itcount - 1) * (itlimit - initial)
+                if iteration.stepsNo > 1:
+                    x = initial + 1. * i / (iteration.stepsNo - 1) * (iteration.iterateTo - initial)
                 else:
                     x = initial
                     
@@ -1346,28 +1486,28 @@ if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
                 if type(initial) == type(1L):
                     x = long(round(x))
                 
-                itsetter(x)
+                iteration.setter(x)
                      
                 res = (method(opt,model))
                 end = time()
-                res.insert(0, (itname, x))
+                res.insert(0, (iteration.name, x))
                 res.append(("Time", end - begin))
                 q.put(res)
             
         res = []
         queue = Queue()
-        if iterate_object == None:
+        if state.iteration == None:
             process = Process(target = F, args = (opt,model,queue))
         else:
             res_t = []
-            process = Process(target = G, args = (opt,model,queue,iterate_object,iterate_name,iterate_to,int(_iteration_steps), iteration_getter, iteration_setter))
+            process = Process(target = G, args = (opt,model,queue, state.iteration))
         process.start()
         try:
-            if iterate_object == None:
+            if state.iteration == None:
                 res.extend(queue.get(timeout=computation_timeout))
             else:
                 begin = time()
-                iterations = int(_iteration_steps)
+                iterations = state.iteration.stepsNo
                 for i in range(iterations):
                     q = queue.get(timeout=begin + computation_timeout - time())
                     res.extend(q)
