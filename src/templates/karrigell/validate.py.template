@@ -163,7 +163,7 @@ def printGraphSerieEx(table, vlabel, friendly, colors, old_checked):
 
       # we may ask the user only if this history iteration of this 
       # is compatible with current iteration  
-      enabled = not history_mode or h_iterate_label == iterate_label
+      enabled = not history_mode or h_iterate_label == state.iterationLabel
          
       table <= TR(
                   TD() + 
@@ -229,7 +229,7 @@ def printResultSeries(table, results, colors):
                printGraphSerie(table, vlabel, friendly, colors)
          
    else: # case of the current view
-      if iterate_object <> None: 
+      if state.iteration <> None: 
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
          for (vlabel, friendly) in results:
@@ -322,14 +322,14 @@ def processIteration(state):
          clrinc()      
          table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(colors,clridx)))
          
-         G['_iterate_' + entity] = str(iterate_idx)
-         G['iterate_object'] = obj
-         G['iterate_label'] = ctx.getCorrectedName(iterate_idx) 
-         G['iterate_name'] = ctx.labels[iterate_idx]
-         G['iteration_getter'] = ctx.getGetter(iterate_idx)
-         G['iteration_setter'] = ctx.getSetter(iterate_idx)
-         if iterate_value_vlabel in REQUEST:
-            G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
+         #G['_iterate_' + entity] = str(iterate_idx)
+         #G['iterate_object'] = obj
+         #G['iterate_label'] = ctx.getCorrectedName(iterate_idx) 
+         #G['iterate_name'] = ctx.labels[iterate_idx]
+         #G['iteration_getter'] = ctx.getGetter(iterate_idx)
+         #G['iteration_setter'] = ctx.getSetter(iterate_idx)
+         #if iterate_value_vlabel in REQUEST:
+         #   G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
 
 class VisitorBase(object):
 
@@ -717,8 +717,7 @@ class MethodIterablesExtractor(IterablesExtractor, MethodVisitorBase):
       MethodVisitorBase.__init__(self, state.obj)
 
 
-iterate_object = None
-iterate_label = '_'
+#iterate_label = '_'
 
 history_mode = False
 
@@ -1029,6 +1028,23 @@ class StateBase(object):
       else:
          return IterationState(self.obj, self.iterables, self.fixedIterationIdx, self.oldIterationValue, self.iterationStepNumber)
 
+   def addIterationTable(state):
+      clrinc()
+      table = state.table
+         
+      table <= (TR(TD(('Iterate'),align='right') + \
+                   TD(enum_submit_mod(state.iterateVlabel, state.iterables.labels, state.iterables.labels[state.fixedIterationIdx]))+\
+                   TD(),bgcolor=clr(state.colors,clridx)))
+      
+      if state.fixedIterationIdx <> 0:
+      
+         clrinc()
+         old_value = state.oldIterationValue
+         table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name=state.iterateValueVlabel,value=old_value))+TD(),bgcolor=clr(state.colors,clridx)))
+         
+         clrinc()      
+         steps_no = state.iterationStepNumber 
+         table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(state.colors,clridx)))
 
 
 class AssetState(StateBase):
@@ -1342,6 +1358,10 @@ class State(object):
    @cached_property
    def iteration(self):
       return self.model.iteration or self.option.iteration or self.method.iteration
+
+   @cached_property
+   def iterationLabel(self):
+      return self.iteration.label if self.iteration <> None else '_'
    
 state = State()
 model = state.model.obj
@@ -1353,7 +1373,8 @@ visitModel = lookupModel(_m)
 #visitModel(ModelRenderer(table_model, model))
 #modelIterablesExtractor = ModelIterablesExtractor(model)
 #visitModel(modelIterablesExtractor)
-processIteration(state.model)
+#processIteration(state.model)
+state.model.addIterationTable()
 #model = modelIterablesExtractor.model
 
 print "m=",_m, model
@@ -1404,7 +1425,8 @@ option_iterables = state.option.iterables
 #visitOption(OptionRenderer(table_option, opt))
 #optionIterablesExtractor = OptionIterablesExtractor(opt)
 #visitOption(optionIterablesExtractor)
-processIteration(state.option)
+#processIteration(state.option)
+state.option.addIterationTable()
 #opt = optionIterablesExtractor.option
 
 print "_f=",_f, "_o=",_o, opt
@@ -1440,7 +1462,8 @@ method_iterables = state.method.iterables
 #visitMethod(MethodRenderer(table_method, method))
 #methodIterablesExtractor = MethodIterablesExtractor(method)
 #visitMethod(methodIterablesExtractor)
-processIteration(state.method)
+#processIteration(state.method)
+state.method.addIterationTable()
 #method = methodIterablesExtractor.method
 
 print "_meth=",_meth, method
@@ -1606,7 +1629,7 @@ def printVectorResult(table_result_i, res_t):
       h = session.history[h_idx]
       h_results = h[6]
       h_iterate_label = h[7]
-      if h_results <> None and h_iterate_label == iterate_label:
+      if h_results <> None and h_iterate_label == state.iteration.label:
          res_hh = []
          res_lh = []
          for i in range(len(h_results)):
@@ -1658,13 +1681,17 @@ if res_t <> None:
    res_h = printVectorResult(table_result_i, res_t)
    
 #print 'iterate_model = ', _iterate_model
-im = str(_iterate_model)
+#im = str(_iterate_model)
+im = str(state.model.fixedIterationIdx)
 #print 'iterate_option = ', _iterate_option
-io = str(_iterate_option)
+#io = str(_iterate_option)
+io = str(state.option.fixedIterationIdx)
 #print 'iterate_method = ', _iterate_method
-ip = str(_iterate_method)
+#ip = str(_iterate_method)
+ip = str(state.method.fixedIterationIdx)
 
-form = FORM(action='/index?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth+'&im=' + im+'&io=' + io+'&ip=' + ip+'&il='+iterate_label,method="post")
+
+form = FORM(action='/index?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth+'&im=' + im+'&io=' + io+'&ip=' + ip+'&il='+state.iterationLabel,method="post")
 
 if model_size_mode:
     table_method <= table_model_size_mode
@@ -1760,7 +1787,7 @@ if 'result_labels' not in dir():
 to_save = None
 
 if res_t <> None or res <> None:   
-   to_save = (_a, model, opt, method, result_labels, res, res_t, iterate_label, res_h)
+   to_save = (_a, model, opt, method, result_labels, res, res_t, state.iterationLabel, res_h)
 
 #print REQUEST
 
