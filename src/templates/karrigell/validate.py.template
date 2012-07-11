@@ -1408,6 +1408,8 @@ class MethodState(StateBase):
    def iterationIdxChanged(self):
       return self.oldIterationIdx <> self.srcIterationIdx
 
+
+
 """
 Class representing a single run.
 """
@@ -1427,6 +1429,100 @@ class State(object):
    @cached_property
    def iterationLabel(self):
       return self.iteration.label if self.iteration <> None else '_'
+
+   @cached_property
+   def request(self):
+      return saved_REQUEST
+
+   computation_timeout = 30
+
+   @cached_property
+   def runComputation(self):
+      return g_errors == [] and 'Compute' in self.request
+
+   @cached_property
+   def result(self):
+      if not self.runComputation or self.iteration <> None:
+         return None
+      def F(opt, mod, q):
+         begin = time()
+         res = self.method.obj(opt, mod)
+         end = time()
+         res.append(("Time", end - begin))
+         q.put(res)
+      try:
+         queue = Queue()
+         process = Process(target = F, args = (self.option.obj,self.model.obj, queue))
+         process.start()
+         try:
+            return queue.get(timeout=computation_timeout)
+         except Empty, exc:
+            process.terminate()
+            raise Exception("Method has worked more than " + str(computation_timeout) + "s. Please try another parameter combination")
+         process.join(timeout=computation_timeout)
+      except Exception, exc:
+         add_error(exc) 
+
+   @cached_property
+   def tableResult(self):
+
+      if not self.runComputation or self.iteration == None:
+         return None
+
+      iteration = self.iteration
+
+      def G(opt, mod, q):
+         initial = iteration.getter()            
+         for i in range(iteration.stepsNo):
+             begin = time()
+             if iteration.stepsNo > 1:
+                 x = initial + 1. * i / (iteration.stepsNo - 1) * (iteration.iterateTo - initial)
+             else:
+                 x = initial
+                 
+             if type(initial) == type(1):
+                 x = int(round(x))
+             if type(initial) == type(1L):
+                 x = long(round(x))
+             
+             iteration.setter(x)
+                  
+             res = (self.method.obj(opt, mod))
+             end = time()
+             res.insert(0, (iteration.name, x))
+             res.append(("Time", end - begin))
+             q.put(res)
+      
+      try: 
+         queue = Queue()
+         res_t = []
+         process = Process(target = G, args = (self.option.obj,self.model.obj, queue))
+         try:            
+            process.start()
+
+            begin = time()
+            iterations = iteration.stepsNo
+            for i in range(iterations):
+              q = queue.get(timeout=begin + computation_timeout - time())
+              if res_t == []:
+                  for k,v in q:
+                      res_t.append((k,[v]))
+              else:
+                  idx = 0
+                  for k,v in q:
+                      assert res_t[idx][0] == k
+                      res_t[idx][1].append(v)
+                      idx = idx + 1
+                             
+         except Empty, exc:
+            process.terminate()
+            raise Exception("Method has worked more than " + str(computation_timeout) + "s. Please try another parameter combination")
+                     
+         process.join(timeout=computation_timeout)
+         return res_t
+         
+      except Exception, exc:
+         add_error(exc)
    
 state = State()
 model = state.model.obj
@@ -1550,7 +1646,10 @@ if g_errors <> []:
 if 'Compute' not in REQUEST:
    run_computation = False
 
-   
+ 
+res = state.result
+res_t = state.tableResult 
+"""
 if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
     try:
         def F(opt,model,q):
@@ -1620,7 +1719,7 @@ if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
         #print "exception caught:"
         #print traceback.format_exc()
         add_error(exc)
-
+"""
 #Include(r'premia/run_computation.py')
 #Include(r'premia/print_table_result.py')
 def script(s):
