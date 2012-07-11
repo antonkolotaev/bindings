@@ -695,7 +695,8 @@ class MethodRenderer(Renderer, MethodVisitorBase):
       self.row(B('Pricing method:'), enum_submit('pricing_method', self.state.methods, methodName))
 
    def printResultSeries(self, result_members):
-      printResultSeries(self.table, result_members, self.colors)
+      pass
+      #printResultSeries(self.table, result_members, self.colors)
 
 class MethodHistoricalRenderer(HistoricalRenderer, MethodVisitorBase):
 
@@ -1028,9 +1029,10 @@ class StateBase(object):
       else:
          return IterationState(self.obj, self.iterables, self.fixedIterationIdx, self.oldIterationValue, self.iterationStepNumber)
 
+   @cached_property
    def addIterationTable(state):
       clrinc()
-      table = state.table
+      table = state.paramTable
          
       table <= (TR(TD(('Iterate'),align='right') + \
                    TD(enum_submit_mod(state.iterateVlabel, state.iterables.labels, state.iterables.labels[state.fixedIterationIdx]))+\
@@ -1045,6 +1047,8 @@ class StateBase(object):
          clrinc()      
          steps_no = state.iterationStepNumber 
          table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(state.colors,clridx)))
+
+      return table
 
 
 class AssetState(StateBase):
@@ -1127,8 +1131,12 @@ class ModelState(StateBase):
       return self.parent.asset.table
 
    @cached_property
-   def table(self):
+   def paramTable(self):
       return self.visit(ModelRenderer(self)).table
+
+   @cached_property
+   def table(self):
+      return self.addIterationTable
 
    @cached_property
    def iterables(self):
@@ -1236,8 +1244,12 @@ class OptionState(StateBase):
       return self.parent.family.table
 
    @cached_property
-   def table(self):
+   def paramTable(self):
       return self.visit(OptionRenderer(self)).table
+
+   @cached_property
+   def table(self):
+      return self.addIterationTable
 
    @cached_property
    def iterables(self):
@@ -1303,8 +1315,12 @@ class MethodState(StateBase):
       return self.old_id <> self.id
 
    @cached_property
+   def ksModule(self):
+      return getMethodModule(self.parent.model.id, self.parent.family.id, self.id)
+
+   @cached_property
    def visit(self):
-      return lookupMethod(self.parent.model.id, self.parent.family.id, self.id)
+      return processMethod(self.ksModule)
 
    @cached_property
    def obj(self):
@@ -1315,8 +1331,14 @@ class MethodState(StateBase):
       return TABLE(Class="content")
 
    @cached_property
+   def paramTable(self):
+      table = self.visit(MethodRenderer(self)).table
+      printResultSeries(table, self.ksModule.resultFields(), self.colors)
+      return table
+
+   @cached_property
    def table(self):
-      return self.visit(MethodRenderer(self)).table
+      return self.addIterationTable
 
    @cached_property
    def iterables(self):
@@ -1374,7 +1396,7 @@ visitModel = lookupModel(_m)
 #modelIterablesExtractor = ModelIterablesExtractor(model)
 #visitModel(modelIterablesExtractor)
 #processIteration(state.model)
-state.model.addIterationTable()
+#state.model.addIterationTable()
 #model = modelIterablesExtractor.model
 
 print "m=",_m, model
@@ -1426,7 +1448,7 @@ option_iterables = state.option.iterables
 #optionIterablesExtractor = OptionIterablesExtractor(opt)
 #visitOption(optionIterablesExtractor)
 #processIteration(state.option)
-state.option.addIterationTable()
+#state.option.addIterationTable()
 #opt = optionIterablesExtractor.option
 
 print "_f=",_f, "_o=",_o, opt
@@ -1463,7 +1485,7 @@ method_iterables = state.method.iterables
 #methodIterablesExtractor = MethodIterablesExtractor(method)
 #visitMethod(methodIterablesExtractor)
 #processIteration(state.method)
-state.method.addIterationTable()
+#state.method.addIterationTable()
 #method = methodIterablesExtractor.method
 
 print "_meth=",_meth, method
