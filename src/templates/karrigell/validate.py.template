@@ -1276,11 +1276,38 @@ class OptionState(StateBase):
    def iterationIdxChanged(self):
       return self.oldIterationIdx <> self.srcIterationIdx
 
-class ResultParameter(object):
+class ResultMember(object):
 
-   def __init__(self, friendlyName, correctedName)
+   def __init__(self, correctedName, friendlyName):
       self.friendlyName = friendlyName
       self.correctedName = correctedName
+
+   @cached_property
+   def request(self):
+      return REQUEST
+
+   @cached_property
+   def oldLabel(self):
+      if 'showGraphLabel_'+self.correctedName in self.request:
+         return self.request['showGraphLabel_'+self.correctedName]
+      else: 
+         return self.friendlyName
+
+   def render(self, table): 
+         clrinc()
+         old_checked = result_kinds[self.correctedName][0]
+
+         table <= TR(
+                     TD() + 
+                     TD( # input box to enter label for this graph serie
+                        INPUT(name='showGraphLabel_'+self.correctedName,
+                              value=self.oldLabel,
+                              disabled = False)) + 
+                     TD( # check box should be this serie shown on the graph
+                        checkbox('showGraph_'+self.correctedName,
+                                 checked = old_checked, 
+                                 disabled = False)),
+                     bgcolor=clr(table.colors,clridx))
 
 class MethodState(StateBase):
 
@@ -1337,19 +1364,19 @@ class MethodState(StateBase):
       return TABLE(Class="content")
 
    def printResultTable(self, table):
-      
+      table.colors = self.colors
       if state.iteration <> None: 
          clrinc()
          table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(self.colors,clridx))
          for (vlabel, friendly) in self.ksModule.resultFields():
-            printGraphSerieEx(table, vlabel, friendly, self.colors, result_kinds[vlabel][0])
-         printGraphSerieEx(table, 'Time', 'Computation Time', self.colors, False)
+            ResultMember(vlabel, friendly).render(table)
+         ResultMember('Time', 'Computation Time').render(table)
 
 
    @cached_property
    def paramTable(self):
       table = self.visit(MethodRenderer(self)).table
-      printResultTable(table)
+      self.printResultTable(table)
       return table
 
    @cached_property
