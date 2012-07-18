@@ -563,10 +563,8 @@ class ModelLoader(Loader, ModelVisitorBase):
    def __init__(self, state):
       Loader.__init__(self)
       ModelVisitorBase.__init__(self, None)
-
-   def setModel(self, modelFactory, modelName):
       if self.model == None: 
-         self.model = modelFactory()
+         self.model = state.pyType()
 
 class ModelRenderer(Renderer, ModelVisitorBase):
 
@@ -574,11 +572,9 @@ class ModelRenderer(Renderer, ModelVisitorBase):
       Renderer.__init__(self, state.assetTable, mod_colors)
       self.state = state
       ModelVisitorBase.__init__(self, state.obj)
-   
-   def setModel(self, modelFactory, modelName):
-      mc = enum_submit('model', self.state.models, modelName)
+      mc = enum_submit('model', self.state.models, self.state.name)
       self.row(B('Model:'), mc)
-                   
+   
 class ModelHistoricalRenderer(HistoricalRenderer, ModelVisitorBase):
 
    def __init__(self, table, model=None):
@@ -594,9 +590,6 @@ class ModelIterablesExtractor(IterablesExtractor, ModelVisitorBase):
       IterablesExtractor.__init__(self)
       ModelVisitorBase.__init__(self, state.obj)
    
-   def setModel(self, modelFactory, modelName):
-      pass
-
 class OptionVisitorBase(object):
 
    def __init__(self, option=None):
@@ -615,21 +608,15 @@ class OptionLoader(Loader, OptionVisitorBase):
    def __init__(self, state):
       Loader.__init__(self)
       OptionVisitorBase.__init__(self, None)
-      
-   def setOption(self, optionFactory, familyName, optionName):
-      
       if self.option == None:
-         self.option = optionFactory()
-
+         self.option = state.pyType()
+      
 class OptionRenderer(Renderer, OptionVisitorBase):
 
    def __init__(self, state):
       Renderer.__init__(self, state.parent.family.table, opt_colors)
       OptionVisitorBase.__init__(self,state.obj)
-      self.state = state
-      
-   def setOption(self, optionFactory, familyName, optionName):
-      rc = enum_submit('option', self.state.options, optionName)
+      rc = enum_submit('option', state.options, state.name)
       self.row(B('Option:'), rc)
 
 class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
@@ -648,9 +635,6 @@ class OptionIterablesExtractor(IterablesExtractor, OptionVisitorBase):
       IterablesExtractor.__init__(self)
       OptionVisitorBase.__init__(self, state.obj)
       
-   def setOption(self, optionFactory, familyName, optionName):
-      pass
-
 class MethodVisitorBase(object):
 
    def __init__(self, method=None):
@@ -678,10 +662,8 @@ class MethodLoader(Loader, MethodVisitorBase):
    def __init__(self, state):
       Loader.__init__(self)
       MethodVisitorBase.__init__(self, None)
-
-   def setMethod(self, methodFactory, methodName):
       if self.method == None: 
-         self.method = methodFactory()
+         self.method = state.pyType()
 
  
 class MethodRenderer(Renderer, MethodVisitorBase):
@@ -690,13 +672,7 @@ class MethodRenderer(Renderer, MethodVisitorBase):
       Renderer.__init__(self, state.origTable, met_colors)
       MethodVisitorBase.__init__(self, state.obj)
       self.state = state
-
-   def setMethod(self, methodFactory, methodName):
-      self.row(B('Pricing method:'), enum_submit('pricing_method', self.state.methods, methodName))
-
-   def printResultSeries(self, result_members):
-      pass
-      #printResultSeries(self.table, result_members, self.colors)
+      self.row(B('Pricing method:'), enum_submit('pricing_method', state.methods, state.name))
 
 class MethodHistoricalRenderer(HistoricalRenderer, MethodVisitorBase):
 
@@ -939,6 +915,13 @@ def printModelType(table, model_type):
 
 """
 
+def visitFields(m):
+   def inner(v):
+      for x in m.fields(): x.process(v)
+      return v
+   return inner
+
+
 def processModel(m):
    def inner(v):
       v.setModel(m.underlyingType(), m.name())
@@ -999,10 +982,24 @@ class StateBase(object):
       return postfunc(self.request[key]) if key in self.request else defaultValue
 
    @cached_property
+   def pyType(self):
+      return self.ksModule.underlyingType()
+
+   @cached_property
+   def name(self):
+      return self.ksModule.name()
+
+   @cached_property
+   def visitFields(self):
+      def inner(v):
+         for x in self.ksModule.fields(): x.process(v)
+         return v
+      return inner
+
+   @cached_property
    def iterationLabel(self):
       return self.tryGet('il', None)
-      #return self.request['il'] if 'il' in self.request else None
-
+      
    @cached_property
    def fixedIterationIdx(state):
       if state.oldIterationIdx == state.iterationIdx and state.iterationLabel <> None and state.iterationIdx <> 0:
@@ -1068,22 +1065,10 @@ class AssetState(StateBase):
    @cached_property
    def old_id(self):
       return self.tryGet('a', 'equity_Black_Scholes_type')
-      """
-      if 'a' in self.request:
-         return self.request['a']
-      else:
-         return 'equity_Black_Scholes_type'  # to be generalized
-      """
 
    @cached_property
    def id(self):
       return self.tryGet3('asset_type', lambda x: self.assets[int(x)].__name__, self.old_id)
-      """
-      if 'asset_type' in self.request:
-         return self.assets[int(self.request['asset_type'])].__name__
-      else:
-         return self.old_id
-      """
 
    @cached_property
    def idChanged(self):
@@ -1114,28 +1099,18 @@ class ModelState(StateBase):
    @cached_property
    def old_id(self):
       return self.tryGet('m', 'BS1D')
-      """
-      if 'm' in self.request:
-         return self.request['m']
-      else:
-         return 'BS1D'  # to be generalized
-      """
 
    @cached_property
    def id(self):
       if self.parent.asset.idChanged:
          return self.models[0].ID()
       else:
-         try:
-            return self.tryGet3('model', lambda x: self.models[int(x)].ID(), self.old_id)
-         except e:
-            raise self.request['model']
-         """
-         if 'model' in self.request:
-            return self.models[int(self.request['model'])].ID()
-         else:
-            return self.old_id
-         """
+         return self.tryGet3('model', lambda x: self.models[int(x)].ID(), self.old_id)
+
+   @cached_property
+   def ksModule(self): 
+      return myImport('kspremia.mod.' + self.id + '.model')
+
 
    @cached_property
    def idChanged(self):
@@ -1147,7 +1122,7 @@ class ModelState(StateBase):
 
    @cached_property
    def obj(self):
-      return self.visit(ModelLoader(self)).model
+      return self.visitFields(ModelLoader(self)).model      
 
    @cached_property
    def assetTable(self):
@@ -1155,7 +1130,7 @@ class ModelState(StateBase):
 
    @cached_property
    def paramTable(self):
-      return self.visit(ModelRenderer(self)).table
+      return self.visitFields(ModelRenderer(self)).table
 
    @cached_property
    def table(self):
@@ -1163,18 +1138,16 @@ class ModelState(StateBase):
 
    @cached_property
    def iterables(self):
-      return self.visit(ModelIterablesExtractor(self)).ctx
+      return self.visitFields(ModelIterablesExtractor(self)).ctx
 
    @cached_property
    def oldIterationIdx(self):
       return int(self.tryGet('im', '0'))
-      #return int(self.request['im'] if 'im' in self.request else '0')
-
+      
    @cached_property
    def srcIterationIdx(self):
       return int(self.tryGet('iterate_model', '0'))
-      #return int(self.request['iterate_model'] if 'iterate_model' in self.request else '0') 
-
+      
    @cached_property
    def iterationIdx(self):
       if self.idChanged or \
@@ -1197,12 +1170,6 @@ class FamilyState(StateBase):
    @cached_property
    def old_id(self):
       return self.tryGet('f', 'STD')
-      """
-      if 'f' in self.request:
-         return self.request['f']
-      else:
-         return 'STD'  # to be generalized
-      """
 
    @cached_property
    def id(self):
@@ -1210,12 +1177,6 @@ class FamilyState(StateBase):
          return self.families[0]
       else:
          return self.tryGet3('family', lambda x: self.families[int(x)], self.old_id)
-      """
-       'family' in self.request:
-         return self.families[int(self.request['family'])]
-      else:
-         return self.old_id
-      """
 
    @cached_property
    def idChanged(self):
@@ -1239,18 +1200,16 @@ class OptionState(StateBase):
       return opt_colors
 
    @cached_property
+   def ksModule(self):
+      return myImport('kspremia.opt.'+self.parent.family.id+'.'+self.id)    
+
+   @cached_property
    def options(self):
       return pricing_options(self.parent.model.id,self.parent.family.id)
 
    @cached_property
    def old_id(self):
       return self.tryGet('o', 'CallEuro')
-      """
-      if 'o' in self.request:
-         return self.request['o']
-      else:
-         return 'CallEuro'  # to be generalized
-      """
 
    @cached_property
    def id(self):
@@ -1269,7 +1228,7 @@ class OptionState(StateBase):
 
    @cached_property
    def obj(self):
-      return self.visit(OptionLoader(self)).option
+      return self.visitFields(OptionLoader(self)).option
 
    @cached_property
    def familyTable(self):
@@ -1277,7 +1236,7 @@ class OptionState(StateBase):
 
    @cached_property
    def paramTable(self):
-      return self.visit(OptionRenderer(self)).table
+      return self.visitFields(OptionRenderer(self)).table
 
    @cached_property
    def table(self):
@@ -1285,17 +1244,15 @@ class OptionState(StateBase):
 
    @cached_property
    def iterables(self):
-      return self.visit(OptionIterablesExtractor(self)).ctx
+      return self.visitFields(OptionIterablesExtractor(self)).ctx
 
    @cached_property
    def oldIterationIdx(self):
       return int(self.tryGet('io', '0'))
-      #return int(self.request['io'] if 'io' in self.request else '0')
 
    @cached_property
    def srcIterationIdx(self):
       return int(self.tryGet('iterate_option', '0'))
-      #return int(self.request['iterate_option'] if 'iterate_option' in self.request else '0') 
 
    @cached_property
    def iterationIdx(self):
@@ -1320,15 +1277,12 @@ class ResultMember(object):
    def request(self):
       return REQUEST
 
+   def tryGet(self, key, defaultValue):
+      return self.request[key] if key in self.request else defaultValue
+
    @cached_property
    def oldLabel(self):
       return self.tryGet('showGraphLabel_'+self.correctedName, self.friendlyName)
-      """
-      if 'showGraphLabel_'+self.correctedName in self.request:
-         return self.request['showGraphLabel_'+self.correctedName]
-      else: 
-         return self.friendlyName
-      """
 
    def render(self, table): 
          clrinc()
@@ -1366,12 +1320,6 @@ class MethodState(StateBase):
    @cached_property
    def old_id(self):
       return self.tryGet('meth', 'CF_Call')
-      """
-      if 'meth' in self.request:
-         return self.request['meth']
-      else:
-         return 'CF_Call'  # to be generalized
-      """
 
    @cached_property
    def id(self):
@@ -1379,12 +1327,6 @@ class MethodState(StateBase):
          return self.methods[0].__name__
       else:
          return self.tryGet3('pricing_method', lambda x: self.methods[int(x)].__name__, self.old_id)
-         """
-         if 'pricing_method' in self.request:
-            return self.methods[int(self.request['pricing_method'])].__name__
-         else:
-            return self.old_id
-         """
 
    @cached_property
    def idChanged(self):
@@ -1400,7 +1342,7 @@ class MethodState(StateBase):
 
    @cached_property
    def obj(self):
-      return self.visit(MethodLoader(self)).method
+      return self.visitFields(MethodLoader(self)).method
 
    @cached_property
    def origTable(self):
@@ -1418,7 +1360,7 @@ class MethodState(StateBase):
 
    @cached_property
    def paramTable(self):
-      table = self.visit(MethodRenderer(self)).table
+      table = self.visitFields(MethodRenderer(self)).table
       self.printResultTable(table)
       return table
 
@@ -1428,7 +1370,7 @@ class MethodState(StateBase):
 
    @cached_property
    def iterables(self):
-      return self.visit(MethodIterablesExtractor(self)).ctx
+      return self.visitFields(MethodIterablesExtractor(self)).ctx
 
    @cached_property
    def oldIterationIdx(self):
