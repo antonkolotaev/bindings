@@ -95,25 +95,29 @@ namespace python {
 		/// prints import clause in all models file
 		void ModelUsing(Formatter & out, Model const & m)
 		{	
-			out("ID", m.ID())("NAME", m.name) << "from .mod.%ID%.model import %NAME%";
+			if (!m.pricings.empty())
+				out("ID", m.ID())("NAME", m.name) << "from .mod.%ID%.model import %NAME%";
 		}
 
 		/// mentions model name in all models file
 		void ModelType(Formatter & out, Model const & m)
 		{
-			out("NAME", m.name) << "%NAME%,";
+			if (!m.pricings.empty())
+				out("NAME", m.name) << "%NAME%,";
 		}
 
 		/// prints import clause in all pricings file
 		void PricingUsing(Formatter & out, Model const & m)
 		{
-			out("ID", m.ID()) << "from .mod.%ID% import %ID%";
+			if (!m.pricings.empty())
+				out("ID", m.ID()) << "from .mod.%ID% import %ID%";
 		}
 
 		/// mentions pricings for the model in all pricings file
 		void PricingType(Formatter & out, Model const & m)
 		{
-			out("ID", m.ID()) << "%ID%,";
+			if (!m.pricings.empty())
+				out("ID", m.ID()) << "%ID%,";
 		}
 	}
 

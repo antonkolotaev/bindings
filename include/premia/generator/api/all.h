@@ -20,7 +20,8 @@ namespace api    {
 			:	models(*this)
 			,   families(*this)
 			,	pricings(*this)
-		{}
+		{
+		}
 	};
 }
 

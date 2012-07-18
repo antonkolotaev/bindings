@@ -992,9 +992,16 @@ class StateBase(object):
    def request(self):
       return saved_REQUEST
 
+   def tryGet(self, key, defaultValue):
+      return self.request[key] if key in self.request else defaultValue
+
+   def tryGet3(self, key, postfunc, defaultValue):
+      return postfunc(self.request[key]) if key in self.request else defaultValue
+
    @cached_property
    def iterationLabel(self):
-      return self.request['il'] if 'il' in self.request else None
+      return self.tryGet('il', None)
+      #return self.request['il'] if 'il' in self.request else None
 
    @cached_property
    def fixedIterationIdx(state):
@@ -1020,7 +1027,8 @@ class StateBase(object):
 
    @cached_property
    def iterationStepNumber(self):
-      return int(self.request['iteration_steps']) if 'iteration_steps' in self.request else 10
+      return int(self.tryGet('iteration_steps', '10'))
+      #return int(self.request['iteration_steps']) if 'iteration_steps' in self.request else 10
 
    @cached_property
    def iteration(self):
@@ -1059,17 +1067,23 @@ class AssetState(StateBase):
 
    @cached_property
    def old_id(self):
+      return self.tryGet('a', 'equity_Black_Scholes_type')
+      """
       if 'a' in self.request:
          return self.request['a']
       else:
          return 'equity_Black_Scholes_type'  # to be generalized
+      """
 
    @cached_property
    def id(self):
+      return self.tryGet3('asset_type', lambda x: self.assets[int(x)].__name__, self.old_id)
+      """
       if 'asset_type' in self.request:
          return self.assets[int(self.request['asset_type'])].__name__
       else:
          return self.old_id
+      """
 
    @cached_property
    def idChanged(self):
@@ -1099,20 +1113,29 @@ class ModelState(StateBase):
 
    @cached_property
    def old_id(self):
+      return self.tryGet('m', 'BS1D')
+      """
       if 'm' in self.request:
          return self.request['m']
       else:
          return 'BS1D'  # to be generalized
+      """
 
    @cached_property
    def id(self):
       if self.parent.asset.idChanged:
          return self.models[0].ID()
       else:
+         try:
+            return self.tryGet3('model', lambda x: self.models[int(x)].ID(), self.old_id)
+         except e:
+            raise self.request['model']
+         """
          if 'model' in self.request:
             return self.models[int(self.request['model'])].ID()
          else:
             return self.old_id
+         """
 
    @cached_property
    def idChanged(self):
@@ -1144,11 +1167,13 @@ class ModelState(StateBase):
 
    @cached_property
    def oldIterationIdx(self):
-      return int(self.request['im'] if 'im' in self.request else '0')
+      return int(self.tryGet('im', '0'))
+      #return int(self.request['im'] if 'im' in self.request else '0')
 
    @cached_property
    def srcIterationIdx(self):
-      return int(self.request['iterate_model'] if 'iterate_model' in self.request else '0') 
+      return int(self.tryGet('iterate_model', '0'))
+      #return int(self.request['iterate_model'] if 'iterate_model' in self.request else '0') 
 
    @cached_property
    def iterationIdx(self):
@@ -1171,19 +1196,26 @@ class FamilyState(StateBase):
 
    @cached_property
    def old_id(self):
+      return self.tryGet('f', 'STD')
+      """
       if 'f' in self.request:
          return self.request['f']
       else:
          return 'STD'  # to be generalized
+      """
 
    @cached_property
    def id(self):
       if self.parent.model.idChanged:
          return self.families[0]
-      elif 'family' in self.request:
+      else:
+         return self.tryGet3('family', lambda x: self.families[int(x)], self.old_id)
+      """
+       'family' in self.request:
          return self.families[int(self.request['family'])]
       else:
          return self.old_id
+      """
 
    @cached_property
    def idChanged(self):
@@ -1212,20 +1244,20 @@ class OptionState(StateBase):
 
    @cached_property
    def old_id(self):
+      return self.tryGet('o', 'CallEuro')
+      """
       if 'o' in self.request:
          return self.request['o']
       else:
          return 'CallEuro'  # to be generalized
+      """
 
    @cached_property
    def id(self):
-      if self.parent.family.idChanged:
+      if self.parent.family.idChanged or self.parent.model.idChanged:
          return self.options[0].__name__
       else:
-         if 'option' in self.request:
-            return self.options[int(self.request['option'])].__name__
-         else:
-            return self.old_id
+         return self.tryGet3('option', lambda x: self.options[int(x)].__name__, self.old_id)
 
    @cached_property
    def idChanged(self):
@@ -1257,11 +1289,13 @@ class OptionState(StateBase):
 
    @cached_property
    def oldIterationIdx(self):
-      return int(self.request['io'] if 'io' in self.request else '0')
+      return int(self.tryGet('io', '0'))
+      #return int(self.request['io'] if 'io' in self.request else '0')
 
    @cached_property
    def srcIterationIdx(self):
-      return int(self.request['iterate_option'] if 'iterate_option' in self.request else '0') 
+      return int(self.tryGet('iterate_option', '0'))
+      #return int(self.request['iterate_option'] if 'iterate_option' in self.request else '0') 
 
    @cached_property
    def iterationIdx(self):
@@ -1288,10 +1322,13 @@ class ResultMember(object):
 
    @cached_property
    def oldLabel(self):
+      return self.tryGet('showGraphLabel_'+self.correctedName, self.friendlyName)
+      """
       if 'showGraphLabel_'+self.correctedName in self.request:
          return self.request['showGraphLabel_'+self.correctedName]
       else: 
          return self.friendlyName
+      """
 
    def render(self, table): 
          clrinc()
@@ -1328,20 +1365,26 @@ class MethodState(StateBase):
 
    @cached_property
    def old_id(self):
+      return self.tryGet('meth', 'CF_Call')
+      """
       if 'meth' in self.request:
          return self.request['meth']
       else:
          return 'CF_Call'  # to be generalized
+      """
 
    @cached_property
    def id(self):
       if self.parent.option.idChanged or self.parent.model.idChanged:
          return self.methods[0].__name__
       else:
+         return self.tryGet3('pricing_method', lambda x: self.methods[int(x)].__name__, self.old_id)
+         """
          if 'pricing_method' in self.request:
             return self.methods[int(self.request['pricing_method'])].__name__
          else:
             return self.old_id
+         """
 
    @cached_property
    def idChanged(self):
@@ -1520,9 +1563,29 @@ class State(object):
                      
          process.join(timeout=computation_timeout)
          return res_t
-         
+
       except Exception, exc:
          add_error(exc)
+
+   @cached_property
+   def scalarResultTable(self):
+      def printScalarResult(table_method, res):
+          idx = 1
+          table_method <= TR(TD(B("Result:"),align='right') + TD(B("")))
+          for k,v in res:
+              idx = idx + 1
+              if type(v) == list:
+                  table_method <= TR(TD(k, align='right',rowspan=len(v)) + TD(v[0]),bgcolor=clr(res_colors,idx))
+                  for i in range(1, len(v)):
+                      table_method <= TR(TD(v[i]),bgcolor=clr(res_colors,idx))
+              else:
+                  table_method <= TR(TD(k,align='right') + TD(v),bgcolor=clr(res_colors,idx))
+
+      if self.runComputation and self.iteration == None:
+         printScalarResult(self.method.table, self.result)
+   
+      return self.method.table
+
    
 state = State()
 model = state.model.obj
@@ -1538,7 +1601,7 @@ visitModel = lookupModel(_m)
 #state.model.addIterationTable()
 #model = modelIterablesExtractor.model
 
-print "m=",_m, model
+#print "m=",_m, model
 
 table_option = TABLE(Class="content")
 table = table_option
@@ -1558,6 +1621,8 @@ def printFamilyType(table, family_type):
    else:
       mc = family_type
    table <= rowinc(opt_colors, B('Family:'), mc)
+
+opt = state.option.obj
 
 if 'option' in REQUEST:
    new_opt = pricing_options(_m,_f)[int(_option)].__name__
@@ -1590,7 +1655,7 @@ option_iterables = state.option.iterables
 #state.option.addIterationTable()
 #opt = optionIterablesExtractor.option
 
-print "_f=",_f, "_o=",_o, opt
+#print "_f=",_f, "_o=",_o, opt
 
 table_method = TABLE(Class="content")
 table = table_method
@@ -1627,7 +1692,7 @@ method_iterables = state.method.iterables
 #state.method.addIterationTable()
 #method = methodIterablesExtractor.method
 
-print "_meth=",_meth, method
+#print "_meth=",_meth, method
 
 def n_elem(lst):
     acc = 0
@@ -1649,77 +1714,6 @@ if 'Compute' not in REQUEST:
  
 res = state.result
 res_t = state.tableResult 
-"""
-if run_computation and len(REQUEST) > n_elem(['m','f','o','meth',"Model_Size"]):
-    try:
-        def F(opt,model,q):
-            begin = time()
-            res = (method(opt,model))
-            end = time()
-            res.append(("Time", end - begin))
-            q.put(res)
-
-        def G(opt,model,q, iteration):
-            initial = iteration.getter()            
-            for i in range(iteration.stepsNo):
-                begin = time()
-                if iteration.stepsNo > 1:
-                    x = initial + 1. * i / (iteration.stepsNo - 1) * (iteration.iterateTo - initial)
-                else:
-                    x = initial
-                    
-                if type(initial) == type(1):
-                    x = int(round(x))
-                if type(initial) == type(1L):
-                    x = long(round(x))
-                
-                iteration.setter(x)
-                     
-                res = (method(opt,model))
-                end = time()
-                res.insert(0, (iteration.name, x))
-                res.append(("Time", end - begin))
-                q.put(res)
-            
-        res = []
-        queue = Queue()
-        if state.iteration == None:
-            process = Process(target = F, args = (opt,model,queue))
-        else:
-            res_t = []
-            process = Process(target = G, args = (opt,model,queue, state.iteration))
-        process.start()
-        try:
-            if state.iteration == None:
-                res.extend(queue.get(timeout=computation_timeout))
-            else:
-                begin = time()
-                iterations = state.iteration.stepsNo
-                for i in range(iterations):
-                    q = queue.get(timeout=begin + computation_timeout - time())
-                    res.extend(q)
-                    if res_t == []:
-                        for k,v in q:
-                            res_t.append((k,[v]))
-                    else:
-                        idx = 0
-                        for k,v in q:
-                            assert res_t[idx][0] == k
-                            res_t[idx][1].append(v)
-                            idx = idx + 1
-                    
-        except Empty, exc:
-            if res == []: res = None
-            if res_t == []: res_t = None
-            process.terminate()
-            raise Exception("Method has worked more than " + str(computation_timeout) + "s. Please try another parameter combination")
-            
-        process.join(timeout=computation_timeout)
-    except Exception, exc:
-        #print "exception caught:"
-        #print traceback.format_exc()
-        add_error(exc)
-"""
 #Include(r'premia/run_computation.py')
 #Include(r'premia/print_table_result.py')
 def script(s):
@@ -1837,8 +1831,11 @@ def printVectorResult(table_result_i, res_t):
 
 Include(r'premia/print_scalar_result.py')        
 
-if res_t == None and res <> None:
-   printScalarResult(table_method, res)
+if not state.iteration:
+   state.scalarResultTable
+#if res_t == None and res <> None:
+#  #printScalarResult(table_method, res)
+
 
 
 if res_t <> None:

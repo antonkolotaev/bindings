@@ -6,7 +6,8 @@ namespace python {
 
 	inline void printAssetModel(Formatter & out, Model const * m)
 	{
-		out("MODEL_NAME", m->name) << "%MODEL_NAME%,";
+		if (!m->pricings.empty())
+			out("MODEL_NAME", m->name) << "%MODEL_NAME%,";
 	}
 
 	inline void printAsset (Formatter & out, Asset const & a)

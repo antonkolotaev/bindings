@@ -56,6 +56,8 @@ namespace api    {
 		return pricing.source - pricing.asset.source->pricings;
 	}
 
+    struct empty_method_exception {};
+
 	/// \brief A wrapper over a Premia pricing method
 	struct PricingMethod : boost::noncopyable
 	{
@@ -92,6 +94,8 @@ namespace api    {
                 (*(*source)->Init)(*source, *pricing.family->options.front().source);
 
                 std::cout << "Pricing method " << name << " has no compatible options" << std::endl;
+
+                throw empty_method_exception();
             }
 
             // getting variables
@@ -145,6 +149,8 @@ namespace api    {
 		return m.source - (*m.pricing.source)->Methods;
 	}
 
+    struct empty_pricing_exception {};
+
 	/// \brief holds all the Premia pricings 
 	struct Pricings
 	{
@@ -160,8 +166,12 @@ namespace api    {
 				{
 					if (pricings_processed.find(*pricing) == pricings_processed.end())
 					{
-						Pricing * p = new Pricing(ctx, pricing, ctx.assets.lookup(asset));
-						pricings.push_back(p);
+                        try {
+    						Pricing * p = new Pricing(ctx, pricing, ctx.assets.lookup(asset));
+    						pricings.push_back(p);
+                        } catch (empty_pricing_exception) {
+                            std::cout << "Pricing " << (*pricing)->ID << " is empty" << std::endl;
+                        }
 						pricings_processed.insert(*pricing);
 					}
 				}
@@ -185,21 +195,26 @@ namespace api    {
 			// corresponding family
 			Model * model = ctx.models.lookup(model_name);
 
-			// register the pricing in its model
-			model->pricings.push_back(this);
-
 			this->family = family;
 			this->model = model;
 
 			for (::PricingMethod **method = (*source)->Methods; *method; ++method)
 			{
-				PricingMethod* pm = new PricingMethod(ctx, method, *this);
-				methods.push_back(pm);
-				BOOST_FOREACH(Option const * opt, pm->compatible_options)
-				{
-					methods_for_options[opt].push_back(pm);
-				}
+                try {
+    				PricingMethod* pm = new PricingMethod(ctx, method, *this);
+    				methods.push_back(pm);
+    				BOOST_FOREACH(Option const * opt, pm->compatible_options)
+    				{
+    					methods_for_options[opt].push_back(pm);
+    				}
+                } catch (empty_method_exception) {}
 			}
+
+            if (methods_for_options.empty())
+                throw empty_pricing_exception();
+
+            // register the pricing in its model
+            model->pricings.push_back(this);
 		}
 
 }

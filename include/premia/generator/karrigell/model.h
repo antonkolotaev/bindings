@@ -9,6 +9,12 @@ namespace karrigell {
 
 	inline void generateModel(Ctx & ctx, Model const & m)
 	{
+		if (m.pricings.empty())
+		{
+			std::cout << "Model " << m.ID() << " has no corresponding pricings." << std::endl;
+			return;
+		}
+
 		ctx.create(ctx.dir(m));
 
 		Formatter f(ctx.filename(m));
