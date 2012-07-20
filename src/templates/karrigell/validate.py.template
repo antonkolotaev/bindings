@@ -333,16 +333,24 @@ def processIteration(state):
 
 class VisitorBase(object):
 
-   def __init__(self):
+   def __init__(self, state = None):
       self.history_mode = history_mode
+      self.state = state
 
    def addError(self, msg): add_error(msg)
 
+   @property
+   def entity(self):
+      return self.state.rawObj   
+      
+   @property
+   def entityLabel(self):
+      return self.state.entityLabel
 
 class Loader(VisitorBase):
 
-   def __init__(self):
-      VisitorBase.__init__(self)
+   def __init__(self, state):
+      VisitorBase.__init__(self, state)
       self.REQUEST = REQUEST
       self.reload = True
       
@@ -357,7 +365,7 @@ class Loader(VisitorBase):
       
    def process(self, field):  
       try:
-         if not self.history_mode and self.reload:
+         if self.reload:
             field.load(self)
       except Exception, ex:
          v.addError('Error in '+ field.propertyName +':' + str(ex))
@@ -398,20 +406,17 @@ class EntityTable(TABLE):
 
 class Renderer(VisitorBase):
 
-   def __init__(self, table, colors):
-      VisitorBase.__init__(self)
-      self.table = table
-      self.colors = colors
+   def __init__(self, table=None, colors=None, state=None):
+      VisitorBase.__init__(self,state)
+      self.table = table if table <> None else state.origTable
+      self.colors = colors if colors <> None else state.colors
       
    def clrinc(self): clrinc()
    @property
    def currentColor(self): return clr(self.colors,clridx)
    
    def process(self, field):  
-      if not self.history_mode:
-         field.render(self)
-      else:
-         field.renderHistory(self)
+      field.render(self)
 
    def enumVisitor(self): return EnumRenderer
 
@@ -439,11 +444,14 @@ class HistoricalRenderer(Renderer):
       Renderer.__init__(self, table, colors)
         
    def enumVisitor(self): return EnumHistoricalRenderer
+
+   def process(self, field):  
+      field.renderHistory(self)
  
 class IterablesExtractor(VisitorBase):
 
-   def __init__(self):
-      VisitorBase.__init__(self)
+   def __init__(self, state):
+      VisitorBase.__init__(self, state)
       self.ctx = Iterables(self)
       
    def addError(self, msg): add_error(msg)
@@ -455,7 +463,7 @@ class IterablesExtractor(VisitorBase):
 class EnumLoader(Loader):
 
    def __init__(self, source, member):
-      super(EnumLoader,self).__init__()
+      super(EnumLoader,self).__init__(source.state)
       self.member = member
       
    def setLabels(self, label, vlabel, labels, has_params):
@@ -463,10 +471,7 @@ class EnumLoader(Loader):
       if vlabel not in self.REQUEST:
          self.REQUEST[vlabel] = '0'
       
-      if self.history_mode:
-         e = labels.index(self.member._labels[self.member._value.key()])
-      else:
-         e = int(self.REQUEST[vlabel])
+      e = int(self.REQUEST[vlabel])
          
       return e
    
@@ -481,7 +486,7 @@ class EnumLoader(Loader):
 class EnumRenderer(Renderer):
 
    def __init__(self, source, member):
-      super(EnumRenderer, self).__init__(source.table, source.colors)
+      super(EnumRenderer, self).__init__(state = source.state)
       self.member = member
       
    def setLabels(self, label, vlabel, labels, has_params):
@@ -530,7 +535,7 @@ class EnumHistoricalRenderer(HistoricalRenderer):
 class EnumIterablesExtractor(IterablesExtractor):
 
    def __init__(self, source, member):
-      super(EnumIterablesExtractor, self).__init__()
+      super(EnumIterablesExtractor, self).__init__(source.state)
       self.ctx = source.ctx
       self.member = member
       
@@ -558,24 +563,7 @@ class ModelVisitorBase(object):
    def entityLabel(self):
       return 'model'   
 
-class ModelLoader(Loader, ModelVisitorBase):
-
-   def __init__(self, state):
-      Loader.__init__(self)
-      ModelVisitorBase.__init__(self, None)
-      if self.model == None: 
-         self.model = state.pyType()
-
-class ModelRenderer(Renderer, ModelVisitorBase):
-
-   def __init__(self, state):
-      Renderer.__init__(self, state.assetTable, mod_colors)
-      self.state = state
-      ModelVisitorBase.__init__(self, state.obj)
-      mc = enum_submit('model', self.state.models, self.state.name)
-      self.row(B('Model:'), mc)
-   
-class ModelHistoricalRenderer(HistoricalRenderer, ModelVisitorBase):
+class ModelHistoricalRenderer(ModelVisitorBase, HistoricalRenderer):
 
    def __init__(self, table, model=None):
       HistoricalRenderer.__init__(self, table, mod_colors)
@@ -584,12 +572,6 @@ class ModelHistoricalRenderer(HistoricalRenderer, ModelVisitorBase):
    def setModel(self, modelFactory, modelName):
       self.row(B('Model:'), modelName)                   
 
-class ModelIterablesExtractor(IterablesExtractor, ModelVisitorBase):
-
-   def __init__(self, state):
-      IterablesExtractor.__init__(self)
-      ModelVisitorBase.__init__(self, state.obj)
-   
 class OptionVisitorBase(object):
 
    def __init__(self, option=None):
@@ -603,23 +585,7 @@ class OptionVisitorBase(object):
    def entityLabel(self):
       return 'option'   
 
-class OptionLoader(Loader, OptionVisitorBase):
-
-   def __init__(self, state):
-      Loader.__init__(self)
-      OptionVisitorBase.__init__(self, None)
-      if self.option == None:
-         self.option = state.pyType()
-      
-class OptionRenderer(Renderer, OptionVisitorBase):
-
-   def __init__(self, state):
-      Renderer.__init__(self, state.parent.family.table, opt_colors)
-      OptionVisitorBase.__init__(self,state.obj)
-      rc = enum_submit('option', state.options, state.name)
-      self.row(B('Option:'), rc)
-
-class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
+class OptionHistoricalRenderer(OptionVisitorBase, HistoricalRenderer):
 
    def __init__(self, table, option=None):
       HistoricalRenderer.__init__(self, table, opt_colors)
@@ -629,12 +595,6 @@ class OptionHistoricalRenderer(HistoricalRenderer, OptionVisitorBase):
       self.row(B('Family:'), familyName)
       self.row(B('Option:'), optionName)
             
-class OptionIterablesExtractor(IterablesExtractor, OptionVisitorBase):
-
-   def __init__(self, state):
-      IterablesExtractor.__init__(self)
-      OptionVisitorBase.__init__(self, state.obj)
-      
 class MethodVisitorBase(object):
 
    def __init__(self, method=None):
@@ -655,26 +615,7 @@ class MethodVisitorBase(object):
    def printResultSeries(self, result_members):
       pass
 
-
-      
-class MethodLoader(Loader, MethodVisitorBase):
-
-   def __init__(self, state):
-      Loader.__init__(self)
-      MethodVisitorBase.__init__(self, None)
-      if self.method == None: 
-         self.method = state.pyType()
-
- 
-class MethodRenderer(Renderer, MethodVisitorBase):
-
-   def __init__(self, state):
-      Renderer.__init__(self, state.origTable, met_colors)
-      MethodVisitorBase.__init__(self, state.obj)
-      self.state = state
-      self.row(B('Pricing method:'), enum_submit('pricing_method', state.methods, state.name))
-
-class MethodHistoricalRenderer(HistoricalRenderer, MethodVisitorBase):
+class MethodHistoricalRenderer(MethodVisitorBase, HistoricalRenderer):
 
    def __init__(self, table, method=None):
       HistoricalRenderer.__init__(self, table, met_colors)
@@ -685,16 +626,6 @@ class MethodHistoricalRenderer(HistoricalRenderer, MethodVisitorBase):
 
    def printResultSeries(self, result_members):
       printResultSeries(self.table, result_members, self.colors)
-
-
-class MethodIterablesExtractor(IterablesExtractor, MethodVisitorBase):
-
-   def __init__(self, state):
-      IterablesExtractor.__init__(self)
-      MethodVisitorBase.__init__(self, state.obj)
-
-
-#iterate_label = '_'
 
 history_mode = False
 
@@ -986,6 +917,14 @@ class StateBase(object):
       return self.ksModule.underlyingType()
 
    @cached_property
+   def rawObj(self):
+      return self.pyType()
+
+   @cached_property
+   def obj(self):
+      return self.visitFields(Loader(self)).entity
+
+   @cached_property
    def name(self):
       return self.ksModule.name()
 
@@ -995,6 +934,38 @@ class StateBase(object):
          for x in self.ksModule.fields(): x.process(v)
          return v
       return inner
+
+   def clrinc(self): clrinc()
+   @property
+   def currentColor(self): return clr(self.colors,clridx)
+   
+   def row(self, c1, c2, c3=''):
+      table = self.origTable
+      self.clrinc()   
+      table      <= (TR(
+                     TD(c1,align='right') + 
+                     TD(c2)+
+                     TD(c3),
+                     bgcolor=self.currentColor
+                     )) 
+
+   def spannedRows(self, c1, c2s, c3=''):
+      self.clrinc()
+      table = self.table
+      table      <= TR(TD(c1, align='right',rowspan=len(c2s)) + 
+                       TD(c2s[0]) + 
+                       TD(c3, rowspan=len(c2s)),
+                       bgcolor=self.currentColor)
+               
+      table      <= Sum([TR(TD(c2s[i]), bgcolor=self.currentColor) for i in range(1,len(c2s))])
+
+   def spannedCol(self, c):
+      self.clrinc()
+      self.origTable <= TR(TD(c, colspan='3'),bgcolor=self.currentColor)
+
+   @cached_property
+   def iterables(self):
+      return self.visitFields(IterablesExtractor(self)).ctx
 
    @cached_property
    def iterationLabel(self):
@@ -1025,8 +996,7 @@ class StateBase(object):
    @cached_property
    def iterationStepNumber(self):
       return int(self.tryGet('iteration_steps', '10'))
-      #return int(self.request['iteration_steps']) if 'iteration_steps' in self.request else 10
-
+      
    @cached_property
    def iteration(self):
       if self.fixedIterationIdx == 0:
@@ -1121,24 +1091,17 @@ class ModelState(StateBase):
       return lookupModel(self.id)
 
    @cached_property
-   def obj(self):
-      return self.visitFields(ModelLoader(self)).model      
-
-   @cached_property
-   def assetTable(self):
+   def origTable(self):
       return self.parent.asset.table
 
    @cached_property
    def paramTable(self):
-      return self.visitFields(ModelRenderer(self)).table
+      self.row(B('Model:'), enum_submit('model', self.models, self.name))
+      return self.visitFields(Renderer(state = self)).table
 
    @cached_property
    def table(self):
       return self.addIterationTable
-
-   @cached_property
-   def iterables(self):
-      return self.visitFields(ModelIterablesExtractor(self)).ctx
 
    @cached_property
    def oldIterationIdx(self):
@@ -1227,24 +1190,17 @@ class OptionState(StateBase):
       return lookupOption(self.parent.family.id, self.id)
 
    @cached_property
-   def obj(self):
-      return self.visitFields(OptionLoader(self)).option
-
-   @cached_property
-   def familyTable(self):
+   def origTable(self):
       return self.parent.family.table
 
    @cached_property
    def paramTable(self):
-      return self.visitFields(OptionRenderer(self)).table
+      self.row(B('Option:'), enum_submit('option', self.options, self.name))
+      return self.visitFields(Renderer(state = self)).table
 
    @cached_property
    def table(self):
       return self.addIterationTable
-
-   @cached_property
-   def iterables(self):
-      return self.visitFields(OptionIterablesExtractor(self)).ctx
 
    @cached_property
    def oldIterationIdx(self):
@@ -1341,18 +1297,13 @@ class MethodState(StateBase):
       return processMethod(self.ksModule)
 
    @cached_property
-   def obj(self):
-      return self.visitFields(MethodLoader(self)).method
-
-   @cached_property
    def origTable(self):
       return TABLE(Class="content")
 
    def printResultTable(self, table):
       table.colors = self.colors
       if state.iteration <> None: 
-         clrinc()
-         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(self.colors,clridx))
+         self.spannedCol('Show results in a graph')
          for (vlabel, friendly) in self.ksModule.resultFields():
             ResultMember(vlabel, friendly).render(table)
          ResultMember('Time', 'Computation Time').render(table)
@@ -1360,17 +1311,14 @@ class MethodState(StateBase):
 
    @cached_property
    def paramTable(self):
-      table = self.visitFields(MethodRenderer(self)).table
+      self.row(B('Pricing method:'), enum_submit('pricing_method', self.methods, self.name))
+      table = self.visitFields(Renderer(state = self)).table
       self.printResultTable(table)
       return table
 
    @cached_property
    def table(self):
       return self.addIterationTable
-
-   @cached_property
-   def iterables(self):
-      return self.visitFields(MethodIterablesExtractor(self)).ctx
 
    @cached_property
    def oldIterationIdx(self):
