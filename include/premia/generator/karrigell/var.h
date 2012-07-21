@@ -13,14 +13,8 @@ namespace karrigell {
 
 	namespace print 
 	{
-	    inline void TableEx(Formatter & out, NamedVar const & vr);
         inline void FieldEx(Formatter & out, NamedVar const & vr);
 	    
-	    inline void enumParams(Formatter &out, NamedVar const &vr)
-	    {
-	        TableEx(out("OBJ", "pmem.get_%LABEL%()")("PREFIX", "self.fullName+'_get_%LABEL%_'"), vr);
-	    }
-
         inline void enumFields(Formatter &out, NamedVar const &vr)
         {
             FieldEx(out("OBJ", "pmem.get_%LABEL%()")("PREFIX", "self.fullName+'_get_%LABEL%_'"), vr);
@@ -53,26 +47,7 @@ namespace karrigell {
                 ++idx;
             }
         }
-	    
-	    inline void enumChoices(Formatter &out, api::Enum const &e)
-	    {
-            bool empty = true;
-	        int idx = 0;
-	        BOOST_FOREACH(api::Enum::Members::const_reference em, e.members)
-	        {
-                if (!em.second.params.empty()) {
-    	            out("IDX",idx)("LABEL", em.second.label) 
-    	                << (seq, 
-    	                "if e == %IDX%:", +(seq, 
-    	                    foreach_x(em.second.params, enumParams)));
-                    empty = false;
-                }
-	            ++idx;
-	        }
 
-            if (empty)
-                out << "pass";
-	    } 
 		struct include_enums : var_visitor<include_enums>
 		{
 			include_enums(Formatter & out) : out(out){}
@@ -159,71 +134,6 @@ namespace karrigell {
 		template <class T> const char * converter() { return "int"; }
 		template <> const char * converter<double>(){ return "float"; }
 		template <> const char * converter<long>  (){ return "long"; }
-
-		inline void TableEx(Formatter & out, NamedVar const & vr);
-
-		struct tbl_val_printer : var_visitor<tbl_val_printer>
-		{
-			tbl_val_printer(Formatter & out, VAR const *src, bool iterable) : out(out), src(src), iterable(iterable) {}
-			
-			template <class Scalar>
-				void operator () (Numeric<Scalar> const & i) 
-			{
-				out("CONSTR",tostr(i.constraint))
-				   ("SYMB", symbol<Scalar>())
-				   ("CONV", converter<Scalar>())
-				   ("ITERABLE", iterable ? "True" : "False")	
-				   << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%).process(v)"
-;
-			}
-
-			void operator () (std::string const & i)  
-			{
-			   out << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '', '', False, str).process(v)";
-			}
-
-			void operator () (std::vector<double> const & i) 
-			{
-			   if (src && src->Vtype==PNLVECTCOMPACT)
-			      out 
-			      << "VectorCompact('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%').process(v)";
-			   else
-			      out 
-			      << "Vector('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%').process(v)";
-			}
-			
-			void operator() (EnumValue const & e) 
-			{
-			    out("ENUM_TYPE", e.type->label) 
-				   << "%ENUM_TYPE%('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%').process(v)";
-			}
-		private:
-			Formatter & out;
-         VAR const * src;
-         bool iterable;
-		};
-		
-		inline void TableVal(Formatter & out, NamedVar const & vr)
-		{
-		    if (vr.has_setter) std::cout << vr.name << std::endl;
-		    std::string submit = vr.has_setter ? ", onchange='submit();'": "";
-		    std::string onchange = vr.has_setter ? "'submit();'": "''";
-			tbl_val_printer(out("SUBMIT", submit)("ONCHANGE",onchange), vr.src, vr.iterable).apply(vr.value);
-		}
-
-		inline void TableEx(Formatter & out, NamedVar const & vr)
-		{
-		    std::string star;
-			out("VAR_NAME", vr.name)
-			   ("VAR_ID", symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str()) + "_" + vr.name)
-               ("FRIENDLY_NAME", vr.src->Vname)
-			   << (seq, call(boost::bind(TableVal, _1, vr)));
-		}
-
-		inline void Table(Formatter & out, NamedVar const & vr)
-		{
-		   TableEx(out("PREFIX", std::string("'")+symbol_utils::replaceNonAlnumCharacters(out.lookupVar("OBJ").c_str())+"'"), vr);
-		}
 
 		struct field_printer : var_visitor<field_printer>
 		{
