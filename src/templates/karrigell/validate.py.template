@@ -459,96 +459,79 @@ class IterablesExtractor(VisitorBase):
    def process(self, field):  field.getIterables(self)
 
    def enumVisitor(self): return EnumIterablesExtractor   
-         
-class EnumLoader(Loader):
 
-   def __init__(self, source, member):
-      super(EnumLoader,self).__init__(source.state)
+class EnumVisitorBase(object):
+
+   def __init__(self, source, member, enum):
       self.member = member
-      
-   def setLabels(self, label, vlabel, labels, has_params):
-   
-      if vlabel not in self.REQUEST:
-         self.REQUEST[vlabel] = '0'
-      
-      e = int(self.REQUEST[vlabel])
-         
-      return e
-   
-   def setChoice(self, setter):
-   
-      setter(self.member)
+      self.enum = enum
+      self.source = source
+
+   def processX(self):
+      res = self.header
+      try:
+         for f in self.enum.getFields(self.value): f.process(self)
+      except Exception, ex:
+         self.source.addError('Error in '+self.enum.fullName+':' + str(ex))
+
+   @cached_property      
+   def value(self):   
+      return self.enum.labels.index(self.member._labels[self.member._value.key()])
+
+   @cached_property
+   def header(self):
+      return None
    
    @property
    def entity(self):
       return self.member._value
-
-class EnumRenderer(Renderer):
-
-   def __init__(self, source, member):
-      super(EnumRenderer, self).__init__(state = source.state)
-      self.member = member
-      
-   def setLabels(self, label, vlabel, labels, has_params):
-   
-      e = labels.index(self.member._labels[self.member._value.key()])
          
-      if has_params:
-         L = SELECT(name = vlabel, onchange='submit();').from_list(labels)
+class EnumLoader(EnumVisitorBase, Loader):
+
+   def __init__(self, source, member, enum):
+      EnumVisitorBase.__init__(self, source, member, enum)
+      Loader.__init__(self, source.state)
+
+      e = int(self.REQUEST[self.enum.fullName] if self.enum.fullName in self.REQUEST else '0')
+      self.enum.initEnum(self.member, e)
+
+
+class EnumRenderer(EnumVisitorBase, Renderer):
+
+   def __init__(self, source, member, enum):
+      EnumVisitorBase.__init__(self, source, member, enum)
+      Renderer.__init__(self, state = source.state)
+
+   @cached_property
+   def header(self):
+      if self.enum.should_be_reloaded:
+         L = SELECT(name = self.enum.fullName, onchange='submit();').from_list(self.enum.labels)
       else:
-         L = SELECT(name = vlabel).from_list(labels)
+         L = SELECT(name = self.enum.fullName).from_list(self.enum.labels)
          
-      L.select(value=e)
+      L.select(value=self.value)
       
-      self.row(label, L)
-      
-      return e
-   
-   def setChoice(self, setter):   
-      pass
-   
-   @property
-   def entity(self):
-      return self.member._value
+      self.row(self.enum.friendlyName, L)
+      return None
 
-class EnumHistoricalRenderer(HistoricalRenderer):
+class EnumHistoricalRenderer(EnumVisitorBase, HistoricalRenderer):
 
-   def __init__(self, source, member):
+   def __init__(self, source, member, enum):
+      EnumVisitorBase.__init__(self, source, member, enum)
       HistoricalRenderer.__init__(self, source.table, source.colors)
-      self.member = member
-      
-   def setLabels(self, label, vlabel, labels, has_params):
-   
-      e = labels.index(self.member._labels[self.member._value.key()])
-         
-      self.row(label, labels[e])
-      
-      return e
-   
-   def setChoice(self, setter):   
-      pass
-   
-   @property
-   def entity(self):
-      return self.member._value
-   
-class EnumIterablesExtractor(IterablesExtractor):
 
-   def __init__(self, source, member):
-      super(EnumIterablesExtractor, self).__init__(source.state)
-      self.ctx = source.ctx
-      self.member = member
-      
-   def setLabels(self, label, vlabel, labels, has_params):
-      e = labels.index(self.member._labels[self.member._value.key()])
-      return e
+   @cached_property
+   def header(self):
+      self.row(self.enum.friendlyName, self.enum.labels[self.value])
+      return None
+     
    
-   def setChoice(self, setter):
-      pass
-    
-   @property
-   def entity(self):
-      return self.member._value
+class EnumIterablesExtractor(EnumVisitorBase, IterablesExtractor):
+
+   def __init__(self, source, member, enum):
+      EnumVisitorBase.__init__(self, source, member, enum)
+      IterablesExtractor.__init__(self, source.state)
+      self.ctx = source.ctx
 
 class ModelVisitorBase(object):
 

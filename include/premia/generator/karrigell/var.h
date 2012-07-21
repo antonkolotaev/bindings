@@ -14,25 +14,64 @@ namespace karrigell {
 	namespace print 
 	{
 	    inline void TableEx(Formatter & out, NamedVar const & vr);
+        inline void FieldEx(Formatter & out, NamedVar const & vr);
 	    
 	    inline void enumParams(Formatter &out, NamedVar const &vr)
 	    {
-	        TableEx(out("OBJ", "pmem.get_%LABEL%()")("PREFIX", "vlabel+'_get_%LABEL%_'"), vr);
+	        TableEx(out("OBJ", "pmem.get_%LABEL%()")("PREFIX", "self.fullName+'_get_%LABEL%_'"), vr);
 	    }
+
+        inline void enumFields(Formatter &out, NamedVar const &vr)
+        {
+            FieldEx(out("OBJ", "pmem.get_%LABEL%()")("PREFIX", "self.fullName+'_get_%LABEL%_'"), vr);
+        }
+
+	    inline void enumInits(Formatter &out, api::Enum const &e)
+	    {
+            int idx = 0;
+            out << "def initEnum(self, x,e):";
+            BOOST_FOREACH(api::Enum::Members::const_reference em, e.members)
+            {
+                out("IDX",idx)("LABEL", em.second.label) 
+                    << "   if e == %IDX%: x.set_%LABEL%()";
+                ++idx;
+            }
+            out << "";
+	    }
+
+        inline void enumChoicesEx(Formatter &out, api::Enum const &e)
+        {
+            out << "def getFields(self, e):";
+            int idx = 0;
+            BOOST_FOREACH(api::Enum::Members::const_reference em, e.members)
+            {
+                out("IDX",idx)("LABEL", em.second.label) 
+                    << +(seq, 
+                    "if e == %IDX%: return [", +(seq, 
+                        foreach_x(em.second.params, enumFields)),
+                    "]","");
+                ++idx;
+            }
+        }
 	    
 	    inline void enumChoices(Formatter &out, api::Enum const &e)
 	    {
+            bool empty = true;
 	        int idx = 0;
 	        BOOST_FOREACH(api::Enum::Members::const_reference em, e.members)
 	        {
-	            out("IDX",idx)("LABEL", em.second.label) 
-	                << (seq, 
-	                "if e == %IDX%:", +(seq, 
-	                    "v.setChoice(lambda x: x.set_%LABEL%())", 
-	                    //"v.member.set_%LABEL%()",
-	                    foreach_x(em.second.params, enumParams)));
+                if (!em.second.params.empty()) {
+    	            out("IDX",idx)("LABEL", em.second.label) 
+    	                << (seq, 
+    	                "if e == %IDX%:", +(seq, 
+    	                    foreach_x(em.second.params, enumParams)));
+                    empty = false;
+                }
 	            ++idx;
 	        }
+
+            if (empty)
+                out << "pass";
 	    } 
 		struct include_enums : var_visitor<include_enums>
 		{

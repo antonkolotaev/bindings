@@ -39,19 +39,19 @@ namespace karrigell {
 		     	  "def __init__(self, propertyName, friendlyName, fullName):",
 		     	  "	super(%NAME%, self).__init__(propertyName, friendlyName, fullName)",
 		     	  "",   
+		          "labels = [", 
+		            +foreach_x(e.members, printEnumChoices), 
+		          "]",
+		     	  "",	
+		     	  "should_be_reloaded = %CHANGE%",
+		     	  "",
+                  call(boost::bind(print::enumInits, _1, boost::cref(e))),
+                  "",
+                  call(boost::bind(print::enumChoicesEx, _1, boost::cref(e))),
+                  "",
 				  "def process(self, pv):", +(seq,
-				  		"label = self.friendlyName",
-				  		"vlabel = self.fullName",
-				  		"member = getattr(pv.entity, self.propertyName)",
-				  		"v = pv.enumVisitor()(pv, member)",
-			         "labels = [", 
-			            +foreach_x(e.members, printEnumChoices), 
-			         "]",
-			         "e = v.setLabels(label, vlabel, labels,%CHANGE%)",
-	               "try:",
-	                  +call(boost::bind(print::enumChoices, _1, boost::cref(e))),
-	               "except Exception, ex:",
-	               "   v.addError('Error in '+label+':' + str(ex))"
+					"member = getattr(pv.entity, self.propertyName)",
+					"pv.enumVisitor()(pv, member, self).processX()"
 		   )));
 	}
 
