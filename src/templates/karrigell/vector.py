@@ -19,7 +19,9 @@ class Vector(FieldBase):
     def mc(idx):
       return INPUT(name=brackets(self.fullName, idx),value=pmem[idx])
 
-    v.spannedRows(self.friendlyName, map(mc, range(len(pmem))), 'R')
+    #v.spannedRows(self.friendlyName, map(mc, range(len(pmem))), 'R')
+
+    return [v.spannedRowsEx(self.friendlyName, map(mc, range(len(pmem))), 'R')]
 
   def renderHistory(self, v):
 

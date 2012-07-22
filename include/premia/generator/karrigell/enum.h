@@ -51,7 +51,7 @@ namespace karrigell {
                   "",
 				  "def process(self, pv):", +(seq,
 					"member = getattr(pv.entity, self.propertyName)",
-					"pv.enumVisitor()(pv, member, self).processX()"
+					"return pv.enumVisitor()(pv, member, self).processX()"
 		   )));
 	}
 

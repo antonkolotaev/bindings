@@ -12,4 +12,4 @@ class FieldBase(object):
     self.friendlyName = friendlyName
     self.fullName = fullName
 
-  def process(self, v): v.process(self)
+  def process(self, v): return v.process(self)
