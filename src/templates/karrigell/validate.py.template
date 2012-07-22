@@ -945,8 +945,31 @@ class StateBase(object):
       return loader.entity
 
    @cached_property
+   def id(self):
+      if self.predsChanged:
+         return self.idChoices[0]
+      else:
+         return self.tryGet3(self.reqLabel, lambda x: self.idChoices[int(x)], self.old_id)
+
+   @cached_property
+   def idChanged(self):
+      return self.old_id <> self.id
+
+   @cached_property
+   def old_id(self):
+      return self.tryGet(self.uriToken, self.defaultValue)
+
+   @cached_property
    def name(self):
       return self.ksModule.name()
+
+   @cached_property
+   def idChoices(self):
+      return self.nameChoices
+
+   @cached_property
+   def nameChoices(self):
+      return map(lambda x: x.__name__, self.choices) 
 
    @cached_property
    def visitFields(self):
@@ -957,6 +980,14 @@ class StateBase(object):
    def clrinc(self): clrinc()
    @property
    def currentColor(self): return clr(self.colors,clridx)
+
+   @cached_property
+   def oldIterationIdx(self):
+      return int(self.request[self.uriOldItIdx] if self.uriOldItIdx in self.request else '0')
+
+   @cached_property
+   def srcIterationIdx(self):
+      return int(self.request[self.reqItIdx] if self.reqItIdx in self.request else '0') 
 
    @cached_property
    def iterables(self):
@@ -1002,7 +1033,43 @@ class StateBase(object):
          return IterationState(self.obj, self.iterables, self.fixedIterationIdx, self.oldIterationValue, self.iterationStepNumber)
 
    @cached_property
-   def iterationTable(state):
+   def iterationIdx(self):
+      if self.idChanged or self.otherItIdxChanged:
+         return 0
+      else:
+         return self.srcIterationIdx  
+
+   @cached_property
+   def iterationIdxChanged(self):
+      return self.oldIterationIdx <> self.srcIterationIdx
+
+   @cached_property
+   def rows(self):
+      return self.header + self.visitFields(Renderer(state = self)) + self.iterationRows 
+
+   @cached_property
+   def myHeaderImpl(self):
+      return [rowEx(B(self.printLabel), enum_submit_mod(self.reqLabel, self.nameChoices, self.name))]      
+
+   @cached_property
+   def header(self):
+      return self.myHeaderImpl
+
+   @cached_property
+   def table(self):
+      color_idx = 0
+      table = TABLE(Class="content")
+      for r in self.rows:
+         color_idx = color_idx + 1
+         try:
+            for rr in r:
+               table <= TR(rr, bgcolor=clr(self.colors, color_idx))
+         except Exception, ex:
+            print "r=(",type(r), dir(r), type(r).__name__,")"
+      return table
+
+   @cached_property
+   def iterationRows(state):
 
       mc = enum_submit_mod(state.iterateVlabel, state.iterables.labels, state.iterables.labels[state.fixedIterationIdx])
 
@@ -1020,217 +1087,115 @@ class StateBase(object):
 class AssetState(StateBase):
 
    @cached_property
-   def assets(self):
+   def choices(self):
       return assets.all()
 
-   @cached_property
-   def old_id(self):
-      return self.tryGet('a', 'equity_Black_Scholes_type')
+   reqLabel = 'asset_type'
+   printLabel = 'Asset Type:'
+   uriToken = 'a'
+   defaultValue = 'equity_Black_Scholes_type'
 
    @cached_property
-   def id(self):
-      return self.tryGet3('asset_type', lambda x: self.assets[int(x)].__name__, self.old_id)
+   def name(self):
+      return self.id
 
-   @cached_property
-   def idChanged(self):
-      return self.old_id <> self.id
+   @cached_property 
+   def predsChanged(self):
+      return False 
 
-   @cached_property
-   def rows(self):
-      return [rowEx(B('Asset Type:'), enum_submit('asset_type', self.assets, self.id), '')]
 
 class ModelState(StateBase):
 
-   @property
-   def entityLabel(self):
-      return 'model'
-
-   @property
-   def colors(self):
-      return mod_colors
-
    @cached_property
-   def models(self):
+   def choices(self):
       return eval('assets.' + self.parent.asset.id + '.models()')
 
    @cached_property
-   def old_id(self):
-      return self.tryGet('m', 'BS1D')
+   def idChoices(self):
+      return map(lambda x: x.ID(), self.choices)
 
-   @cached_property
-   def id(self):
-      if self.parent.asset.idChanged:
-         return self.models[0].ID()
-      else:
-         return self.tryGet3('model', lambda x: self.models[int(x)].ID(), self.old_id)
+   entityLabel = 'model'
+   colors = mod_colors
+   reqLabel = 'model'
+   printLabel = 'Model:'
+   uriToken = 'm'
+   defaultValue = 'BS1D'
+   uriOldItIdx = 'im'
+   reqItIdx = 'iterate_model'
+
+   @cached_property 
+   def predsChanged(self):
+      return self.parent.asset.idChanged 
 
    @cached_property
    def ksModule(self): 
       return myImport('kspremia.mod.' + self.id + '.model')
 
-
-   @cached_property
-   def idChanged(self):
-      return self.old_id <> self.id
-
-   @cached_property
-   def visit(self):
-      return lookupModel(self.id)
-
    @cached_property
    def header(self):
-      return self.parent.asset.rows + \
-            [rowEx(B('Model:'), enum_submit('model', self.models, self.name))] 
+      return self.parent.asset.header + self.myHeaderImpl
 
    @cached_property
-   def table(self):
-      #self.row(B('Model:'), enum_submit('model', self.models, self.name))
-      renderer = Renderer(state = self)
-      res = self.header + self.visitFields(renderer) + self.iterationTable
-      color_idx = 0
-      table = TABLE(Class="content")
-      for r in res:
-         color_idx = color_idx + 1
-         try:
-            for rr in r:
-               table <= TR(rr, bgcolor=clr(self.colors, color_idx))
-         except Exception, ex:
-            print "r=(",type(r), dir(r), type(r).__name__,")"
-      return table
-
-   """
-   @cached_property
-   def table(self):
-      return self.addIterationTable
-   """
-
-   @cached_property
-   def oldIterationIdx(self):
-      return int(self.tryGet('im', '0'))
-      
-   @cached_property
-   def srcIterationIdx(self):
-      return int(self.tryGet('iterate_model', '0'))
-      
-   @cached_property
-   def iterationIdx(self):
-      if self.idChanged or \
+   def otherItIdxChanged(self):
+      return \
          self.parent.option.iterationIdxChanged or \
-         self.parent.method.iterationIdxChanged:
-            return 0
-      else:
-         return self.srcIterationIdx  
-
-   @cached_property
-   def iterationIdxChanged(self):
-      return self.oldIterationIdx <> self.srcIterationIdx
+         self.parent.method.iterationIdxChanged
 
 class FamilyState(StateBase):
 
    @cached_property
-   def families(self):
+   def choices(self):
       return self.parent.model.obj.families()
 
    @cached_property
-   def old_id(self):
-      return self.tryGet('f', 'STD')
+   def nameChoices(self):
+      return self.choices
+
+   reqLabel = 'family'
+   printLabel = 'Family:'
+   uriToken = 'f'
+   defaultValue = 'STD'
 
    @cached_property
-   def id(self):
-      if self.parent.model.idChanged:
-         return self.families[0]
-      else:
-         return self.tryGet3('family', lambda x: self.families[int(x)], self.old_id)
+   def name(self):
+      return self.id
 
-   @cached_property
-   def idChanged(self):
-      return self.old_id <> self.id
-
-   @cached_property
-   def rows(self):
-      return [rowEx(B('Family:'),enum_submit_mod('family', self.families, self.id),'')]
+   @cached_property 
+   def predsChanged(self):
+      return self.parent.model.idChanged
 
 class OptionState(StateBase):
-
-   @property
-   def entityLabel(self):
-      return 'option'
-
-   @property
-   def colors(self):
-      return opt_colors
 
    @cached_property
    def ksModule(self):
       return myImport('kspremia.opt.'+self.parent.family.id+'.'+self.id)    
 
    @cached_property
-   def options(self):
+   def choices(self):
       return pricing_options(self.parent.model.id,self.parent.family.id)
 
-   @cached_property
-   def old_id(self):
-      return self.tryGet('o', 'CallEuro')
+   entityLabel = 'option'
+   colors = opt_colors
+   reqLabel = 'option'
+   printLabel = 'Option:'
+   uriToken = 'o'
+   defaultValue = 'CallEuro'
+   uriOldItIdx = 'io'
+   reqItIdx = 'iterate_option'
 
-   @cached_property
-   def id(self):
-      if self.parent.family.idChanged or self.parent.model.idChanged:
-         return self.options[0].__name__
-      else:
-         return self.tryGet3('option', lambda x: self.options[int(x)].__name__, self.old_id)
-
-   @cached_property
-   def idChanged(self):
-      return self.old_id <> self.id
-
-   @cached_property
-   def visit(self):
-      return lookupOption(self.parent.family.id, self.id)
-
-   @cached_property
-   def origTable(self):
-      return self.parent.family.table
+   @cached_property 
+   def predsChanged(self):
+      return self.parent.family.idChanged or self.parent.model.idChanged
 
    @cached_property
    def header(self):
-      return self.parent.family.rows + \
-            [rowEx(B('Option:'), enum_submit('option', self.options, self.name))]
+      return self.parent.family.header + self.myHeaderImpl
 
    @cached_property
-   def table(self):
-      renderer = Renderer(state = self)
-      res = self.header + self.visitFields(renderer) + self.iterationTable
-      color_idx = 0
-      table = TABLE(Class="content")
-      for r in res:
-         color_idx = color_idx + 1
-         try:
-            for rr in r:
-               table <= TR(rr, bgcolor=clr(self.colors, color_idx))
-         except Exception, ex:
-            print "r=(",type(r), dir(r), type(r).__name__,")"
-      return table
-
-   @cached_property
-   def oldIterationIdx(self):
-      return int(self.tryGet('io', '0'))
-
-   @cached_property
-   def srcIterationIdx(self):
-      return int(self.tryGet('iterate_option', '0'))
-
-   @cached_property
-   def iterationIdx(self):
-      if self.idChanged or \
+   def otherItIdxChanged(self):
+      return \
          self.parent.model.iterationIdxChanged or \
-         self.parent.method.iterationIdxChanged:
-            return 0
-      else:
-         return self.srcIterationIdx  
-
-   @cached_property
-   def iterationIdxChanged(self):
-      return self.oldIterationIdx <> self.srcIterationIdx
+         self.parent.method.iterationIdxChanged
 
 class ResultMember(object):
 
@@ -1258,47 +1223,33 @@ class ResultMember(object):
 
 class MethodState(StateBase):
 
-   @property
-   def entityLabel(self):
-      return 'method'
-
-   @property
-   def colors(self):
-      return met_colors
-
    @cached_property
-   def methods(self):
+   def choices(self):
       m = self.parent.model.id
       f = self.parent.family.id
       opt = self.parent.option.obj
       return [x for x in eval('pricings.' + m + '.' + m + '_' + f + '.all()') if type(opt) in x.options()]
 
-   @cached_property
-   def old_id(self):
-      return self.tryGet('meth', 'CF_Call')
+   entityLabel = 'method'
+   colors = met_colors
+   reqLabel = 'pricing_method'
+   printLabel = 'Pricing method:'
+   uriToken = 'meth'
+   defaultValue = 'CF_Call'
+   uriOldItIdx = 'ip'
+   reqItIdx = 'iterate_method'
 
-   @cached_property
-   def id(self):
-      if self.parent.option.idChanged or self.parent.model.idChanged:
-         return self.methods[0].__name__
-      else:
-         return self.tryGet3('pricing_method', lambda x: self.methods[int(x)].__name__, self.old_id)
-
-   @cached_property
-   def idChanged(self):
-      return self.old_id <> self.id
+   @cached_property 
+   def predsChanged(self):
+      return self.parent.option.idChanged or self.parent.model.idChanged
 
    @cached_property
    def ksModule(self):
       return getMethodModule(self.parent.model.id, self.parent.family.id, self.id)
 
    @cached_property
-   def visit(self):
-      return processMethod(self.ksModule)
-
-   @cached_property
-   def header(self):
-      return [rowEx(B('Pricing method:'), enum_submit('pricing_method', self.methods, self.name))]
+   def rows(self):
+      return super(MethodState, self).rows + self.resultTable
 
    @cached_property
    def resultTable(self):
@@ -1309,40 +1260,11 @@ class MethodState(StateBase):
          if self.parent.iteration <> None else []
 
    @cached_property
-   def table(self):
-      renderer = Renderer(state = self)
-      res = self.header + self.visitFields(renderer) + self.iterationTable + self.resultTable
-      color_idx = 0
-      table = TABLE(Class="content")
-      for r in res:
-         color_idx = color_idx + 1
-         try:
-            for rr in r:
-               table <= TR(rr, bgcolor=clr(self.colors, color_idx))
-         except Exception, ex:
-            print "r=(",type(r), dir(r), type(r).__name__,")"
-      return table
-
-   @cached_property
-   def oldIterationIdx(self):
-      return int(self.request['ip'] if 'ip' in self.request else '0')
-
-   @cached_property
-   def srcIterationIdx(self):
-      return int(self.request['iterate_method'] if 'iterate_method' in self.request else '0') 
-
-   @cached_property
-   def iterationIdx(self):
-      if self.idChanged or \
+   def otherItIdxChanged(self):
+      return \
          self.parent.option.iterationIdxChanged or \
-         self.parent.model.iterationIdxChanged:
-            return 0
-      else:
-         return self.srcIterationIdx  
+         self.parent.model.iterationIdxChanged
 
-   @cached_property
-   def iterationIdxChanged(self):
-      return self.oldIterationIdx <> self.srcIterationIdx
 
 
 
