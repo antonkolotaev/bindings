@@ -18,12 +18,29 @@ from kspremia import scalar
 def rowEx(c1, c2, c3=''):
    return [TD(c1,align='right')+TD(c2)+TD(c3)] 
 
+def row2(c1, c2):
+   return [TD(c1,align='right')+TD(c2)] 
+
 def spannedRowsEx(c1, c2s, c3=''):
    return [TD(c1, align='right',rowspan=len(c2s)) + TD(c2s[0]) + TD(c3, rowspan=len(c2s))] + \
           [TD(c2s[i]) for i in range(1,len(c2s))]
 
+def spannedRows2(c1, c2s):
+   return [TD(c1, align='right',rowspan=len(c2s)) + TD(c2s[0])] + \
+          [TD(c2s[i]) for i in range(1,len(c2s))]
+
 def spannedColEx(c):
    return [TD(c, colspan='3')]
+
+def addRowsToTable(table, rows, colors):
+   color_idx = 0
+   for r in rows:
+      color_idx = color_idx + 1
+      try:
+         for rr in r:
+            table <= TR(rr, bgcolor=clr(colors, color_idx))
+      except Exception, ex:
+         print "r=(",type(r), dir(r), type(r).__name__,")"
 
 class cached_property(object):
     '''A read-only @property that is only evaluated once. The value is cached
@@ -1057,15 +1074,8 @@ class StateBase(object):
 
    @cached_property
    def table(self):
-      color_idx = 0
       table = TABLE(Class="content")
-      for r in self.rows:
-         color_idx = color_idx + 1
-         try:
-            for rr in r:
-               table <= TR(rr, bgcolor=clr(self.colors, color_idx))
-         except Exception, ex:
-            print "r=(",type(r), dir(r), type(r).__name__,")"
+      addRowsToTable(table, self.rows, self.colors)
       return table
 
    @cached_property
@@ -1266,6 +1276,49 @@ class MethodState(StateBase):
          self.parent.model.iterationIdxChanged
 
 
+class ScalarResult(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+      self.computation_timeout = parent.computation_timeout
+
+   @cached_property
+   def result(self):
+      res = []
+      def F(opt, mod, q):
+         begin = time()
+         res = self.parent.method.obj(opt, mod)
+         end = time()
+         res.append(("Time", end - begin))
+         q.put(res)
+      try:
+         queue = Queue()
+         process = Process(target = F, args = (self.parent.option.obj,self.parent.model.obj, queue))
+         process.start()
+         try:
+            res = queue.get(timeout=self.computation_timeout)
+         except Empty, exc:
+            process.terminate()
+            raise Exception("Method has worked more than " + str(self.computation_timeout) + "s. Please try another parameter combination")
+         process.join(timeout=self.computation_timeout)
+      except Exception, exc:
+         add_error(exc)
+      return res 
+
+   @staticmethod
+   def renderScalarResultElement(e):
+      k,v = e
+      return [spannedRows2(k, v)] if type(v) == list else [row2(k, v)]
+
+   @cached_property
+   def rows(self):
+      return reduce(lambda x,y: x+y, map(self.renderScalarResultElement, self.result),[row2('Result','')])
+
+   @cached_property
+   def table(self):
+      addRowsToTable(self.parent.method.table, self.rows, res_colors)
+      return self.parent.method.table
+
 
 
 """
@@ -1279,6 +1332,7 @@ class State(object):
       self.family = FamilyState(self)
       self.option = OptionState(self)
       self.method = MethodState(self)
+      self.scalarResult = ScalarResult(self)
 
    @cached_property
    def iteration(self):
@@ -1302,24 +1356,7 @@ class State(object):
    def result(self):
       if not self.runComputation or self.iteration <> None:
          return None
-      def F(opt, mod, q):
-         begin = time()
-         res = self.method.obj(opt, mod)
-         end = time()
-         res.append(("Time", end - begin))
-         q.put(res)
-      try:
-         queue = Queue()
-         process = Process(target = F, args = (self.option.obj,self.model.obj, queue))
-         process.start()
-         try:
-            return queue.get(timeout=computation_timeout)
-         except Empty, exc:
-            process.terminate()
-            raise Exception("Method has worked more than " + str(computation_timeout) + "s. Please try another parameter combination")
-         process.join(timeout=computation_timeout)
-      except Exception, exc:
-         add_error(exc) 
+      return self.scalarResult.result
 
    @cached_property
    def tableResult(self):
@@ -1384,21 +1421,9 @@ class State(object):
 
    @cached_property
    def scalarResultTable(self):
-      def printScalarResult(table_method, res):
-          idx = 1
-          table_method <= TR(TD(B("Result:"),align='right') + TD(B("")))
-          for k,v in res:
-              idx = idx + 1
-              if type(v) == list:
-                  table_method <= TR(TD(k, align='right',rowspan=len(v)) + TD(v[0]),bgcolor=clr(res_colors,idx))
-                  for i in range(1, len(v)):
-                      table_method <= TR(TD(v[i]),bgcolor=clr(res_colors,idx))
-              else:
-                  table_method <= TR(TD(k,align='right') + TD(v),bgcolor=clr(res_colors,idx))
-
       if self.runComputation and self.iteration == None:
-         printScalarResult(self.method.table, self.result)
-   
+         return self.scalarResult.table
+
       return self.method.table
 
    
