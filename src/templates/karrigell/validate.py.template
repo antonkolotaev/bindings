@@ -3,6 +3,7 @@ from Queue import Empty
 from multiprocessing import Process,Queue
 from time import time
 from copy import copy
+from itertools import *
 
 saved_REQUEST = copy(REQUEST)
 
@@ -1319,6 +1320,243 @@ class ScalarResult(object):
       addRowsToTable(self.parent.method.table, self.rows, res_colors)
       return self.parent.method.table
 
+def rowKV(k,v):
+   return [TD(k,align='right') + Sum([TD(L) for L in v])]
+
+def spannedRowsKV(k,v):
+   dim = len(v[0])
+   return [TD(k, align='right',rowspan=dim) + Sum([TD(L[0]) for L in v])] + \
+                                map(lambda i: Sum([TD(L[i]) for L in v]), range(1, dim))
+
+def script(s):
+   """
+    print "<script type=\"text/javascript\">"
+    print s
+    print "</script>"
+   """
+   return SCRIPT(s, type=r"text/javascript")
+
+def todata(header, v):
+   s = "["
+   for i in range(len(v)):
+      s += "[" + str(header[i]) + "," + str(v[i]) + "],"
+   s += "]"
+   return s
+
+def groupByFirst(xs):
+   res = {}
+   for k,v in xs:
+      if k not in res:
+         res[k] = []
+      res[k].append(v)
+   return res
+
+def quote(s):
+   return "\'"+s+"\'"
+
+class Serie(object):
+
+   def __init__(self, label, data):
+      self.label = label
+      self.data = data
+
+   def __repr__(self):
+      return "(" + self.label + ":" + self.data + ")"
+
+def serie(domain, k, v):
+   return Serie(quote(REQUEST['showGraphLabel_' + k]), 
+                todata(domain, v))
+
+def serieV(domain, k, v, i):
+   return Serie(quote(REQUEST['showGraphLabel_' + k]+'['+str(i)+']'), 
+                todata(domain, map(lambda L: L[i], v)))
+
+def serieHV(domain, h_idx, k, v, i):
+   vlabel = str(h_idx) + "_" + k + str(i)
+   return None if 'showGraph_'+vlabel not in REQUEST else \
+          Serie(quote(REQUEST['showGraphLabel_' + vlabel]), todata(domain, map(lambda L: L[i], v)))
+
+def serieH(domain, h_idx, k, v):
+   vlabel = str(h_idx) + "_" + k
+   return None if 'showGraph_'+vlabel not in REQUEST else \
+          Serie(quote(REQUEST['showGraphLabel_' + vlabel]), todata(domain, v)) 
+
+
+class IterationResult(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+      self.computation_timeout = parent.computation_timeout
+
+   @cached_property
+   def result(self):
+
+      iteration = self.parent.iteration
+
+      def G(opt, mod, q):
+         initial = iteration.getter()            
+         for i in range(iteration.stepsNo):
+             begin = time()
+             if iteration.stepsNo > 1:
+                 x = initial + 1. * i / (iteration.stepsNo - 1) * (iteration.iterateTo - initial)
+             else:
+                 x = initial
+                 
+             if type(initial) == type(1):
+                 x = int(round(x))
+             if type(initial) == type(1L):
+                 x = long(round(x))
+             
+             iteration.setter(x)
+                  
+             res = (self.parent.method.obj(opt, mod))
+             end = time()
+             res.insert(0, (iteration.name, x))
+             res.append(("Time", end - begin))
+             q.put(res)
+      
+      res_t = []
+      try: 
+         queue = Queue()
+         process = Process(target = G, args = (self.parent.option.obj,self.parent.model.obj, queue))
+         try:            
+            process.start()
+
+            begin = time()
+            iterations = iteration.stepsNo
+            for i in range(iterations):
+              q = queue.get(timeout=begin + self.computation_timeout - time())
+              if res_t == []:
+                  for k,v in q:
+                      res_t.append((k,[v]))
+              else:
+                  idx = 0
+                  for k,v in q:
+                      assert res_t[idx][0] == k
+                      res_t[idx][1].append(v)
+                      idx = idx + 1
+                             
+         except Empty, exc:
+            process.terminate()
+            raise Exception("Method has worked more than " + str(self.computation_timeout) + "s. Please try another parameter combination")
+                     
+         process.join(timeout=self.computation_timeout)
+
+      except Exception, exc:
+         add_error(exc)
+      return res_t
+
+   @staticmethod
+   def renderRow(e):
+      k,v = e
+      return spannedRowsKV(k,v) if type(v[0]) == list else rowKV(k,v)
+
+   @cached_property
+   def rows(self):
+      return map(self.renderRow, self.result)
+   
+   @cached_property
+   def table(self):
+      table_result_i = TABLE(Class="content")
+      addRowsToTable(table_result_i, self.rows, res_colors)
+      return table_result_i
+
+   @cached_property
+   def domain(self):
+      return self.result[0][1]
+
+   def serieForResultElement(self, e):
+      k,v = e
+      kind = result_kinds[k][1]
+
+      if 'showGraph_' + k not in REQUEST:
+         return []
+
+      return map(lambda i: (kind, serieV(self.domain, k, v, i)), range(len(v[0]))) if type(v[0]) == list else \
+                          [(kind, serie (self.domain, k, v))]
+
+   def serieForHistoryElement(self, h_idx, domain):
+      def inner(e):
+         k,v = e
+         kind = result_kinds[k][1]
+
+         series=map(lambda i: (kind, serieHV(domain, h_idx, k, v, i)), range(len(v[0]))) if type(v[0]) == list else \
+                             [(kind, serieH (domain, h_idx, k, v))]
+
+         return ifilter(lambda (k,v): v <> None, series)
+
+      return inner
+
+   @cached_property
+   def currentSeries(self):
+      return chain(*map(self.serieForResultElement, self.result[1:]))
+
+   def historySerie(self, hh_idx):
+      h_idx = len(session.history) - hh_idx - 1
+      h = session.history[h_idx]
+      h_results = h[6]
+      h_iterate_label = h[7]
+      if h_results <> None and h_iterate_label == self.parent.iteration.label:
+         return chain(*map(self.serieForHistoryElement(h_idx, h_results[0][1]), h_results[1:]))
+      else:
+         return []
+
+   @cached_property
+   def historySeries(self):
+      return chain(*map(self.historySerie, range(len(session.history))))
+
+   @cached_property
+   def dataSeries(self):
+       return groupByFirst(chain(self.historySeries, self.currentSeries))
+
+   def labelsForResultElement(self, (k,v)):
+      return map(lambda i: (REQUEST['showGraphLabel_' + k]+"["+str(i)+"]", ('showGraph_' + k in REQUEST)), range(len(v[0]))) \
+               if type(v[0]) == list else \
+             [(REQUEST['showGraphLabel_' + k], ('showGraph_' + k in REQUEST))]
+
+   @cached_property
+   def resultLabels(self):
+      return list(chain(*map(self.labelsForResultElement, self.result[1:])))
+
+   @cached_property
+   def resH(self):
+    res_h = []
+    for hh_idx in range(len(session.history)):
+      h_idx = len(session.history) - hh_idx - 1
+      h = session.history[h_idx]
+      h_results = h[6]
+      h_iterate_label = h[7]
+      if h_results <> None and h_iterate_label == state.iteration.label:
+         res_hh = []
+         res_lh = []
+         for i in range(len(h_results)):
+            hk,hv = h_results[i]
+            
+            if type(hv[0]) == list:
+               for j in range(len(hv[0])):
+                  vlabel = str(h_idx) + "_" + hk + str(j)
+                  if 'showGraph_'+vlabel in REQUEST:
+
+                     if res_hh == []:
+                           res_hh = [h_results[0]]
+
+                     res_hh.append((hk+"_"+str(h_idx), map(lambda x: x[j], hv)))
+                     res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
+            else:
+               vlabel = str(h_idx) + "_" + hk
+            
+               if 'showGraph_'+vlabel in REQUEST:
+                 
+                  if res_hh == []:
+                        res_hh = [h_results[0]]
+                    
+                  res_hh.append((hk+"_"+str(h_idx), hv))
+                  res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
+         
+         if res_hh <> []: res_h.append((res_hh, res_lh))
+    #print res_h
+    return res_h
+
 
 
 """
@@ -1333,6 +1571,7 @@ class State(object):
       self.option = OptionState(self)
       self.method = MethodState(self)
       self.scalarResult = ScalarResult(self)
+      self.iterationResult = IterationResult(self)
 
    @cached_property
    def iteration(self):
@@ -1364,60 +1603,8 @@ class State(object):
       if not self.runComputation or self.iteration == None:
          return None
 
-      iteration = self.iteration
+      return self.iterationResult.result
 
-      def G(opt, mod, q):
-         initial = iteration.getter()            
-         for i in range(iteration.stepsNo):
-             begin = time()
-             if iteration.stepsNo > 1:
-                 x = initial + 1. * i / (iteration.stepsNo - 1) * (iteration.iterateTo - initial)
-             else:
-                 x = initial
-                 
-             if type(initial) == type(1):
-                 x = int(round(x))
-             if type(initial) == type(1L):
-                 x = long(round(x))
-             
-             iteration.setter(x)
-                  
-             res = (self.method.obj(opt, mod))
-             end = time()
-             res.insert(0, (iteration.name, x))
-             res.append(("Time", end - begin))
-             q.put(res)
-      
-      try: 
-         queue = Queue()
-         res_t = []
-         process = Process(target = G, args = (self.option.obj,self.model.obj, queue))
-         try:            
-            process.start()
-
-            begin = time()
-            iterations = iteration.stepsNo
-            for i in range(iterations):
-              q = queue.get(timeout=begin + computation_timeout - time())
-              if res_t == []:
-                  for k,v in q:
-                      res_t.append((k,[v]))
-              else:
-                  idx = 0
-                  for k,v in q:
-                      assert res_t[idx][0] == k
-                      res_t[idx][1].append(v)
-                      idx = idx + 1
-                             
-         except Empty, exc:
-            process.terminate()
-            raise Exception("Method has worked more than " + str(computation_timeout) + "s. Please try another parameter combination")
-                     
-         process.join(timeout=computation_timeout)
-         return res_t
-
-      except Exception, exc:
-         add_error(exc)
 
    @cached_property
    def scalarResultTable(self):
@@ -1555,20 +1742,6 @@ res = state.result
 res_t = state.tableResult 
 #Include(r'premia/run_computation.py')
 #Include(r'premia/print_table_result.py')
-def script(s):
-   """
-    print "<script type=\"text/javascript\">"
-    print s
-    print "</script>"
-   """
-   return SCRIPT(s, type=r"text/javascript")
-
-def todata(header, v):
-   s = "["
-   for i in range(len(v)):
-      s += "[" + str(header[i]) + "," + str(v[i]) + "],"
-   s += "]"
-   return s
 
 #print REQUEST
 
@@ -1678,7 +1851,10 @@ if not state.iteration:
 
 
 if res_t <> None:
-   res_h = printVectorResult(table_result_i, res_t)
+   table_result_i = state.iterationResult.table
+   result_labels = state.iterationResult.resultLabels
+   res_h = state.iterationResult.resH
+   #res_h = printVectorResult(table_result_i, res_t)
    
 #print 'iterate_model = ', _iterate_model
 #im = str(_iterate_model)
@@ -1769,11 +1945,13 @@ graph_t = """
 """
 
 if res_t <> None:
+    table_result_i <= script("var datas = []")
+    datas = state.iterationResult.dataSeries
     values = datas.values()
     for i in range(len(values)):
         form <= script("data"+str(i)+" = [];")
-        for label, sc in values[i]:
-            form <= script("data"+str(i)+".push({ data : "+sc+", label : "+label+" });")          
+        for e in values[i]:
+            form <= script("data"+str(i)+".push({ data : "+e.data+", label : "+e.label+" });")          
         if values[i] <> []:
            form <= TEXT(graph_t.replace('qqq','containers' + str(i)).replace("datas", "data"+str(i)))
 
