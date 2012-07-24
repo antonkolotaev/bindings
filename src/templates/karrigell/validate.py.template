@@ -1381,6 +1381,46 @@ def serieH(domain, h_idx, k, v):
    return None if 'showGraph_'+vlabel not in REQUEST else \
           Serie(quote(REQUEST['showGraphLabel_' + vlabel]), todata(domain, v)) 
 
+class HistoryElement(object):
+
+   def __init__(self, parent, idx):
+      self.parent = parent
+      self.idx = idx
+      self.source = session.history[idx]
+      self.results = self.source[6]
+      self.iterate_label = self.source[7]
+
+   @cached_property
+   def domain(self):
+      return self.results[0][1]
+
+   def serieForResultElement(self, (k,v)):
+      kind = result_kinds[k][1]
+
+      series=map(lambda i: (kind, serieHV(self.domain, self.idx, k, v, i)), range(len(v[0]))) \
+                if type(v[0]) == list else \
+                          [(kind, serieH (self.domain, self.idx, k, v))]
+
+      return ifilter(lambda (k,v): v <> None, series)
+
+   @cached_property
+   def series(self):
+      if self.results <> None and self.iterate_label == self.parent.iteration.label:
+         return chain(*map(self.serieForResultElement, self.results[1:]))
+      else:
+         return []
+
+class History(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+      N = len(session.history)
+      self.elements = map(lambda i: HistoryElement(parent, N-i-1), range(len(session.history)))
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda h: h.series, self.elements))
+
 
 class IterationResult(object):
 
@@ -1475,39 +1515,13 @@ class IterationResult(object):
       return map(lambda i: (kind, serieV(self.domain, k, v, i)), range(len(v[0]))) if type(v[0]) == list else \
                           [(kind, serie (self.domain, k, v))]
 
-   def serieForHistoryElement(self, h_idx, domain):
-      def inner(e):
-         k,v = e
-         kind = result_kinds[k][1]
-
-         series=map(lambda i: (kind, serieHV(domain, h_idx, k, v, i)), range(len(v[0]))) if type(v[0]) == list else \
-                             [(kind, serieH (domain, h_idx, k, v))]
-
-         return ifilter(lambda (k,v): v <> None, series)
-
-      return inner
-
    @cached_property
    def currentSeries(self):
       return chain(*map(self.serieForResultElement, self.result[1:]))
 
-   def historySerie(self, hh_idx):
-      h_idx = len(session.history) - hh_idx - 1
-      h = session.history[h_idx]
-      h_results = h[6]
-      h_iterate_label = h[7]
-      if h_results <> None and h_iterate_label == self.parent.iteration.label:
-         return chain(*map(self.serieForHistoryElement(h_idx, h_results[0][1]), h_results[1:]))
-      else:
-         return []
-
-   @cached_property
-   def historySeries(self):
-      return chain(*map(self.historySerie, range(len(session.history))))
-
    @cached_property
    def dataSeries(self):
-       return groupByFirst(chain(self.historySeries, self.currentSeries))
+       return groupByFirst(chain(self.parent.history.series, self.currentSeries))
 
    def labelsForResultElement(self, (k,v)):
       return map(lambda i: (REQUEST['showGraphLabel_' + k]+"["+str(i)+"]", ('showGraph_' + k in REQUEST)), range(len(v[0]))) \
@@ -1565,6 +1579,7 @@ Class representing a single run.
 class State(object):
 
    def __init__(self):
+      self.history = History(self)
       self.asset = AssetState(self)
       self.model = ModelState(self)
       self.family = FamilyState(self)
