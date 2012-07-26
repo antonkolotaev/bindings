@@ -511,21 +511,10 @@ class EnumVisitorBase(object):
       self.source = source
 
    def processX(self):
-      #try:
-         res = self.header
-         #for f in self.enum.getFields(self.value):
-         #   #res = self.source.comb(res, f.process(self))
-         #   f.process(self)
-         res = reduce(self.source.comb, map(lambda f: f.process(self), self.enum.getFields(self.value)), res)
-         return res
-         """
-         return reduce(self.source.comb, 
-                       map(lambda f: f.process(self), 
-                           self.enum.getFields(self.value)), 
-                       self.header)
-         """
-      #except Exception, ex:
-      #   self.source.addError('Error in '+self.enum.fullName+':' + str(ex))
+      return reduce(self.source.comb, 
+                    map(lambda f: f.process(self),
+                        self.enum.getFields(self.value)), 
+                    self.header)
 
    @cached_property      
    def value(self):   
@@ -933,6 +922,9 @@ def lookupOption(f,o):
 def lookupMethod(m,f,meth):
    return processMethod(getMethodModule(m,f,meth))
 
+def uriPart(key,value):
+   return '&' + key + '=' + value
+
 class StateBase(object):
 
    def __init__(self, parent):
@@ -968,6 +960,15 @@ class StateBase(object):
          return self.idChoices[0]
       else:
          return self.tryGet3(self.reqLabel, lambda x: self.idChoices[int(x)], self.old_id)
+
+   @cached_property
+   def uri(self):
+      return uriPart(self.uriToken, self.id) + self.itUri
+
+   @cached_property
+   def itUri(self):
+      return uriPart(self.uriOldItIdx, str(self.iterationIdx)) \
+                  if 'uriOldItIdx' in dir(self) else ''
 
    @cached_property
    def idChanged(self):
@@ -1681,6 +1682,15 @@ class State(object):
       return self.iteration.label if self.iteration <> None else '_'
 
    @cached_property
+   def uri(self):
+      return   self.asset.uri + \
+               self.model.uri + \
+               self.family.uri + \
+               self.option.uri + \
+               self.method.uri + \
+               uriPart('il',self.iterationLabel)
+
+   @cached_property
    def request(self):
       return saved_REQUEST
 
@@ -1883,7 +1893,7 @@ io = str(state.option.fixedIterationIdx)
 ip = str(state.method.fixedIterationIdx)
 
 
-form = FORM(action='/index?a='+ _a +'&m='+ _m +'&f='+ _f +'&o='+ _o +'&meth=' + _meth+'&im=' + im+'&io=' + io+'&ip=' + ip+'&il='+state.iterationLabel,method="post")
+form = FORM(action='/index?'+ state.uri[1:],method="post")
 
 if model_size_mode:
     table_method <= table_model_size_mode
