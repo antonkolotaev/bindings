@@ -1391,6 +1391,15 @@ class ResultElementBase(object):
    def rows(self):
       return rowKV(self.label, self.data)
 
+   @cached_property
+   def resHH(self):
+      return [(self.vlabel,self.data)] if self.showOnGraph else []
+
+   @cached_property
+   def resLH(self):
+      return [self.showGraphLabel] if self.showOnGraph else []
+
+
 class ResultElementVBase(object):
 
    def __init__(self, parent, (k,v)):
@@ -1415,6 +1424,14 @@ class ResultElementVBase(object):
    @cached_property
    def labels(self):
       return chain(*map(lambda e: e.labels, self.elements))
+
+   @cached_property
+   def resHH(self):
+      return chain(*map(lambda e: e.resHH, self.elements))
+
+   @cached_property
+   def resLH(self):
+      return chain(*map(lambda e: e.resLH, self.elements))
 
 
 
@@ -1495,10 +1512,25 @@ class HistoryElement(object):
       return map(construct, self.rawResults[1:])
 
    @cached_property
+   def compatible(self):
+      return self.rawResults <> None and self.iterate_label == self.parent.iteration.label
+
+   @cached_property
+   def resHH(self):
+      return chain(*map(lambda e: e.resHH, self.results))
+
+   @cached_property
+   def resLH(self):
+      return chain(*map(lambda e: e.resLH, self.results))
+
+   @cached_property
+   def resH(self):
+      return [(list(self.resHH), list(self.resLH))] if self.compatible else []
+
+   @cached_property
    def series(self):
       return chain(*map(lambda e: e.series, self.results)) \
-               if self.rawResults <> None and self.iterate_label == self.parent.iteration.label \
-               else []
+               if self.compatible else []
 
 class History(object):
 
@@ -1510,6 +1542,10 @@ class History(object):
    @cached_property
    def series(self):
       return chain(*map(lambda h: h.series, self.elements))
+
+   @cached_property
+   def resH(self):
+      return chain(*map(lambda h: h.resH, self.elements))
 
 
 class IterationResult(object):
@@ -1609,7 +1645,7 @@ class IterationResult(object):
 
    @cached_property
    def dataSeries(self):
-       return groupByFirst(chain(self.parent.history.series, self.series))
+      return groupByFirst(chain(self.parent.history.series, self.series))
 
    @cached_property
    def resultLabels(self):
@@ -1617,42 +1653,7 @@ class IterationResult(object):
 
    @cached_property
    def resH(self):
-    res_h = []
-    for hh_idx in range(len(session.history)):
-      h_idx = len(session.history) - hh_idx - 1
-      h = session.history[h_idx]
-      h_results = h[6]
-      h_iterate_label = h[7]
-      if h_results <> None and h_iterate_label == state.iteration.label:
-         res_hh = []
-         res_lh = []
-         for i in range(len(h_results)):
-            hk,hv = h_results[i]
-            
-            if type(hv[0]) == list:
-               for j in range(len(hv[0])):
-                  vlabel = str(h_idx) + "_" + hk + str(j)
-                  if 'showGraph_'+vlabel in REQUEST:
-
-                     if res_hh == []:
-                           res_hh = [h_results[0]]
-
-                     res_hh.append((hk+"_"+str(h_idx), map(lambda x: x[j], hv)))
-                     res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
-            else:
-               vlabel = str(h_idx) + "_" + hk
-            
-               if 'showGraph_'+vlabel in REQUEST:
-                 
-                  if res_hh == []:
-                        res_hh = [h_results[0]]
-                    
-                  res_hh.append((hk+"_"+str(h_idx), hv))
-                  res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
-         
-         if res_hh <> []: res_h.append((res_hh, res_lh))
-    #print res_h
-    return res_h
+      return list(self.parent.history.resH)
 
 
 
@@ -1855,89 +1856,6 @@ def corrected(s):
    return r
 
 result_labels = []
-def printVectorResult(table_result_i, res_t):
-    table_result_i <= script("var datas = []")
-    idx = 1
-    res_h = []
-    for k,v in res_t:
-        idx = idx + 1
-        is_header = k == res_t[0][0]
-        is_selected = ('showGraph_' + k in REQUEST)
-  
-        if not is_header and is_selected:
-           kind = result_kinds[k][1]
-           if kind not in datas: datas[kind] = []
-
-        if type(v[0]) == list:
-
-            table_result_i <= TR(TD(k, align='right',rowspan=len(v[0])) + Sum([TD(L[0]) for L in v]),bgcolor=clr(res_colors,idx))
-
-            if not is_header:
-               result_labels.extend(map(lambda i: (REQUEST['showGraphLabel_' + k]+"["+str(i)+"]", ('showGraph_' + k in REQUEST)), range(len(v[0]))))          
-            
-            if not is_header and is_selected:               
-                #table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[0], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"[0]\' })")
-                datas[kind].append(("\'"+REQUEST['showGraphLabel_' + k]+"[0]\'", todata(res_t[0][1], map(lambda L: L[0], v))))    
-            for i in range(1, len(v[0])):
-                table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
-                if not is_header and is_selected:               
-                   #table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[i], v))+", label : \'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\' })")          
-                   datas[kind].append(("\'"+REQUEST['showGraphLabel_' + k]+"["+str(i)+"]\'", todata(res_t[0][1], map(lambda L: L[i], v))))    
-        else:
-            table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
-            if not is_header:
-               result_labels.append((REQUEST['showGraphLabel_' + k], ('showGraph_' + k in REQUEST)))
-               
-            if not is_header and is_selected:               
-               #table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], v)+", label : \'"+REQUEST['showGraphLabel_' + k]+"\' })")          
-               datas[kind].append(("\'"+REQUEST['showGraphLabel_' + k]+"\'", todata(res_t[0][1], v)))    
-
-    for hh_idx in range(len(session.history)):
-      h_idx = len(session.history) - hh_idx - 1
-      h = session.history[h_idx]
-      h_results = h[6]
-      h_iterate_label = h[7]
-      if h_results <> None and h_iterate_label == state.iteration.label:
-         res_hh = []
-         res_lh = []
-         for i in range(len(h_results)):
-            hk,hv = h_results[i]
-            
-            if i <> 0:
-               kind = result_kinds[hk][1]
-               if kind not in datas: datas[kind] = []
-  
-            if type(hv[0]) == list:
-               for j in range(len(hv[0])):
-                  vlabel = str(h_idx) + "_" + hk + str(j)
-                  if 'showGraph_'+vlabel in REQUEST:
-
-                     if res_hh == []:
-                           res_hh = [h_results[0]]
-
-                     res_hh.append((hk+"_"+str(h_idx), map(lambda x: x[j], hv)))
-                     res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
-
-                     #table_result_i <= script("datas.push({ data : "+todata(h_results[0][1], map(lambda L: L[j], hv))+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
-                     datas[kind].append(("\'"+REQUEST['showGraphLabel_' + vlabel]+"\'", todata(h_results[0][1], map(lambda L: L[j], hv))))    
-            else:
-               vlabel = str(h_idx) + "_" + hk
-            
-               if 'showGraph_'+vlabel in REQUEST:
-                 
-                  if res_hh == []:
-                        res_hh = [h_results[0]]
-                    
-                  res_hh.append((hk+"_"+str(h_idx), hv))
-                  res_lh.append(REQUEST['showGraphLabel_'+ vlabel])
-                     
-                  ddd = todata(h_results[0][1], hv)
-                  #table_result_i <= script("datas.push({ data : "+ddd+", label : \'"+REQUEST['showGraphLabel_' + vlabel]+"\' })")          
-                  datas[kind].append(("\'"+REQUEST['showGraphLabel_' + vlabel]+"\'", ddd))    
-         
-         if res_hh <> []: res_h.append((res_hh, res_lh))
-    #print res_h
-    return res_h
 
 Include(r'premia/print_scalar_result.py')        
 
