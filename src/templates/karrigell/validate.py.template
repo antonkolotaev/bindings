@@ -1363,23 +1363,114 @@ class Serie(object):
    def __repr__(self):
       return "(" + self.label + ":" + self.data + ")"
 
-def serie(domain, k, v):
-   return Serie(quote(REQUEST['showGraphLabel_' + k]), 
-                todata(domain, v))
+class ResultElementBase(object):
 
-def serieV(domain, k, v, i):
-   return Serie(quote(REQUEST['showGraphLabel_' + k]+'['+str(i)+']'), 
-                todata(domain, map(lambda L: L[i], v)))
+   def __init__(self, parent):
+      self.parent = parent
+      self.domain = parent.domain
 
-def serieHV(domain, h_idx, k, v, i):
-   vlabel = str(h_idx) + "_" + k + str(i)
-   return None if 'showGraph_'+vlabel not in REQUEST else \
-          Serie(quote(REQUEST['showGraphLabel_' + vlabel]), todata(domain, map(lambda L: L[i], v)))
+   @cached_property 
+   def showGraphLabel(self):
+      return REQUEST['showGraphLabel_' + self.vlabel]
 
-def serieH(domain, h_idx, k, v):
-   vlabel = str(h_idx) + "_" + k
-   return None if 'showGraph_'+vlabel not in REQUEST else \
-          Serie(quote(REQUEST['showGraphLabel_' + vlabel]), todata(domain, v)) 
+   @cached_property
+   def showOnGraph(self):
+      return 'showGraph_'+self.vlabel in REQUEST
+
+   @cached_property
+   def labels(self):
+      return [(self.showGraphLabel, self.showOnGraph)]
+
+   @cached_property
+   def series(self):
+      kind = result_kinds[self.label][1]
+      return [] if not self.showOnGraph else \
+             [(kind, Serie(self.showGraphLabel, todata(self.parent.domain, self.data)))]
+
+   @cached_property
+   def rows(self):
+      return rowKV(self.label, self.data)
+
+class ResultElementVBase(object):
+
+   def __init__(self, parent, (k,v)):
+      self.parent = parent
+      self.domain = parent.domain
+      self.label = k
+      self.data = v
+
+   @cached_property
+   def elements(self):
+      return map(lambda i: self.vectorResultElement(self, (self.label,self.data), i), 
+                 range(len(self.data[0])))            
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.elements))
+
+   @cached_property
+   def rows(self):
+      return spannedRowsKV(self.label, self.data)
+
+   @cached_property
+   def labels(self):
+      return chain(*map(lambda e: e.labels, self.elements))
+
+
+
+class CurrentResultElement(ResultElementBase):
+
+   def __init__(self, parent, (k,v)):
+      self.parent = parent
+      self.label = k
+      self.data = v
+      self.vlabel = k
+
+class CurrentVectorResultElement(ResultElementBase):
+
+   def __init__(self, parent, (k,v), i):
+      self.parent = parent
+      self.label = k
+      self.data = v
+      self.vlabel = k
+      self.i = i
+      self.domain = parent.domain
+      self.data = map(lambda L: L[i], v)
+
+   @cached_property 
+   def showGraphLabel(self):
+      return REQUEST['showGraphLabel_' + self.vlabel]+'['+str(self.i)+']'
+
+class CurrentResultElementV(ResultElementVBase):
+
+   def __init__(self, parent, (k,v)):
+      ResultElementVBase.__init__(self, parent, (k,v))
+      self.vectorResultElement = CurrentVectorResultElement
+
+class HistoryResultElement(ResultElementBase):
+
+   def __init__(self, parent, (k,v)):
+      ResultElementBase.__init__(self, parent)
+      self.label = k
+      self.data = v
+      self.idx = self.parent.idx
+      self.vlabel = str(self.idx) + "_" + self.label
+
+class HistoryVectorResultElement(ResultElementBase):
+
+   def __init__(self, parent, (k,v), i):
+      ResultElementBase.__init__(self, parent)
+      self.label = k
+      self.data = map(lambda L: L[i], v)
+      self.vlabel = str(self.parent.idx) + "_" + self.label + str(i)
+
+class HistoryResultElementV(ResultElementVBase):
+
+   def __init__(self, parent, (k,v)):
+      ResultElementVBase.__init__(self, parent, (k,v))
+      self.vectorResultElement = HistoryVectorResultElement
+      self.idx = parent.idx
+
 
 class HistoryElement(object):
 
@@ -1387,35 +1478,34 @@ class HistoryElement(object):
       self.parent = parent
       self.idx = idx
       self.source = session.history[idx]
-      self.results = self.source[6]
+      self.rawResults = self.source[6]
       self.iterate_label = self.source[7]
 
    @cached_property
    def domain(self):
-      return self.results[0][1]
+      return self.rawResults[0][1]
 
-   def serieForResultElement(self, (k,v)):
-      kind = result_kinds[k][1]
+   @cached_property
+   def results(self):
+      def construct((k,v)):
+         return HistoryResultElementV(self, (k,v)) \
+                  if type(v[0]) == list \
+                  else HistoryResultElement(self, (k,v))
 
-      series=map(lambda i: (kind, serieHV(self.domain, self.idx, k, v, i)), range(len(v[0]))) \
-                if type(v[0]) == list else \
-                          [(kind, serieH (self.domain, self.idx, k, v))]
-
-      return ifilter(lambda (k,v): v <> None, series)
+      return map(construct, self.rawResults[1:])
 
    @cached_property
    def series(self):
-      if self.results <> None and self.iterate_label == self.parent.iteration.label:
-         return chain(*map(self.serieForResultElement, self.results[1:]))
-      else:
-         return []
+      return chain(*map(lambda e: e.series, self.results)) \
+               if self.rawResults <> None and self.iterate_label == self.parent.iteration.label \
+               else []
 
 class History(object):
 
    def __init__(self, parent):
       self.parent = parent
-      N = len(session.history)
-      self.elements = map(lambda i: HistoryElement(parent, N-i-1), range(len(session.history)))
+      N = len(session.history) if 'history' in dir(session) else 0
+      self.elements = map(lambda i: HistoryElement(parent, N-i-1), range(N))
 
    @cached_property
    def series(self):
@@ -1486,14 +1576,13 @@ class IterationResult(object):
          add_error(exc)
       return res_t
 
-   @staticmethod
-   def renderRow(e):
-      k,v = e
-      return spannedRowsKV(k,v) if type(v[0]) == list else rowKV(k,v)
+   @cached_property
+   def headerRow(self):
+      return rowKV(self.result[0][0], self.result[0][1])
 
    @cached_property
    def rows(self):
-      return map(self.renderRow, self.result)
+      return [self.headerRow] + map(lambda r: r.rows, self.results)
    
    @cached_property
    def table(self):
@@ -1505,32 +1594,26 @@ class IterationResult(object):
    def domain(self):
       return self.result[0][1]
 
-   def serieForResultElement(self, e):
-      k,v = e
-      kind = result_kinds[k][1]
+   @cached_property
+   def results(self):
+      def construct((k,v)):
+         return CurrentResultElementV(self, (k,v)) \
+                  if type(v[0]) == list \
+                  else CurrentResultElement(self, (k,v))
 
-      if 'showGraph_' + k not in REQUEST:
-         return []
-
-      return map(lambda i: (kind, serieV(self.domain, k, v, i)), range(len(v[0]))) if type(v[0]) == list else \
-                          [(kind, serie (self.domain, k, v))]
+      return map(construct, self.result[1:])
 
    @cached_property
-   def currentSeries(self):
-      return chain(*map(self.serieForResultElement, self.result[1:]))
+   def series(self):
+      return chain(*map(lambda e: e.series, self.results)) 
 
    @cached_property
    def dataSeries(self):
-       return groupByFirst(chain(self.parent.history.series, self.currentSeries))
-
-   def labelsForResultElement(self, (k,v)):
-      return map(lambda i: (REQUEST['showGraphLabel_' + k]+"["+str(i)+"]", ('showGraph_' + k in REQUEST)), range(len(v[0]))) \
-               if type(v[0]) == list else \
-             [(REQUEST['showGraphLabel_' + k], ('showGraph_' + k in REQUEST))]
+       return groupByFirst(chain(self.parent.history.series, self.series))
 
    @cached_property
    def resultLabels(self):
-      return list(chain(*map(self.labelsForResultElement, self.result[1:])))
+      return list(chain(*map(lambda e: e.labels, self.results)))
 
    @cached_property
    def resH(self):
@@ -1966,7 +2049,7 @@ if res_t <> None:
     for i in range(len(values)):
         form <= script("data"+str(i)+" = [];")
         for e in values[i]:
-            form <= script("data"+str(i)+".push({ data : "+e.data+", label : "+e.label+" });")          
+            form <= script("data"+str(i)+".push({ data : "+e.data+", label : "+quote(e.label)+" });")          
         if values[i] <> []:
            form <= TEXT(graph_t.replace('qqq','containers' + str(i)).replace("datas", "data"+str(i)))
 
