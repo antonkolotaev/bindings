@@ -1001,7 +1001,38 @@ def lookupMethod(m,f,meth):
 def uriPart(key,value):
    return '&' + key + '=' + value
 
-class StateBase(object):
+class StateCommonBase(object):
+   
+   @cached_property
+   def name(self):
+      return self.ksModule.name()
+
+   @cached_property
+   def visitFields(self):
+      def inner(v):
+         return reduce(v.comb, map(lambda x: x.process(v), self.ksModule.fields()), [])         
+      return inner
+
+   @cached_property
+   def rows(self):
+      return self.header + self.visitFields(self.createRenderer())  
+
+   @cached_property
+   def myHeaderImpl(self):
+      return [rowEx(B(self.printLabel), self.headerContent)]      
+
+   @cached_property
+   def header(self):
+      return self.myHeaderImpl
+
+   @cached_property
+   def table(self):
+      table = TABLE(Class="content")
+      addRowsToTable(table, self.rows, self.colors)
+      return table
+
+
+class StateBase(StateCommonBase):
 
    def __init__(self, parent):
       self.parent = parent
@@ -1055,22 +1086,12 @@ class StateBase(object):
       return self.tryGet(self.uriToken, self.defaultValue)
 
    @cached_property
-   def name(self):
-      return self.ksModule.name()
-
-   @cached_property
    def idChoices(self):
       return self.nameChoices
 
    @cached_property
    def nameChoices(self):
       return map(lambda x: x.__name__, self.choices) 
-
-   @cached_property
-   def visitFields(self):
-      def inner(v):
-         return reduce(v.comb, map(lambda x: x.process(v), self.ksModule.fields()), [])         
-      return inner
 
    def clrinc(self): clrinc()
    @property
@@ -1138,23 +1159,16 @@ class StateBase(object):
    def iterationIdxChanged(self):
       return self.oldIterationIdx <> self.srcIterationIdx
 
+   def createRenderer(self):
+      return Renderer(state = self)
+
    @cached_property
    def rows(self):
-      return self.header + self.visitFields(Renderer(state = self)) + self.iterationRows 
+      return super(StateBase,self).rows + self.iterationRows 
 
    @cached_property
-   def myHeaderImpl(self):
-      return [rowEx(B(self.printLabel), enum_submit_mod(self.reqLabel, self.nameChoices, self.name))]      
-
-   @cached_property
-   def header(self):
-      return self.myHeaderImpl
-
-   @cached_property
-   def table(self):
-      table = TABLE(Class="content")
-      addRowsToTable(table, self.rows, self.colors)
-      return table
+   def headerContent(self):
+      return enum_submit_mod(self.reqLabel, self.nameChoices, self.name)
 
    @cached_property
    def iterationRows(state):
@@ -1172,27 +1186,44 @@ class StateBase(object):
 
       return table
 
-class AssetState(StateBase):
+class AssetStateBase(object):
+
+   printLabel = 'Asset Type:'
+
+   @cached_property
+   def name(self):
+      return self.id
+
+
+class AssetState(AssetStateBase, StateBase):
 
    @cached_property
    def choices(self):
       return assets.all()
 
    reqLabel = 'asset_type'
-   printLabel = 'Asset Type:'
    uriToken = 'a'
    defaultValue = 'equity_Black_Scholes_type'
-
-   @cached_property
-   def name(self):
-      return self.id
 
    @cached_property 
    def predsChanged(self):
       return False 
 
+class ModelStateBase(object):
 
-class ModelState(StateBase):
+   colors = mod_colors
+   printLabel = 'Model:'
+
+   @cached_property
+   def ksModule(self): 
+      return myImport('kspremia.mod.' + self.id + '.model')
+
+   @cached_property
+   def header(self):
+      return self.parent.asset.header + self.myHeaderImpl
+
+
+class ModelState(ModelStateBase, StateBase):
 
    @cached_property
    def choices(self):
@@ -1203,9 +1234,7 @@ class ModelState(StateBase):
       return map(lambda x: x.ID(), self.choices)
 
    entityLabel = 'model'
-   colors = mod_colors
    reqLabel = 'model'
-   printLabel = 'Model:'
    uriToken = 'm'
    defaultValue = 'BS1D'
    uriOldItIdx = 'im'
@@ -1216,20 +1245,20 @@ class ModelState(StateBase):
       return self.parent.asset.idChanged 
 
    @cached_property
-   def ksModule(self): 
-      return myImport('kspremia.mod.' + self.id + '.model')
-
-   @cached_property
-   def header(self):
-      return self.parent.asset.header + self.myHeaderImpl
-
-   @cached_property
    def otherItIdxChanged(self):
       return \
          self.parent.option.iterationIdxChanged or \
          self.parent.method.iterationIdxChanged
 
-class FamilyState(StateBase):
+class FamilyStateBase(object):
+
+   printLabel = 'Family:'
+
+   @cached_property
+   def name(self):
+      return self.id
+
+class FamilyState(FamilyStateBase, StateBase):
 
    @cached_property
    def choices(self):
@@ -1240,32 +1269,35 @@ class FamilyState(StateBase):
       return self.choices
 
    reqLabel = 'family'
-   printLabel = 'Family:'
    uriToken = 'f'
    defaultValue = 'STD'
-
-   @cached_property
-   def name(self):
-      return self.id
 
    @cached_property 
    def predsChanged(self):
       return self.parent.model.idChanged
 
-class OptionState(StateBase):
+class OptionStateBase(object):
 
    @cached_property
    def ksModule(self):
       return myImport('kspremia.opt.'+self.parent.family.id+'.'+self.id)    
+
+   colors = opt_colors
+   printLabel = 'Option:'
+
+   @cached_property
+   def header(self):
+      return self.parent.family.header + self.myHeaderImpl
+
+
+class OptionState(OptionStateBase, StateBase):
 
    @cached_property
    def choices(self):
       return pricing_options(self.parent.model.id,self.parent.family.id)
 
    entityLabel = 'option'
-   colors = opt_colors
    reqLabel = 'option'
-   printLabel = 'Option:'
    uriToken = 'o'
    defaultValue = 'CallEuro'
    uriOldItIdx = 'io'
@@ -1276,20 +1308,17 @@ class OptionState(StateBase):
       return self.parent.family.idChanged or self.parent.model.idChanged
 
    @cached_property
-   def header(self):
-      return self.parent.family.header + self.myHeaderImpl
-
-   @cached_property
    def otherItIdxChanged(self):
       return \
          self.parent.model.iterationIdxChanged or \
          self.parent.method.iterationIdxChanged
 
-class ResultMember(object):
+class ResultMemberCommonBase(object):
 
-   def __init__(self, correctedName, friendlyName):
+   def __init__(self, correctedName, friendlyName, enabled=True):
       self.friendlyName = friendlyName
       self.correctedName = correctedName
+      self.enabled = enabled
 
    @cached_property
    def request(self):
@@ -1304,12 +1333,39 @@ class ResultMember(object):
 
    @cached_property
    def rows(self): 
-         old_checked = result_kinds[self.correctedName][0]
-         return rowEx('', 
-                      INPUT(name='showGraphLabel_'+self.correctedName, value=self.oldLabel, disabled = False), 
-                      checkbox('showGraph_'+self.correctedName, checked = old_checked, disabled = False))
+      return rowEx('', 
+                   INPUT(name='showGraphLabel_'+self.correctedName, value=self.friendlyName, disabled = not self.enabled), 
+                   checkbox('showGraph_'+self.correctedName, checked = self.oldChecked, disabled = not self.enabled))
 
-class MethodState(StateBase):
+
+class ResultMember(ResultMemberCommonBase):
+
+   @cached_property
+   def oldChecked(self):
+      return result_kinds[self.correctedName][0]
+
+class MethodStateBase(object):
+
+   colors = met_colors
+   printLabel = 'Pricing method:'
+
+   @cached_property
+   def ksModule(self):
+      return getMethodModule(self.parent.model.id, self.parent.family.id, self.id)
+
+   @cached_property
+   def rows(self):
+      return self.superRows + self.resultTable
+
+   @cached_property
+   def resultTable(self):
+      return \
+         [spannedColEx('Show results in a graph')] + \
+         map(lambda t: t.rows, self.resultMembers)  \
+         if self.showResultMembers else []
+
+
+class MethodState(MethodStateBase, StateBase):
 
    @cached_property
    def choices(self):
@@ -1319,33 +1375,28 @@ class MethodState(StateBase):
       return [x for x in eval('pricings.' + m + '.' + m + '_' + f + '.all()') if type(opt) in x.options()]
 
    entityLabel = 'method'
-   colors = met_colors
    reqLabel = 'pricing_method'
-   printLabel = 'Pricing method:'
    uriToken = 'meth'
    defaultValue = 'CF_Call'
    uriOldItIdx = 'ip'
    reqItIdx = 'iterate_method'
+
+   @cached_property
+   def superRows(self):
+      return StateBase.rows.__get__(self, None)
+
+   @property 
+   def showResultMembers(self):
+      return self.parent.iteration
 
    @cached_property 
    def predsChanged(self):
       return self.parent.option.idChanged or self.parent.model.idChanged
 
    @cached_property
-   def ksModule(self):
-      return getMethodModule(self.parent.model.id, self.parent.family.id, self.id)
-
-   @cached_property
-   def rows(self):
-      return super(MethodState, self).rows + self.resultTable
-
-   @cached_property
-   def resultTable(self):
-      return \
-         [spannedColEx('Show results in a graph')] + \
-         map(lambda t: ResultMember(t[0],t[1]).rows, 
-             self.ksModule.resultFields() + [('Time', 'Computation Time')])  \
-         if self.parent.iteration <> None else []
+   def resultMembers(self):
+      return map(lambda t: ResultMember(t[0],t[1]), 
+                 self.ksModule.resultFields() + [('Time', 'Computation Time')]) 
 
    @cached_property
    def otherItIdxChanged(self):
@@ -1353,8 +1404,24 @@ class MethodState(StateBase):
          self.parent.option.iterationIdxChanged or \
          self.parent.model.iterationIdxChanged
 
+class ScalarResultBase(object):
 
-class ScalarResult(object):
+   @staticmethod
+   def renderScalarResultElement((k,v)):
+      return [spannedRows2(k, v)] if type(v) == list else [row2(k, v)]
+
+   @cached_property
+   def rows(self):
+      return reduce(lambda x,y: x+y, map(self.renderScalarResultElement, self.result),[row2('Result','')])
+
+   @cached_property
+   def table(self):
+      if self.result <> None:
+         addRowsToTable(self.parent.method.table, self.rows, res_colors)
+      return self.parent.method.table
+
+
+class ScalarResult(ScalarResultBase):
 
    def __init__(self, parent):
       self.parent = parent
@@ -1382,19 +1449,6 @@ class ScalarResult(object):
       except Exception, exc:
          add_error(exc)
       return res 
-
-   @staticmethod
-   def renderScalarResultElement((k,v)):
-      return [spannedRows2(k, v)] if type(v) == list else [row2(k, v)]
-
-   @cached_property
-   def rows(self):
-      return reduce(lambda x,y: x+y, map(self.renderScalarResultElement, self.result),[row2('Result','')])
-
-   @cached_property
-   def table(self):
-      addRowsToTable(self.parent.method.table, self.rows, res_colors)
-      return self.parent.method.table
 
 def rowKV(k,v):
    return [TD(k,align='right') + Sum([TD(L) for L in v])]
@@ -1564,8 +1618,21 @@ class HistoryResultElementV(ResultElementVBase):
       self.vectorResultElement = HistoryVectorResultElement
       self.idx = parent.idx
 
+class HistoryElementBase(object):
 
-class HistoryElement(object):
+   @cached_property
+   def domain(self):
+      return self.rawResults[0][1]
+
+   @cached_property
+   def results(self):
+      return map(self.constructResultElement, self.rawResults[1:])
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.results)) 
+
+class HistoryElement(HistoryElementBase):
 
    def __init__(self, parent, idx):
       self.parent = parent
@@ -1574,18 +1641,10 @@ class HistoryElement(object):
       self.rawResults = self.source[6]
       self.iterate_label = self.source[7]
 
-   @cached_property
-   def domain(self):
-      return self.rawResults[0][1]
-
-   @cached_property
-   def results(self):
-      def construct((k,v)):
-         return HistoryResultElementV(self, (k,v)) \
-                  if type(v[0]) == list \
-                  else HistoryResultElement(self, (k,v))
-
-      return map(construct, self.rawResults[1:])
+   def constructResultElement((k,v)):
+      return HistoryResultElementV(self, (k,v)) \
+               if type(v[0]) == list else \
+             HistoryResultElement(self, (k,v))
 
    @cached_property
    def compatible(self):
@@ -1605,19 +1664,21 @@ class HistoryElement(object):
 
    @cached_property
    def series(self):
-      return chain(*map(lambda e: e.series, self.results)) \
-               if self.compatible else []
+      return super(HistoryElement,self).series if self.compatible else []
 
-class History(object):
+class HistoryBase(object):
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.elements)) 
+
+
+class History(HistoryBase):
 
    def __init__(self, parent):
       self.parent = parent
       N = len(session.history) if 'history' in dir(session) else 0
       self.elements = map(lambda i: HistoryElement(parent, N-i-1), range(N))
-
-   @cached_property
-   def series(self):
-      return chain(*map(lambda h: h.series, self.elements))
 
    @cached_property
    def resH(self):
@@ -1640,9 +1701,68 @@ class Graph(object):
 
          return res
 
+class IterationResultBase(object):
+
+   @cached_property
+   def headerRow(self):
+      return rowKV(self.result[0][0], self.result[0][1])
+
+   @cached_property
+   def rows(self):
+      return [self.headerRow] + map(lambda r: r.rows, self.results)
+   
+   @cached_property
+   def table(self):
+      table_result_i = TABLE(Class="content")
+      addRowsToTable(table_result_i, self.rows, res_colors)
+      return table_result_i
+
+   @cached_property
+   def domain(self):
+      return self.result[0][1]
+
+   @cached_property
+   def results(self):
+      def construct((k,v)):
+         return CurrentResultElementV(self, (k,v)) \
+                  if type(v[0]) == list \
+                  else CurrentResultElement(self, (k,v))
+
+      return map(construct, self.result[1:])
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.results)) 
+
+   @cached_property
+   def dataSeries(self):
+      return groupByFirst(chain(self.historySeries, self.series))
+
+   @cached_property
+   def graphs(self):
+      values = self.dataSeries.values()
+      def construct(i):
+         return Graph(self.graphIdx(i), values[i])
+      return map(construct, range(len(values)))
+
+   @property  
+   def empty(self):
+      return self.result == None
+
+   @cached_property
+   def graphCode(self):
+      return chain(*map(lambda e: e.code, self.graphs))
+
+   @cached_property
+   def resultLabels(self):
+      return list(chain(*map(lambda e: e.labels, self.results)))
+
+   @cached_property
+   def resH(self):
+      return list(self.parent.history.resH)
 
 
-class IterationResult(object):
+class IterationResult(IterationResultBase):
 
    def __init__(self, parent):
       self.parent = parent
@@ -1707,58 +1827,10 @@ class IterationResult(object):
       return res_t
 
    @cached_property
-   def headerRow(self):
-      return rowKV(self.result[0][0], self.result[0][1])
+   def historySeries(self):
+      return self.parent.history.series
 
-   @cached_property
-   def rows(self):
-      return [self.headerRow] + map(lambda r: r.rows, self.results)
-   
-   @cached_property
-   def table(self):
-      table_result_i = TABLE(Class="content")
-      addRowsToTable(table_result_i, self.rows, res_colors)
-      return table_result_i
-
-   @cached_property
-   def domain(self):
-      return self.result[0][1]
-
-   @cached_property
-   def results(self):
-      def construct((k,v)):
-         return CurrentResultElementV(self, (k,v)) \
-                  if type(v[0]) == list \
-                  else CurrentResultElement(self, (k,v))
-
-      return map(construct, self.result[1:])
-
-   @cached_property
-   def series(self):
-      return chain(*map(lambda e: e.series, self.results)) 
-
-   @cached_property
-   def dataSeries(self):
-      return groupByFirst(chain(self.parent.history.series, self.series))
-
-   @cached_property
-   def graphs(self):
-      values = self.dataSeries.values()
-      def construct(i):
-         return Graph(i, values[i])
-      return map(construct, range(len(values)))
-
-   @cached_property
-   def graphCode(self):
-      return chain(*map(lambda e: e.code, self.graphs))
-
-   @cached_property
-   def resultLabels(self):
-      return list(chain(*map(lambda e: e.labels, self.results)))
-
-   @cached_property
-   def resH(self):
-      return list(self.parent.history.resH)
+   def graphIdx(self, i): return i
 
 """
 Class representing a single run.
@@ -2090,52 +2162,22 @@ if to_save <> None:
 if session.history <> []:
    form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
-class HStateBase(object):
+class HStateBase(StateCommonBase):
    
-   @cached_property
-   def name(self):
-      return self.ksModule.name()
+   def createRenderer(self):
+      return RendererH(self)
 
    @cached_property
-   def visitFields(self):
-      def inner(v):
-         return reduce(v.comb, map(lambda x: x.process(v), self.ksModule.fields()), [])         
-      return inner
+   def headerContent(self):
+      return B(self.name)
 
-   @cached_property
-   def rows(self):
-      return self.header + self.visitFields(RendererH(self))  
-
-   @cached_property
-   def myHeaderImpl(self):
-      return [rowEx(B(self.printLabel), B(self.name))]      
-
-   @cached_property
-   def header(self):
-      return self.myHeaderImpl
-
-   @cached_property
-   def table(self):
-      table = TABLE(Class="content")
-      addRowsToTable(table, self.rows, self.colors)
-      return table
-
-
-
-class AssetHState(HStateBase):
+class AssetHState(AssetStateBase, HStateBase):
 
    def __init__(self, parent):
       self.id = parent.source[0]
       self.parent = parent
 
-   printLabel = 'Asset Type:'
-
-   @cached_property
-   def name(self):
-      return self.id
-
-
-class ModelHState(HStateBase):
+class ModelHState(ModelStateBase, HStateBase):
 
    def __init__(self, parent):
       self.obj = parent.source[1]
@@ -2145,30 +2187,13 @@ class ModelHState(HStateBase):
    def id(self):
       return self.obj.ID()
 
-   colors = mod_colors
-   printLabel = 'Model:'
-
-   @cached_property
-   def ksModule(self): 
-      return myImport('kspremia.mod.' + self.id + '.model')
-
-   @cached_property
-   def header(self):
-      return self.parent.asset.header + self.myHeaderImpl
-
-class FamilyHState(HStateBase):
+class FamilyHState(FamilyStateBase, HStateBase):
 
    def __init__(self, parent):
       self.id = parent.option.obj.familyName()
       self.parent = parent
 
-   printLabel = 'Family:'
-
-   @cached_property
-   def name(self):
-      return self.id
-
-class OptionHState(HStateBase):
+class OptionHState(OptionStateBase, HStateBase):
 
    def __init__(self, parent):
       self.obj = parent.source[2]
@@ -2178,44 +2203,14 @@ class OptionHState(HStateBase):
    def id(self):
       return type(self.obj).__name__
 
-   @cached_property
-   def ksModule(self):
-      return myImport('kspremia.opt.'+self.parent.family.id+'.'+self.id)    
-
-   colors = opt_colors
-   printLabel = 'Option:'
+class HResultMember(ResultMemberCommonBase):
 
    @cached_property
-   def header(self):
-      return self.parent.family.header + self.myHeaderImpl
+   def oldChecked(self):
+      return 'showGraph_'+self.correctedName in REQUEST and 'showGraphLabel_'+self.correctedName in REQUEST
 
-class HResultMember(object):
 
-   def __init__(self, correctedName, friendlyName, enabled):
-      self.friendlyName = friendlyName
-      self.correctedName = correctedName
-      self.enabled = enabled
-
-   @cached_property
-   def request(self):
-      return REQUEST
-
-   def tryGet(self, key, defaultValue):
-      return self.request[key] if key in self.request else defaultValue
-
-   @cached_property
-   def oldLabel(self):
-      return self.tryGet('showGraphLabel_'+self.correctedName, self.friendlyName)
-
-   @cached_property
-   def rows(self): 
-      old_checked = 'showGraph_'+self.correctedName in REQUEST and 'showGraphLabel_'+self.correctedName in REQUEST
-
-      return rowEx('', 
-                   INPUT(name='showGraphLabel_'+self.correctedName, value=self.friendlyName, disabled = not self.enabled), 
-                   checkbox('showGraph_'+self.correctedName, checked = old_checked, disabled = not self.enabled))
-
-class MethodHState(HStateBase):
+class MethodHState(MethodStateBase, HStateBase):
 
    def __init__(self, parent):
       self.parent = parent
@@ -2230,16 +2225,13 @@ class MethodHState(HStateBase):
    def id(self):
       return type(self.obj).__name__
 
-   colors = met_colors
-   printLabel = 'Pricing method:'
-
    @cached_property
-   def ksModule(self):
-      return getMethodModule(self.parent.model.id, self.parent.family.id, self.id)
+   def superRows(self):
+      return HStateBase.rows.__get__(self, None)
 
-   @cached_property
-   def rows(self):
-      return super(MethodHState, self).rows + self.resultTable
+   @property
+   def showResultMembers(self):
+      return self.res_t
 
    @cached_property  # to be refactored
    def resultMembers(self):
@@ -2264,55 +2256,22 @@ class MethodHState(HStateBase):
             members.append(HResultMember(vlabel, friendly, enabled))
       return members
 
-   @cached_property
-   def resultTable(self):
-      return \
-         [spannedColEx('Show results in a graph')] + \
-         map(lambda t: t.rows, self.resultMembers)  \
-         if self.res_t <> None else []
-
-
-class HScalarResult(object):
+class HScalarResult(ScalarResultBase):
 
    def __init__(self, parent):
       self.parent = parent
       self.result = parent.source[5]
 
-   @staticmethod
-   def renderScalarResultElement((k,v)):
-      return [spannedRows2(k, v)] if type(v) == list else [row2(k, v)]
-
-   @cached_property
-   def rows(self):
-      return reduce(lambda x,y: x+y, map(self.renderScalarResultElement, self.result),[row2('Result','')])
-
-   @cached_property
-   def table(self):
-      if self.result <> None:
-         addRowsToTable(self.parent.method.table, self.rows, res_colors)
-      return self.parent.method.table
-
-class HHistoryElement(object):
+class HHistoryElement(HistoryElementBase):
 
    def __init__(self, result, labels):
       self.rawResults = result
       self.labels = labels
 
-   @cached_property
-   def domain(self):
-      return self.rawResults[0][1]
+   def constructResultElement((k,v)):
+      return HistoryResultElement(self, (k,v))
 
-   @cached_property
-   def results(self):
-      def construct((k,v)):
-         return HistoryResultElement(self, (k,v))
-      return map(construct, self.rawResults[1:])
-
-   @cached_property
-   def series(self):
-      return chain(*map(lambda e: e.series, self.results)) 
-
-class HHistory(object):
+class HHistory(HistoryBase):
 
    def __init__(self, parent):
       self.parent = parent.parent
@@ -2325,75 +2284,19 @@ class HHistory(object):
          return HHistoryElement(res_hh, res_hf)
       return map(construct, res_h) 
 
-   @cached_property
-   def series(self):
-      return chain(*map(lambda e: e.series, self.elements)) 
-
-
-class HIterationResult(object):
+class HIterationResult(IterationResultBase):
 
    def __init__(self, parent):
       self.parent = parent
       self.result =  parent.source[6]
       self.hhistory = HHistory(self)
+
+   @property
+   def historySeries(self):
+      return []
       
-   @cached_property
-   def headerRow(self):
-      return rowKV(self.result[0][0], self.result[0][1])
-
-   @cached_property
-   def rows(self):
-      return [self.headerRow] + map(lambda r: r.rows, self.results)
-   
-   @cached_property
-   def table(self):
-      table_result_i = TABLE(Class="content")
-      addRowsToTable(table_result_i, self.rows, res_colors)
-      return table_result_i
-
-   @cached_property
-   def domain(self):
-      return self.result[0][1]
-
-   @cached_property
-   def results(self):
-      def construct((k,v)):
-         return CurrentResultElementV(self, (k,v)) \
-                  if type(v[0]) == list \
-                  else CurrentResultElement(self, (k,v))
-
-      return map(construct, self.result[1:])
-
-   @cached_property
-   def series(self):
-      return chain(*map(lambda e: e.series, self.results)) 
-
-   @cached_property
-   def dataSeries(self):
-      return groupByFirst(self.series)
-
-   @cached_property
-   def graphs(self):
-      values = self.dataSeries.values()
-      def construct(i):
-         return Graph(100+self.parent.h_idx*100 + i, values[i])
-      return map(construct, range(len(values)))
-
-   @property  
-   def empty(self):
-      return self.result == None
-
-   @cached_property
-   def graphCode(self):
-      return chain(*map(lambda e: e.code, self.graphs))
-
-   @cached_property
-   def resultLabels(self):
-      return list(chain(*map(lambda e: e.labels, self.results)))
-
-   @cached_property
-   def resH(self):
-      return list(self.parent.history.resH)
+   def graphIdx(self, i):
+      return 100+self.parent.h_idx*100 + i
 
 class HState(object):
 
