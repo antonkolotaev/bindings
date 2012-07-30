@@ -2292,6 +2292,70 @@ class HScalarResult(object):
          addRowsToTable(self.parent.method.table, self.rows, res_colors)
       return self.parent.method.table
 
+class HIterationResult(object):
+
+   def __init__(self, parent):
+      self.parent = parent
+      self.result =  parent.source[6]
+
+      
+   @cached_property
+   def headerRow(self):
+      return rowKV(self.result[0][0], self.result[0][1])
+
+   @cached_property
+   def rows(self):
+      return [self.headerRow] + map(lambda r: r.rows, self.results)
+   
+   @cached_property
+   def table(self):
+      table_result_i = TABLE(Class="content")
+      addRowsToTable(table_result_i, self.rows, res_colors)
+      return table_result_i
+
+   @cached_property
+   def domain(self):
+      return self.result[0][1]
+
+   @cached_property
+   def results(self):
+      def construct((k,v)):
+         return CurrentResultElementV(self, (k,v)) \
+                  if type(v[0]) == list \
+                  else CurrentResultElement(self, (k,v))
+
+      return map(construct, self.result[1:])
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.results)) 
+
+   @cached_property
+   def dataSeries(self):
+      return groupByFirst(self.series)
+
+   @cached_property
+   def graphs(self):
+      values = self.dataSeries.values()
+      def construct(i):
+         return Graph(100+self.parent.h_idx*100 + i, values[i])
+      return map(construct, range(len(values)))
+
+   @property  
+   def empty(self):
+      return self.result == None
+
+   @cached_property
+   def graphCode(self):
+      return chain(*map(lambda e: e.code, self.graphs))
+
+   @cached_property
+   def resultLabels(self):
+      return list(chain(*map(lambda e: e.labels, self.results)))
+
+   @cached_property
+   def resH(self):
+      return list(self.parent.history.resH)
 
 class HState(object):
 
@@ -2304,6 +2368,7 @@ class HState(object):
       self.family = FamilyHState(self)
       self.method = MethodHState(self)
       self.scalarResult = HScalarResult(self)
+      self.iterationResult = HIterationResult(self)
       
 
 for hh_idx in range(len(session.history)):
@@ -2334,6 +2399,12 @@ for hh_idx in range(len(session.history)):
 
    form <= g_table
 
+   if not hstate.iterationResult.empty:
+      form <= hstate.iterationResult.table
+      for c in hstate.iterationResult.graphCode:
+         form <= c
+
+   """
    form <= script("var datas = []")
 
    if res_t <> None:
@@ -2351,6 +2422,7 @@ for hh_idx in range(len(session.history)):
        qqq = 'container' + str(h_idx)
        #Include(r'premia/graph.pih') 
        form <= TEXT(graph_t.replace('qqq',qqq))
+   """
 
 print form
 
