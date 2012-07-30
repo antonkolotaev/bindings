@@ -2292,12 +2292,50 @@ class HScalarResult(object):
          addRowsToTable(self.parent.method.table, self.rows, res_colors)
       return self.parent.method.table
 
+class HHistoryElement(object):
+
+   def __init__(self, result, labels):
+      self.rawResults = result
+      self.labels = labels
+
+   @cached_property
+   def domain(self):
+      return self.rawResults[0][1]
+
+   @cached_property
+   def results(self):
+      def construct((k,v)):
+         return HistoryResultElement(self, (k,v))
+      return map(construct, self.rawResults[1:])
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.results)) 
+
+class HHistory(object):
+
+   def __init__(self, parent):
+      self.parent = parent.parent
+
+   @cached_property
+   def elements(self):
+      res_h = self.parent.source[8]
+      def construct((res_hh, res_lh)):
+         res_hf = [(l,True) for l in res_lh]
+         return HHistoryElement(res_hh, res_hf)
+      return map(construct, res_h) 
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.elements)) 
+
+
 class HIterationResult(object):
 
    def __init__(self, parent):
       self.parent = parent
       self.result =  parent.source[6]
-
+      self.hhistory = HHistory(self)
       
    @cached_property
    def headerRow(self):
