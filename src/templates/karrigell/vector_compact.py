@@ -46,13 +46,11 @@ class VectorCompact(FieldBase):
     if isConstant:
       L.select(value=0)
       mc = INPUT(name=self.varnameConst,value=pmem[0])
-      #v.spannedRows(self.friendlyName, [L,mc],'R')
       return [v.spannedRowsEx(self.friendlyName, [L,mc],'R')]
     else:
       def mc(i): 
           return INPUT(name=self.varnameIdx(i),value=pmem[i])
       L.select(value=1)
-      #v.spannedRows(self.friendlyName, [L]+map(mc, range(len(pmem))), 'R')
       return [v.spannedRowsEx(self.friendlyName, [L]+map(mc, range(len(pmem))), 'R')] 
 
   def renderHistory(self, v):
@@ -64,6 +62,16 @@ class VectorCompact(FieldBase):
       v.row(self.friendlyName, pmem[0])
     else:
       v.spannedRows(self.friendlyName, pmem)
+
+  def renderHistoryEx(self, v):
+
+    pmem = getattr(v.entity, self.propertyName)
+    isConstant = getattr(v.entity, self.propnameMode)
+     
+    if isConstant:
+      return [v.rowEx(self.friendlyName, pmem[0])]
+    else:
+      return [v.spannedRowsEx(self.friendlyName, pmem)]
 
   def getIterables(self, v):
 
