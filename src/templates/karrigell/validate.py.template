@@ -8,7 +8,6 @@ from itertools import *
 saved_REQUEST = copy(REQUEST)
 
 Include('import.py')
-#Include(r'premia/result_kinds.py')
 
 from kspremia.result_kinds import *
 from kspremia import enum
@@ -119,19 +118,6 @@ session = Session()
 # here we just add a 'Time' output parameter which is not show by default
 result_kinds['Time'] = (False,-1)
 
-# Type: int optional
-# if not None, indicates that for current state we should take history-th element of history
-history = None
-
-# some tuple representing current history element if any
-# TODO: replaced by class
-history_obj = None
-
-# if 'history' is in URI, we are in history mode
-if '_history' in dir():
-   history = int(_history)
-   history_obj = session.history[history]
-
 def checkbox(vname,checked=True, disabled = False):
    """
    Returns a checkbox with given name
@@ -145,15 +131,6 @@ def checkbox(vname,checked=True, disabled = False):
                 checked=checked, 
                 disabled = disabled) 
    
-"""
-ModelIteration: (same for Option and Method iteration)
-   - list of iterable field names: idx -> printable_name
-   - function to get iterable field corrected names by its index: idx -> corrected_name
-   - function to get iterable field getter by its index: idx -> (() -> FieldValue)
-   - function to get iterable field setter by its index: idx -> (FieldValue -> ()) 
-"""
-
-
 # This class contains arrays representing possible iteration over some entity parameter
 # All the arrays have the first element corresponding to No Iteration case
 # Following elemenets represent data for iterable entity parameters
@@ -212,108 +189,7 @@ class Iterables:
    def getSetter(self, idx):
       self.checkIdx(idx)
       return self._iterables_setter[idx]
- 
 
-# Depends on:
-#   - clrinc, clridx
-#   - REQUEST
-#   - history_mode
-#   - h_iterate_label 
-#   - iterate_label
-def printGraphSerieEx(table, vlabel, friendly, colors, old_checked):
-      """
-      Adds a row corresponding to a result parameter to the 'show graph' table 
-      asking a user should a graph for this parameter be built
-       
-      table : HTMLTable - target table
-      vlabel : string - corrected name of the result parameter
-      friendly : string - original name of the result parameter
-      colors - color array to pickup the color for the row (TBD: refactor)
-      old_checked : bool - initial state of the checkbox
-      """
-      clrinc()
-      
-      # if user changed label for the result parameter to be shown on the graph
-      # we'll use it
-      if 'showGraphLabel_'+vlabel in REQUEST:
-         old_label = REQUEST['showGraphLabel_'+vlabel]
-      else: 
-         old_label = friendly
-
-      # we may ask the user only if this history iteration of this 
-      # is compatible with current iteration  
-      enabled = not history_mode or h_iterate_label == state.iterationLabel
-         
-      table <= TR(
-                  TD() + 
-                  TD( # input box to enter label for this graph serie
-                     INPUT(name='showGraphLabel_'+vlabel,
-                           value=old_label,
-                           disabled = not enabled)) + 
-                  TD( # check box should be this serie shown on the graph
-                     checkbox('showGraph_'+vlabel,
-                              checked = old_checked, 
-                              disabled = not enabled)),
-                  bgcolor=clr(colors,clridx))
-
-# depends on:
-#   - REQUEST
-#   - history_mode
-# printGraphSerieEx with defined old_checked
-def printGraphSerie(table, vlabel, friendly, colors):
-   if 'showGraphLabel_'+vlabel in REQUEST:
-      old_checked = 'showGraph_'+vlabel in REQUEST
-   else: 
-      old_checked = not history_mode
-   printGraphSerieEx(table, vlabel, friendly, colors, old_checked)
-
-# Depends on:
-#  - res_labels
-#  - clrinc
-#  - h_idx
-#  - res_t
-#  - res_h 
-
-# prints a table asking which parameters are to be shown on graph 
-# and which names should they have
-# table : HTMLTable -- table to add rows with result parameters 
-# results : (vlabel, friendly) seq -- in history mode represents output parameters for the method
-# colors -- colors array
-def printResultSeries(table, results, colors):
-   if history_mode:
-      # TODO: ???
-      # this code is not really useful. should be removed
-      if res_labels <> []:    # it seems to me that res_labels contains 
-                              #  old flattened labels for result series 
-         clrinc()
-         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
-
-         idx = 0  # flattened index of the output parameter being processed
-         for i in range(1, len(res_t)): # iterating current table results
-            vlabel = str(h_idx) + "_" + res_t[i][0]   # base for variable name
-            if type(res_t[i][1][0]) == list:          # if output param is list
-               for j in range(len(res_t[i][1][0])):   # for every component of ????
-                  friendly = res_labels[idx][0]
-                  idx = idx + 1   
-                  printGraphSerie(table, vlabel+str(j), friendly, colors)
-            else:
-               friendly = res_labels[idx][0]
-               idx = idx + 1   
-               printGraphSerie(table, vlabel, friendly, colors)
-
-         for (res_hh, res_lh) in res_h:   # res_h is graph series for some elder run
-            for i in range(1, len(res_hh)):
-               vlabel = str(h_idx) + "_" + res_hh[i][0]
-               friendly = res_lh[i-1]
-               printGraphSerie(table, vlabel, friendly, colors)
-         
-   else: # case of the current view
-      if state.iteration <> None: 
-         clrinc()
-         table <= TR(TD('Show results in a graph', colspan='3'),bgcolor=clr(colors,clridx))
-         for (vlabel, friendly) in results:
-            printGraphSerieEx(table, vlabel, friendly, colors, result_kinds[vlabel][0])
-         printGraphSerieEx(table, 'Time', 'Computation Time', colors, False)
 
 class IterationState(object):
 
@@ -328,92 +204,9 @@ class IterationState(object):
       self.stepsNo = stepsNo
 
 
-# Depends on:
-#  - colors
-#  - globals
-
-#def processIteration(ctx, obj, entity, colors):
-def processIteration(state):
-
-   ctx = state.iterables
-   obj = state.obj
-   entity = state.entityLabel
-   colors = state.colors
-   table = state.table
-
-   if not history_mode:
-      G = globals()
-      
-      clrinc()
-      # obtaining name of the variable containing iteration index for 'entity'
-      iterate_vlabel = state.iterateVlabel
-      _iterate_vlabel = '_iterate_'+entity   
-      
-      # getting iteration index for 'entity'
-      #if _iterate_vlabel in G:   
-      #   iterate_idx = int(G[_iterate_vlabel])
-      #else:
-      #   iterate_idx = 0
-
-
-      #old_idx = G['oldit'][entity]
-
-      iterate_idx = state.iterationIdx
-      old_idx = state.oldIterationIdx
-
-      iterationLabel = state.iterationLabel
-      """
-      if state.oldIterationIdx == state.iterationIdx and state.iterationLabel <> None and state.iterationIdx <> 0:
-         if state.iterationIdx >= len(state.iterables) or state.iterationLabel <> state.iterables.getCorrectedName(state.iterationIdx):
-            iterate_idx = state.iterables.lookupByCorrectedName(state.iterationLabel)
-      """
-
-      iterate_idx = state.fixedIterationIdx
-
-      iterate_value_vlabel = state.iterateValueVlabel
-         
-      table <= (TR(TD(('Iterate'),align='right') + TD(enum_submit_mod(iterate_vlabel, ctx.labels, ctx.labels[iterate_idx]))+TD(),bgcolor=clr(colors,clridx)))
-      
-      if iterate_idx <> 0:
-      
-         clrinc()
-
-         old_value = state.oldIterationValue
-         
-         """
-         if iterate_value_vlabel in REQUEST:
-            old_value = REQUEST[iterate_value_vlabel]
-         else:
-            old_value = ctx.getGetter(iterate_idx)()
-         """
-
-         table <= (TR(TD(('Iterate To'),align='right') + TD(INPUT(name=iterate_value_vlabel,value=old_value))+TD(),bgcolor=clr(colors,clridx)))
-         
-         """
-         if 'iteration_steps' in REQUEST:
-            steps_no = REQUEST['iteration_steps']
-         else:
-            steps_no = 10
-         """
-
-         steps_no = state.iterationStepNumber 
-         
-         clrinc()      
-         table <= (TR(TD(('#Iterations'),align='right') + TD(INPUT(name='iteration_steps',value=steps_no))+TD(),bgcolor=clr(colors,clridx)))
-         
-         #G['_iterate_' + entity] = str(iterate_idx)
-         #G['iterate_object'] = obj
-         #G['iterate_label'] = ctx.getCorrectedName(iterate_idx) 
-         #G['iterate_name'] = ctx.labels[iterate_idx]
-         #G['iteration_getter'] = ctx.getGetter(iterate_idx)
-         #G['iteration_setter'] = ctx.getSetter(iterate_idx)
-         #if iterate_value_vlabel in REQUEST:
-         #   G['iterate_to'] = float(REQUEST[iterate_value_vlabel])  
-
 class VisitorBase(object):
 
    def __init__(self, state = None):
-      self.history_mode = history_mode
       self.state = state
 
    def addError(self, msg): add_error(msg)
@@ -450,40 +243,6 @@ class Loader(VisitorBase):
             field.load(self)
       except Exception, ex:
          v.addError('Error in '+ field.propertyName +':' + str(ex))
-
-class EntityTable(TABLE):
-
-   def __init__(self, colors):
-      TABLE.__init__(self, Class="content")
-      self.colors = colors
-      self.clridx = 0
-
-   def clrinc(self): 
-      self.clridx = self.clridx + 1
-      if self.clridx >= len(self.colors):
-         self.clridx = 0
-
-   @property
-   def currentColor(self): 
-      return self.colors[self.clridx]
-
-   def row(self, c1, c2, c3=''):
-      self.clrinc()   
-      self     <= (TR(
-                     TD(c1,align='right') + 
-                     TD(c2)+
-                     TD(c3),
-                     bgcolor=self.currentColor
-                     )) 
-
-   def spannedRows(self, c1, c2s, c3=''):
-      self.clrinc()
-      self       <= TR(TD(c1, align='right',rowspan=len(c2s)) + 
-                       TD(c2s[0]) + 
-                       TD(c3, rowspan=len(c2s)),
-                       bgcolor=self.currentColor)
-               
-      self       <= Sum([TR(TD(c2s[i]), bgcolor=self.currentColor) for i in range(1,len(c2s))])
 
 class Renderer(VisitorBase):
 
@@ -525,38 +284,6 @@ class RendererH(Renderer):
    @property
    def entity(self):
       return self.state.obj   
-
-
-class HistoricalRenderer(Renderer):
-
-   def __init__(self, table, colors):
-      Renderer.__init__(self, table, colors)
-        
-   def enumVisitor(self): return EnumHistoricalRenderer
-
-   def comb(self, x,y): 
-      return None
-
-   def process(self, field):  
-      return field.renderHistory(self)
- 
-   def row(self, c1, c2, c3=''):
-      self.clrinc()   
-      self.table <= (TR(
-                     TD(c1,align='right') + 
-                     TD(c2)+
-                     TD(c3),
-                     bgcolor=self.currentColor
-                     )) 
-
-   def spannedRows(self, c1, c2s, c3=''):
-      self.clrinc()
-      self.table <= TR(TD(c1, align='right',rowspan=len(c2s)) + 
-                       TD(c2s[0]) + 
-                       TD(c3, rowspan=len(c2s)),
-                       bgcolor=self.currentColor)
-               
-      self.table <= Sum([TR(TD(c2s[i]), bgcolor=self.currentColor) for i in range(1,len(c2s))])
 
 class IterablesExtractor(VisitorBase):
 
@@ -632,103 +359,12 @@ class EnumRendererH(EnumVisitorBase, RendererH):
    def header(self):
       return [self.rowEx(self.enum.friendlyName, self.enum.labels[self.value])]
 
-class EnumHistoricalRenderer(EnumVisitorBase, HistoricalRenderer):
-
-   def __init__(self, source, member, enum):
-      EnumVisitorBase.__init__(self, source, member, enum)
-      HistoricalRenderer.__init__(self, source.table, source.colors)
-
-   @cached_property
-   def header(self):
-      self.row(self.enum.friendlyName, self.enum.labels[self.value])
-      return None
-     
-   
 class EnumIterablesExtractor(EnumVisitorBase, IterablesExtractor):
 
    def __init__(self, source, member, enum):
       EnumVisitorBase.__init__(self, source, member, enum)
       IterablesExtractor.__init__(self, source.state)
       self.ctx = source.ctx
-
-class ModelVisitorBase(object):
-
-   def __init__(self, model=None):
-      self.model = model  
-   
-   @property
-   def entity(self):
-      return self.model   
-      
-   @property
-   def entityLabel(self):
-      return 'model'   
-
-class ModelHistoricalRenderer(ModelVisitorBase, HistoricalRenderer):
-
-   def __init__(self, table, model=None):
-      HistoricalRenderer.__init__(self, table, mod_colors)
-      ModelVisitorBase.__init__(self, model)
-   
-   def setModel(self, modelFactory, modelName):
-      self.row(B('Model:'), modelName)                   
-
-class OptionVisitorBase(object):
-
-   def __init__(self, option=None):
-      self.option = option  
-   
-   @property
-   def entity(self):
-      return self.option   
-      
-   @property
-   def entityLabel(self):
-      return 'option'   
-
-class OptionHistoricalRenderer(OptionVisitorBase, HistoricalRenderer):
-
-   def __init__(self, table, option=None):
-      HistoricalRenderer.__init__(self, table, opt_colors)
-      OptionVisitorBase.__init__(self,option)
-      
-   def setOption(self, optionFactory, familyName, optionName):
-      self.row(B('Family:'), familyName)
-      self.row(B('Option:'), optionName)
-            
-class MethodVisitorBase(object):
-
-   def __init__(self, method=None):
-      self.method = method  
-      self.reload = run_computation
-   
-   @property
-   def entity(self):
-      return self.method   
-      
-   @property
-   def entityLabel(self):
-      return 'method'  
-
-   def setMethod(self, methodFactory, methodName):
-      pass
-      
-   def printResultSeries(self, result_members):
-      pass
-
-class MethodHistoricalRenderer(MethodVisitorBase, HistoricalRenderer):
-
-   def __init__(self, table, method=None):
-      HistoricalRenderer.__init__(self, table, met_colors)
-      MethodVisitorBase.__init__(self, method)
-
-   def setMethod(self, methodFactory, methodName):
-      self.row(B('Pricing method:'), methodName)
-
-   def printResultSeries(self, result_members):
-      printResultSeries(self.table, result_members, self.colors)
-
-history_mode = False
 
 def extlist(lst,size):
     if len(lst) < size:
@@ -756,82 +392,12 @@ def enum_submit(n,classes,v):
 def pricing_options(model_name, family_name):
     return eval('pricings.' + model_name + '.' + model_name + '_' + family_name + '.methods_for_options()').keys()
 
-model_size_mode = False
-number_of_companies_mode = False
-
-run_computation = True
-
-if 'a' not in REQUEST:
-  _a = 'equity_Black_Scholes_type'
-
-if 'm' not in REQUEST:
-  _m = 'BS1D'
-
-if 'f' not in REQUEST:
-  _f = 'STD'
-
-if 'o' not in REQUEST:
-  _o = 'CallEuro'
-
-if 'meth' not in REQUEST:
-  _meth = 'CF_Call'
-
 mod_colors = ['lightgreen','white']
 opt_colors = ['#FFFFC0', 'white']
 met_colors = ['lightblue','white']
 res_colors = ['lightgray', 'white']
 
 def clr(color_table,idx): return color_table[idx%%len(color_table)]
-
-#print assets.asset_models().keys(), "asset_type = ", _asset_type
-
-im = '0'
-io = '0'
-ip = '0'
-
-changed_iterate = ''
-
-oldit = {'model':0, 'option':0, 'method':0 }
-
-if 'im' in REQUEST: oldit['model'] = int(_im)   
-if 'io' in REQUEST: oldit['option'] = int(_io)   
-if 'ip' in REQUEST: oldit['method'] = int(_ip)   
-            
-if 'iterate_model' in REQUEST:
-    if _iterate_model <> _im:
-        changed_iterate = 'model' 
-else:
-    _iterate_model = '0'
-
-if 'iterate_option' in REQUEST:
-    if _iterate_option <> _io:
-        changed_iterate = 'option' 
-else:
-    _iterate_option = '0'
-
-if 'iterate_method' in REQUEST:
-    if _iterate_method <> _ip:
-        changed_iterate = 'method' 
-else:
-    _iterate_method = '0'
-
-computing = 'Compute' in REQUEST
-
-if changed_iterate == 'model':
-    _iterate_option = '0'
-    _iterate_method = '0' 
-
-if changed_iterate == 'option':
-    _iterate_model = '0'
-    _iterate_method = '0' 
-
-if changed_iterate == 'method':
-    _iterate_option = '0'
-    _iterate_model = '0' 
-
-#print changed_iterate
-
-g_table = TABLE(Class="content")
 
 g_err_table = TABLE(Class="content")
 g_errors = []
@@ -840,163 +406,12 @@ def add_error(s):
     g_err_table <= TR(TD(s), bgcolor='#C00000')
     g_errors.append(s)
 
-table_model = TABLE(Class="content")
-table = table_model
-
-model = None
-opt = None
-method = None
-
-res = None
-res_h = []
-res_t = None
-
-if history_obj <> None:
-   _a = history_obj[0]
-   model = history_obj[1]
-   _m = model.ID()
-   opt = history_obj[2]
-   _f = opt.familyName()
-   _o = type(opt).__name__
-   method = history_obj[3]
-   _meth = type(method).__name__
-   res_labels = history_obj[4]
-   res = history_obj[5]
-   res_t = history_obj[6]
-   h_iterate_label = history_obj[7]
-   res_h = history_obj[8]
-   
-if 'asset_type' in REQUEST:
-   new_asset_type = assets.all()[int(_asset_type)].__name__
-   if _a <> new_asset_type:
-      _a = new_asset_type
-      _model = 0
-      _family = 0
-      _option = 0
-      _pricing_method = 0
-      run_computation = True
-      _iterate_model = _iterate_option = _iterate_method = '0' 
-
-def printAsset(table, asset_id):
-   if not history_mode:
-      mc = enum_submit('asset_type', assets.all(), asset_id)
-   else:
-      mc = asset_id
-   table <= (TR(TD((B('Asset Type:')),align='right') + TD(mc)+TD(),bgcolor=mod_colors[0]))
-
-
-#printAsset(table, _a)
-
-clridx = 0
-
-model_list = eval('assets.' + _a + '.models()')
-
-saved_m = _m 
-
-if 'model' in REQUEST:
-   new_model = model_list[int(_model)].ID()
-   if _m <> new_model:
-      _m = new_model
-      _family = 0
-      _option = 0
-      _pricing_method = 0
-      run_computation = True
-      _iterate_model = _iterate_option = _iterate_method = '0' 
-
-def clrinc():
-   globals()['clridx'] = globals()['clridx'] + 1
-   
-def row(colors, c_1, c_2, c_3=""):
-   return (TR(TD(c_1,align='right') + TD(c_2)+TD(c_3),bgcolor=clr(colors,clridx)))
-
-def rowinc(colors, c_1, c_2, c_3=""):
-   clrinc()
-   return row(colors, c_1, c_2, c_3)
-
-def printModelType(table, model_type):
-   if history_mode:
-      mc = model_type
-   else:
-      mc = enum_submit('model', model_list, model_type)
-   table <= rowinc(mod_colors, B('Model:'), mc)
-   
-"""
-   asset_id = h[0]
-   printAsset(table_model_h, asset_id)
-   model_list = eval('assets.' + asset_id + '.models()')
-
-   model = h[1]
-   Include(r'/premia/mod/'+ model.ID() + '/model.py')
-   eval('model_' + model.ID() + '(table_model_h, model)')
-
-   opt = h[2]
-   Include(r'/premia/opt/' + opt.familyName() + r'/' + type(opt).__name__ + '.py')
-   opt = eval('opt_' + opt.familyName() + '_' + type(opt).__name__ + '(table_opt_h, opt)')
-
-   method = h[3]
-   res_labels = h[4]
-   res = h[5]
-   res_t = h[6]
-   h_iterate_label = h[7]
-   res_h = h[8]
-   
-   #print h_idx, res_labels
-
-   Include(r'/premia/mod/' + model.ID() + '/' + model.ID() + '_' + opt.familyName() + '/' + type(method).__name__ + '.py')
-   method = eval('method_'+model.ID()+'_'+opt.familyName()+'_'+type(method).__name__+'(table_meth_h, method)')
-
-"""
-
-def visitFields(m):
-   def inner(v):
-      for x in m.fields(): x.process(v)
-      return v
-   return inner
-
-
-def processModel(m):
-   def inner(v):
-      v.setModel(m.underlyingType(), m.name())
-      for x in m.fields(): x.process(v)
-      return v   
-   return inner
-
-def processOption(m):
-   def inner(v):
-      v.setOption(m.underlyingType(), m.familyName(), m.name())
-      for x in m.fields(): x.process(v)
-      return v
-   return inner
-
-def processMethod(m):
-   def inner(v):
-      v.setMethod(m.underlyingType(), m.name())
-      for x in m.fields(): x.process(v)
-      v.printResultSeries(m.resultFields())
-      return v      
-   return inner
-
 def myImport(m):
    exec 'import ' + m
    return eval(m)
 
-def getModelModule(m): 
-   return myImport('kspremia.mod.' + m + '.model')
-
-def getOptionModule(f,o):
-   return myImport('kspremia.opt.'+f+'.'+o)    
-
 def getMethodModule(m,f,meth): 
    return myImport('kspremia.mod.'+m+'.'+m+'_'+f+'.'+meth)
-
-def lookupModel(m):
-   return processModel(getModelModule(m))
-   
-def lookupOption(f,o):
-   return processOption(getOptionModule(f,o))
-
-def lookupMethod(m,f,meth):
-   return processMethod(getMethodModule(m,f,meth))
 
 def uriPart(key,value):
    return '&' + key + '=' + value
@@ -1618,88 +1033,111 @@ class HistoryResultElementV(ResultElementVBase):
       self.vectorResultElement = HistoryVectorResultElement
       self.idx = parent.idx
 
-class HistoryElementBase(object):
-
-   @cached_property
-   def domain(self):
-      return self.rawResults[0][1]
-
-   @cached_property
-   def results(self):
-      return map(self.constructResultElement, self.rawResults[1:])
-
-   @cached_property
-   def series(self):
-      return chain(*map(lambda e: e.series, self.results)) 
-
-class HistoryElement(HistoryElementBase):
-
-   def __init__(self, parent, idx):
-      self.parent = parent
-      self.idx = idx
-      self.source = session.history[idx]
-      self.rawResults = self.source[6]
-      self.iterate_label = self.source[7]
-
-   def constructResultElement((k,v)):
-      return HistoryResultElementV(self, (k,v)) \
-               if type(v[0]) == list else \
-             HistoryResultElement(self, (k,v))
-
-   @cached_property
-   def compatible(self):
-      return self.rawResults <> None and self.iterate_label == self.parent.iteration.label
-
-   @cached_property
-   def resHH(self):
-      return chain(*map(lambda e: e.resHH, self.results))
-
-   @cached_property
-   def resLH(self):
-      return chain(*map(lambda e: e.resLH, self.results))
-
-   @cached_property
-   def resH(self):
-      return [(list(self.resHH), list(self.resLH))] if self.compatible else []
-
-   @cached_property
-   def series(self):
-      return super(HistoryElement,self).series if self.compatible else []
-
 class HistoryBase(object):
 
    @cached_property
    def series(self):
       return chain(*map(lambda e: e.series, self.elements)) 
 
+class HStateBase(StateCommonBase):
+   
+   def createRenderer(self):
+      return RendererH(self)
 
-class History(HistoryBase):
+   @cached_property
+   def headerContent(self):
+      return B(self.name)
+
+class AssetHState(AssetStateBase, HStateBase):
+
+   def __init__(self, parent):
+      self.id = parent.source[0]
+      self.parent = parent
+
+class ModelHState(ModelStateBase, HStateBase):
+
+   def __init__(self, parent):
+      self.obj = parent.source[1]
+      self.parent = parent
+
+   @property
+   def id(self):
+      return self.obj.ID()
+
+class FamilyHState(FamilyStateBase, HStateBase):
+
+   def __init__(self, parent):
+      self.id = parent.option.obj.familyName()
+      self.parent = parent
+
+class OptionHState(OptionStateBase, HStateBase):
+
+   def __init__(self, parent):
+      self.obj = parent.source[2]
+      self.parent = parent
+
+   @cached_property
+   def id(self):
+      return type(self.obj).__name__
+
+class HResultMember(ResultMemberCommonBase):
+
+   @cached_property
+   def oldChecked(self):
+      return 'showGraph_'+self.correctedName in REQUEST and 'showGraphLabel_'+self.correctedName in REQUEST
+
+
+class MethodHState(MethodStateBase, HStateBase):
 
    def __init__(self, parent):
       self.parent = parent
-      N = len(session.history) if 'history' in dir(session) else 0
-      self.elements = map(lambda i: HistoryElement(parent, N-i-1), range(N))
+      self.obj = parent.source[3]
+      self.res_labels = parent.source[4]
+      self.res_t = parent.source[6]
+      self.res_h = parent.source[8]
+      self.h_idx = parent.h_idx
+      self.h_iterate_label = parent.source[7]
 
    @cached_property
-   def resH(self):
-      return chain(*map(lambda h: h.resH, self.elements))
-
-class Graph(object):
-
-   def __init__(self, id, series):
-      self.id = str(id)
-      self.series = series
+   def id(self):
+      return type(self.obj).__name__
 
    @cached_property
-   def code(self):
-         res = [script("data"+self.id+" = [];")]
+   def superRows(self):
+      return HStateBase.rows.__get__(self, None)
 
-         if self.series <> []:
-            return res + \
-               [script("data"+self.id+".push({ data : "+e.data+", label : "+quote(e.label)+" });") for e in self.series] +\
-               [TEXT(graph_t.replace('qqq','containers' + self.id).replace("datas", "data"+self.id))]
+   @property
+   def showResultMembers(self):
+      return self.res_t
 
-         return res
+   @cached_property  # to be refactored
+   def resultMembers(self):
+      members = []
+      enabled = self.h_iterate_label == state.iterationLabel
+      idx = 0  # flattened index of the output parameter being processed
+      for i in range(1, len(self.res_t)): # iterating current table results
+         vlabel = str(self.h_idx) + "_" + self.res_t[i][0]   # base for variable name
+         if type(self.res_t[i][1][0]) == list:          # if output param is list
+            for j in range(len(self.res_t[i][1][0])):   # for every component of ????
+               friendly = self.res_labels[idx][0]
+               idx = idx + 1   
+               members.append(HResultMember(vlabel+str(j), friendly, enabled))
+         else:
+            friendly = self.res_labels[idx][0]
+            idx = idx + 1   
+            members.append(HResultMember(vlabel, friendly, enabled))
+      for (res_hh, res_lh) in self.res_h:   # res_h is graph series for some elder run
+         for i in range(1, len(res_hh)):
+            vlabel = str(self.h_idx) + "_" + res_hh[i][0]
+            friendly = res_lh[i-1]
+            members.append(HResultMember(vlabel, friendly, enabled))
+      return members
+
+class HScalarResult(ScalarResultBase):
+
+   def __init__(self, parent):
+      self.parent = parent
+      self.result = parent.source[5]
 
 class IterationResultBase(object):
 
@@ -1760,6 +1198,122 @@ class IterationResultBase(object):
    @cached_property
    def resH(self):
       return list(self.parent.history.resH)
+
+class HIterationResult(IterationResultBase):
+
+   def __init__(self, parent):
+      self.parent = parent
+      self.result =  parent.source[6]
+
+   @property
+   def historySeries(self):
+      return []
+      
+   def graphIdx(self, i):
+      return 100+self.parent.h_idx*100 + i
+
+class HistoryElementBase(object):
+
+   @cached_property
+   def domain(self):
+      return self.rawResults[0][1]
+
+   @cached_property
+   def results(self):
+      return map(self.constructResultElement, self.rawResults[1:])
+
+   @cached_property
+   def series(self):
+      return chain(*map(lambda e: e.series, self.results)) 
+
+class HistoryElement(HistoryElementBase):
+
+   def __init__(self, parent, idx):
+      self.parent = parent
+      self.idx = idx
+      self.source = session.history[idx]
+      self.rawResults = self.source[6]
+      self.iterate_label = self.source[7]
+      self.h_idx = idx
+      self.asset = AssetHState(self)
+      self.model = ModelHState(self)
+      self.option = OptionHState(self)
+      self.family = FamilyHState(self)
+      self.method = MethodHState(self)
+      self.scalarResult = HScalarResult(self)
+      self.iterationResult = HIterationResult(self)
+
+   @cached_property
+   def toRender(self):
+
+      table = TABLE(Class="content")
+
+      table <= TR(TD(self.model.table,valign='top')\
+                 +TD(self.option.table,valign='top')\
+                 +TD(self.scalarResult.table,valign='top'))
+
+      return table + self.iterationResult.table + Sum(self.iterationResult.graphCode) \
+               if not self.iterationResult.empty else table
+
+   def constructResultElement(self, (k,v)):
+      return HistoryResultElementV(self, (k,v)) \
+               if type(v[0]) == list else \
+             HistoryResultElement(self, (k,v))
+
+   @cached_property
+   def compatible(self):
+      return self.rawResults <> None and self.iterate_label == self.parent.iteration.label
+
+   @cached_property
+   def resHH(self):
+      return chain(*map(lambda e: e.resHH, self.results))
+
+   @cached_property
+   def resLH(self):
+      return chain(*map(lambda e: e.resLH, self.results))
+
+   @cached_property
+   def resH(self):
+      return [(list(self.resHH), list(self.resLH))] if self.compatible else []
+
+   @cached_property
+   def series(self):
+      return super(HistoryElement,self).series if self.compatible else []
+
+
+
+class History(HistoryBase):
+
+   def __init__(self, parent):
+      self.parent = parent
+      N = len(session.history) if 'history' in dir(session) else 0
+      self.elements = map(lambda i: HistoryElement(parent, N-i-1), range(N))
+
+   @cached_property
+   def toRender(self):
+      return Sum([e.toRender for e in self.elements])
+
+   @cached_property
+   def resH(self):
+      return chain(*map(lambda h: h.resH, self.elements))
+
+class Graph(object):
+
+   def __init__(self, id, series):
+      self.id = str(id)
+      self.series = series
+
+   @cached_property
+   def code(self):
+         res = [script("data"+self.id+" = [];")]
+
+         if self.series <> []:
+            return res + \
+               [script("data"+self.id+".push({ data : "+e.data+", label : "+quote(e.label)+" });") for e in self.series] +\
+               [TEXT(graph_t.replace('qqq','containers' + self.id).replace("datas", "data"+self.id))]
+
+         return res
+
 
 
 class IterationResult(IterationResultBase):
@@ -1865,6 +1419,23 @@ class State(object):
                uriPart('il',self.iterationLabel)
 
    @cached_property
+   def serialized(self):
+      return (self.asset.id, 
+              self.model.obj, 
+              self.option.obj,
+              self.method.obj, 
+              self.iterationResult.resultLabels if self.iteration else None, 
+              self.result, 
+              self.tableResult, 
+              self.iterationLabel, 
+              self.iterationResult.resH if self.iteration else None) \
+            if self.hasResult else None  
+
+   @cached_property
+   def hasResult(self):
+      return self.result or self.tableResult
+
+   @cached_property
    def request(self):
       return saved_REQUEST
 
@@ -1896,474 +1467,47 @@ class State(object):
 
       return self.method.table
 
+   @cached_property
+   def toRender(self):
+      # very bad. to be fixed
+      self.scalarResultTable <= TR(TD() + TD(INPUT(Type="submit",name="Compute",value="Compute")))
+
+      table = TABLE(Class="content")
+      table <= TR(TD(self.model.table,valign='top') + \
+                  TD(self.option.table,valign='top') + \
+                  TD(self.scalarResultTable,valign='top'))
+
+      return (table + self.iterationResult.table +Sum(self.iterationResult.graphCode)\
+                if self.iteration and self.runComputation else  table) 
+
+
    
-state = State()
-model = state.model.obj
-table = table_model = state.model.table
-model_iterables = state.model.iterables
-
-visitModel = lookupModel(_m)
-#model = visitModel(ModelLoader(model)).model
-#visitModel(ModelRenderer(table_model, model))
-#modelIterablesExtractor = ModelIterablesExtractor(model)
-#visitModel(modelIterablesExtractor)
-#processIteration(state.model)
-#state.model.addIterationTable()
-#model = modelIterablesExtractor.model
-
-#print "m=",_m, model
-
-table_option = TABLE(Class="content")
-table = table_option
-
-if 'family' in REQUEST:
-   new_family = model.families()[int(_family)]
-   if new_family <> _f:
-      _f = new_family
-      _option = 0
-      _pricing_method = 0
-      run_computation = False
-      _iterate_option = _iterate_method = '0' 
-
-def printFamilyType(table, family_type):
-   if not history_mode:
-      mc = enum_submit_mod('family', model.families(), family_type)
-   else:
-      mc = family_type
-   table <= rowinc(opt_colors, B('Family:'), mc)
-
-opt = state.option.obj
-
-if 'option' in REQUEST:
-   new_opt = pricing_options(_m,_f)[int(_option)].__name__
-   if new_opt <> _o:
-      _o = new_opt
-      _pricing_method = 0
-      run_computation = False
-      _iterate_option = _iterate_method = '0' 
-
-def printOptionType(table, option_type):
-   if not history_mode:
-      mc = enum_submit('option', pricing_options(_m,_f), option_type)
-   else:
-      mc = option_type
-   table <= rowinc(opt_colors, B('Option:'), mc)
-
-clridx = 1
-
-opt = state.option.obj
-table = table_option = state.option.table
-option_iterables = state.option.iterables
-
-#visitOption = lookupOption(_f, _o)
-#opt = visitOption(OptionLoader(opt)).option
-#visitOption(OptionRenderer(table_option, opt))
-#optionIterablesExtractor = OptionIterablesExtractor(opt)
-#visitOption(optionIterablesExtractor)
-#processIteration(state.option)
-#state.option.addIterationTable()
-#opt = optionIterablesExtractor.option
-
-#print "_f=",_f, "_o=",_o, opt
-
-table_method = TABLE(Class="content")
-table = table_method
-
-if 'pricing_method' not in REQUEST:
-   _pricing_method = '0'
-   
-methods = [x for x in eval('pricings.' + _m + '.' + _m + '_' + _f + '.all()') if type(opt) in x.options()]
-new_meth = methods[int(_pricing_method)].__name__
-if _meth <> new_meth:
-   _meth = new_meth
-   run_computation = False
-   _iterate_method = '0' 
-
-clridx = 1
-
-def printMethodType(table, method_type):
-   if not history_mode:
-      mc = enum_submit('pricing_method', methods, method_type)
-   else:
-      mc = method_type
-   table <= rowinc(met_colors, B('Pricing method:'), mc)
-
-method = state.method.obj
-table = table_method = state.method.table
-method_iterables = state.method.iterables
-
-#visitMethod = lookupMethod(_m,_f,_meth)
-#method = visitMethod(MethodLoader(method)).method
-#visitMethod(MethodRenderer(table_method, method))
-#methodIterablesExtractor = MethodIterablesExtractor(method)
-#visitMethod(methodIterablesExtractor)
-#processIteration(state.method)
-#state.method.addIterationTable()
-#method = methodIterablesExtractor.method
-
-#print "_meth=",_meth, method
-
-def n_elem(lst):
-    acc = 0
-    for i in lst:
-        acc += REQUEST.has_key(i)
-    return acc
-
-
-table_result_i = TABLE(Class="content")
-
-computation_timeout = 30
-
-if g_errors <> []:
-    run_computation = False
-
-if 'Compute' not in REQUEST:
-   run_computation = False
-
- 
-res = state.result
-res_t = state.tableResult 
-#Include(r'premia/run_computation.py')
-#Include(r'premia/print_table_result.py')
-
-#print REQUEST
-
-datas = {}
-
-def corrected(s):
-   r = ""
-   for c in s:
-      if c.isalnum():
-         r += c
-      else:
-         r += '_'
-   return r
-
-result_labels = []
-
-Include(r'premia/print_scalar_result.py')        
-
-if not state.iteration:
-   state.scalarResultTable
-#if res_t == None and res <> None:
-#  #printScalarResult(table_method, res)
-
-
-
-if res_t <> None:
-   table_result_i = state.iterationResult.table
-   result_labels = state.iterationResult.resultLabels
-   res_h = state.iterationResult.resH
-   #res_h = printVectorResult(table_result_i, res_t)
-   
-#print 'iterate_model = ', _iterate_model
-#im = str(_iterate_model)
-im = str(state.model.fixedIterationIdx)
-#print 'iterate_option = ', _iterate_option
-#io = str(_iterate_option)
-io = str(state.option.fixedIterationIdx)
-#print 'iterate_method = ', _iterate_method
-#ip = str(_iterate_method)
-ip = str(state.method.fixedIterationIdx)
-
-
-form = FORM(action='/index?'+ state.uri[1:],method="post")
-
-if model_size_mode:
-    table_method <= table_model_size_mode
-    table_method <= BR()+INPUT(Type="submit",value="Continue")
-else:
-    table_method <= TR(TD() + TD(INPUT(Type="submit",name="Compute",value="Compute")))
-    
-if len(g_errors) > 0:
-    form <= TR(TD(g_err_table))
-
-g_table <= TR(TD(table_model,valign='top') + TD(table_option,valign='top') + TD(table_method,valign='top'))
-
 if 'history' not in dir(session):
    session.history = []
-
 
 if 'ClearHistory' in REQUEST:
    session.history = []
    
+
+
+state = State()
+
+form = FORM(action='/index?'+ state.uri[1:],method="post")
+
+if len(g_errors) > 0:
+    form <= TR(TD(g_err_table))
+
+g_table = state.toRender
+
 form <= g_table
 
-
-if res_t <> None:
-   form <= table_result_i 
-
-
-if res_t <> None:
-   for line in state.iterationResult.graphCode:
-      form <= line
-   """
-    table_result_i <= script("var datas = []")
-    datas = state.iterationResult.dataSeries
-    values = datas.values()
-    for i in range(len(values)):
-        form <= script("data"+str(i)+" = [];")
-        for e in values[i]:
-            form <= script("data"+str(i)+".push({ data : "+e.data+", label : "+quote(e.label)+" });")          
-        if values[i] <> []:
-           form <= TEXT(graph_t.replace('qqq','containers' + str(i)).replace("datas", "data"+str(i)))
-   """
-
-history_mode = True
-
-#print form
-
-if 'result_labels' not in dir():
-   result_labels = [] 
-
-to_save = None
-
-if res_t <> None or res <> None:   
-   to_save = (_a, model, opt, method, result_labels, res, res_t, state.iterationLabel, res_h)
-
-#print REQUEST
-
-def printVectorHistoryResult(table_result_i, res_t, res_labels): #ddd
-    idx = 1
-    rli = -1
-    
-    #print res_labels
-    
-    for k,v in res_t:
-        idx = idx + 1
-        is_header = k == res_t[0][0]
-
-        if type(v[0]) == list:
-
-            table_result_i <= TR(TD(k, align='right',rowspan=len(v[0])) + Sum([TD(L[0]) for L in v]),bgcolor=clr(res_colors,idx))
-            
-            if res_labels[rli][1]:               
-            
-                table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[0], v))+", label : \'"+res_labels[rli][0]+"\' })")
-            
-            rli = rli + 1
-                
-            for i in range(1, len(v[0])):
-                table_result_i <= TR(Sum([TD(L[i])  for L in v]),bgcolor=clr(res_colors,idx))
-    
-                if res_labels[rli][1]:               
-                   table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], map(lambda L: L[i], v))+", label : \'"+ res_labels[rli][0]  +"\' })")         
-                rli = rli + 1 
-        else:
-            table_result_i <= TR(TD(k,align='right') + Sum([TD(L) for L in v]),bgcolor=clr(res_colors,idx))
-               
-            if not is_header and res_labels[rli][1]:               
-               table_result_i <= script("datas.push({ data : "+todata(res_t[0][1], v)+", label : \'"+res_labels[rli][0]+"\' })")        
-            rli = rli + 1  
-
-if to_save <> None:
-   session.history.append(to_save)
+if state.serialized <> None:
+   session.history.append(state.serialized)
 
 if session.history <> []:
    form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
-class HStateBase(StateCommonBase):
-   
-   def createRenderer(self):
-      return RendererH(self)
-
-   @cached_property
-   def headerContent(self):
-      return B(self.name)
-
-class AssetHState(AssetStateBase, HStateBase):
-
-   def __init__(self, parent):
-      self.id = parent.source[0]
-      self.parent = parent
-
-class ModelHState(ModelStateBase, HStateBase):
-
-   def __init__(self, parent):
-      self.obj = parent.source[1]
-      self.parent = parent
-
-   @property
-   def id(self):
-      return self.obj.ID()
-
-class FamilyHState(FamilyStateBase, HStateBase):
-
-   def __init__(self, parent):
-      self.id = parent.option.obj.familyName()
-      self.parent = parent
-
-class OptionHState(OptionStateBase, HStateBase):
-
-   def __init__(self, parent):
-      self.obj = parent.source[2]
-      self.parent = parent
-
-   @cached_property
-   def id(self):
-      return type(self.obj).__name__
-
-class HResultMember(ResultMemberCommonBase):
-
-   @cached_property
-   def oldChecked(self):
-      return 'showGraph_'+self.correctedName in REQUEST and 'showGraphLabel_'+self.correctedName in REQUEST
-
-
-class MethodHState(MethodStateBase, HStateBase):
-
-   def __init__(self, parent):
-      self.parent = parent
-      self.obj = parent.source[3]
-      self.res_labels = parent.source[4]
-      self.res_t = parent.source[6]
-      self.res_h = parent.source[8]
-      self.h_idx = parent.h_idx
-      self.h_iterate_label = parent.source[7]
-
-   @cached_property
-   def id(self):
-      return type(self.obj).__name__
-
-   @cached_property
-   def superRows(self):
-      return HStateBase.rows.__get__(self, None)
-
-   @property
-   def showResultMembers(self):
-      return self.res_t
-
-   @cached_property  # to be refactored
-   def resultMembers(self):
-      members = []
-      enabled = self.h_iterate_label == state.iterationLabel
-      idx = 0  # flattened index of the output parameter being processed
-      for i in range(1, len(self.res_t)): # iterating current table results
-         vlabel = str(self.h_idx) + "_" + self.res_t[i][0]   # base for variable name
-         if type(self.res_t[i][1][0]) == list:          # if output param is list
-            for j in range(len(self.res_t[i][1][0])):   # for every component of ????
-               friendly = self.res_labels[idx][0]
-               idx = idx + 1   
-               members.append(HResultMember(vlabel+str(j), friendly, enabled))
-         else:
-            friendly = self.res_labels[idx][0]
-            idx = idx + 1   
-            members.append(HResultMember(vlabel, friendly, enabled))
-      for (res_hh, res_lh) in self.res_h:   # res_h is graph series for some elder run
-         for i in range(1, len(res_hh)):
-            vlabel = str(self.h_idx) + "_" + res_hh[i][0]
-            friendly = res_lh[i-1]
-            members.append(HResultMember(vlabel, friendly, enabled))
-      return members
-
-class HScalarResult(ScalarResultBase):
-
-   def __init__(self, parent):
-      self.parent = parent
-      self.result = parent.source[5]
-
-class HHistoryElement(HistoryElementBase):
-
-   def __init__(self, result, labels):
-      self.rawResults = result
-      self.labels = labels
-
-   def constructResultElement((k,v)):
-      return HistoryResultElement(self, (k,v))
-
-class HHistory(HistoryBase):
-
-   def __init__(self, parent):
-      self.parent = parent.parent
-
-   @cached_property
-   def elements(self):
-      res_h = self.parent.source[8]
-      def construct((res_hh, res_lh)):
-         res_hf = [(l,True) for l in res_lh]
-         return HHistoryElement(res_hh, res_hf)
-      return map(construct, res_h) 
-
-class HIterationResult(IterationResultBase):
-
-   def __init__(self, parent):
-      self.parent = parent
-      self.result =  parent.source[6]
-      self.hhistory = HHistory(self)
-
-   @property
-   def historySeries(self):
-      return []
-      
-   def graphIdx(self, i):
-      return 100+self.parent.h_idx*100 + i
-
-class HState(object):
-
-   def __init__(self, source, h_idx):
-      self.source = source
-      self.h_idx = h_idx
-      self.asset = AssetHState(self)
-      self.model = ModelHState(self)
-      self.option = OptionHState(self)
-      self.family = FamilyHState(self)
-      self.method = MethodHState(self)
-      self.scalarResult = HScalarResult(self)
-      self.iterationResult = HIterationResult(self)
-      
-
-for hh_idx in range(len(session.history)):
-
-   h_idx = len(session.history) - hh_idx - 1
-   h = session.history[h_idx]
-
-   hstate = HState(h, h_idx)
-
-   g_table = TABLE(Class="content")
-
-   table_model_h = hstate.model.table
-   table_opt_h = hstate.option.table
-   table_meth_h = hstate.scalarResult.table
-
-
-   method = h[3]
-   res_labels = h[4]
-   res = h[5]
-   res_t = h[6]
-   h_iterate_label = h[7]
-   res_h = h[8]
-   
-   #if res_t == None and res <> None:
-   #   printScalarResult(table_meth_h, res)
-
-   g_table <= TR(TD(table_model_h,valign='top')+TD(table_opt_h,valign='top')+TD(table_meth_h,valign='top'))
-
-   form <= g_table
-
-   if not hstate.iterationResult.empty:
-      form <= hstate.iterationResult.table
-      for c in hstate.iterationResult.graphCode:
-         form <= c
-
-   """
-   form <= script("var datas = []")
-
-   if res_t <> None:
-      table_result_h = TABLE(Class="content")
-      printVectorHistoryResult(table_result_h, res_t, res_labels)
-      form <= table_result_h
-   
-   for (res_hh, res_lh) in res_h:
-      res_hf = [(l,True) for l in res_lh]
-      table_result_h = TABLE(Class="content")
-      printVectorHistoryResult(table_result_h, res_hh, res_hf)
-      form <= table_result_h
-   
-   if res_t <> None or res_h <> []:
-       qqq = 'container' + str(h_idx)
-       #Include(r'premia/graph.pih') 
-       form <= TEXT(graph_t.replace('qqq',qqq))
-   """
+form <= state.history.toRender
 
 print form
 

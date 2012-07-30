@@ -24,9 +24,6 @@ class Scalar (FieldBase):
       mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  
       return [v.rowEx(self.friendlyName, mc, self.constraint)]
 
-   def renderHistory(self, v):
-      v.row(self.friendlyName, getattr(v.entity, self.propertyName))
-
    def renderHistoryEx(self, v):
       return [v.rowEx(self.friendlyName, getattr(v.entity, self.propertyName))]
 

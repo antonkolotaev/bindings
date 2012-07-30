@@ -53,16 +53,6 @@ class VectorCompact(FieldBase):
       L.select(value=1)
       return [v.spannedRowsEx(self.friendlyName, [L]+map(mc, range(len(pmem))), 'R')] 
 
-  def renderHistory(self, v):
-
-    pmem = getattr(v.entity, self.propertyName)
-    isConstant = getattr(v.entity, self.propnameMode)
-     
-    if isConstant:
-      v.row(self.friendlyName, pmem[0])
-    else:
-      v.spannedRows(self.friendlyName, pmem)
-
   def renderHistoryEx(self, v):
 
     pmem = getattr(v.entity, self.propertyName)
