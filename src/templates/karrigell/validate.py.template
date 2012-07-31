@@ -1174,7 +1174,8 @@ class IterationResultBase(object):
 
    @cached_property
    def dataSeries(self):
-      return groupByFirst(chain(self.historySeries, self.series))
+      series = list(chain(self.historySeries, self.series))
+      return groupByFirst(series)
 
    @cached_property
    def graphs(self):
