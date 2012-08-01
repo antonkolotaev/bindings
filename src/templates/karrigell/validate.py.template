@@ -937,6 +937,10 @@ class ResultElementBase(object):
       return rowKV(self.label, self.data)
 
    @cached_property
+   def serialized(self):
+      return (self.vlabel,self.showGraphLabel, self.data)
+
+   @cached_property
    def resHH(self):
       return [(self.vlabel,self.showGraphLabel, self.data)] if self.showOnGraph else []
 
@@ -958,6 +962,10 @@ class ResultElementVBase(object):
    @cached_property
    def series(self):
       return chain(*map(lambda e: e.series, self.elements))
+
+   @cached_property
+   def serialized(self):
+      return (self.label,self.showGraphLabel, self.data)
 
    @cached_property
    def rows(self):
@@ -1144,13 +1152,6 @@ class MethodHState(MethodStateBase, HStateBase):
    @cached_property
    def inheritedResultMembers(self):
       return list(chain(*map(lambda e: e.resultMembers, self.inheritedResultGroups)))
-      
-      members = []
-      for (header, rows) in self.res_h:   # res_h is graph series for some elder run
-         for (corrected, friendly, data) in rows:
-            vlabel = str(self.h_idx) + "_" + corrected
-            members.append(HResultMember(vlabel, friendly, self.enabled))
-      return members
 
    @cached_property  # to be refactored
    def resultMembers(self):
@@ -1190,6 +1191,10 @@ class IterationResultBase(object):
                   else CurrentResultElement(self, (k,v))
 
       return map(construct, self.result[1:])
+
+   @cached_property
+   def serialized(self):
+      return ((self.result[0][0], self.result[0][1]), map(lambda e: e.serialized, self.results))
 
    @cached_property
    def series(self):
@@ -1445,7 +1450,7 @@ class State(object):
    @cached_property
    def serialized(self):
       if self.iteration:
-         print "resH = ", self.iterationResult.resH
+         print "resT = ", self.iterationResult.serialized
 
       return (self.asset.id, 
               self.model.obj, 
