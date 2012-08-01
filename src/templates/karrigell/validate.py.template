@@ -32,15 +32,18 @@ def spannedRows2(c1, c2s):
 def spannedColEx(c):
    return [TD(c, colspan='3')]
 
-def addRowsToTable(table, rows, colors):
+def colorizeRows(rows, colors):
+   colored = []
    color_idx = 0
    for r in rows:
       color_idx = color_idx + 1
       try:
          for rr in r:
-            table <= TR(rr, bgcolor=clr(colors, color_idx))
+            colored.append(TR(rr, bgcolor=clr(colors, color_idx)))
       except Exception, ex:
          print "r=(",type(r), dir(r), type(r).__name__,")"
+   return Sum(colored)
+
 
 class cached_property(object):
     '''A read-only @property that is only evaluated once. The value is cached
@@ -246,14 +249,8 @@ class Loader(VisitorBase):
 
 class Renderer(VisitorBase):
 
-   def __init__(self, table=None, colors=None, state=None):
+   def __init__(self, state=None):
       VisitorBase.__init__(self,state)
-      self.table = table 
-      self.colors = colors 
-      
-   def clrinc(self): clrinc()
-   @property
-   def currentColor(self): return clr(self.colors,clridx)
    
    def process(self, field):  
       return field.render(self)
@@ -441,11 +438,8 @@ class StateCommonBase(object):
       return self.myHeaderImpl
 
    @cached_property
-   def table(self):
-      table = TABLE(Class="content")
-      addRowsToTable(table, self.rows, self.colors)
-      return table
-
+   def toRender(self):
+      return colorizeRows(self.rows, self.colors)
 
 class StateBase(StateCommonBase):
 
@@ -830,11 +824,8 @@ class ScalarResultBase(object):
       return reduce(lambda x,y: x+y, map(self.renderScalarResultElement, self.result),[row2('Result','')])
 
    @cached_property
-   def table(self):
-      if self.result <> None:
-         addRowsToTable(self.parent.method.table, self.rows, res_colors)
-      return self.parent.method.table
-
+   def toRender(self):
+      return colorizeRows(self.rows, res_colors) if self.result else Sum([])
 
 class ScalarResult(ScalarResultBase):
 
@@ -1178,10 +1169,8 @@ class IterationResultBase(object):
       return [self.headerRow] + map(lambda r: r.rows, self.results)
    
    @cached_property
-   def table(self):
-      table_result_i = TABLE(Class="content")
-      addRowsToTable(table_result_i, self.rows, res_colors)
-      return table_result_i
+   def toRender(self):
+      return colorizeRows(self.rows, res_colors)
 
    @cached_property
    def domain(self):
@@ -1225,10 +1214,6 @@ class IterationResultBase(object):
    @cached_property
    def graphCode(self):
       return chain(*map(lambda e: e.code, self.graphs))
-
-   @cached_property
-   def resultLabels(self):
-      return list(chain(*map(lambda e: e.labels, self.results)))
 
    @cached_property
    def resH(self):
@@ -1285,11 +1270,11 @@ class HistoryElement(HistoryElementBase):
 
       table = TABLE(Class="content")
 
-      table <= TR(TD(self.model.table,valign='top')\
-                 +TD(self.option.table,valign='top')\
-                 +TD(self.scalarResult.table,valign='top'))
+      table <= TR(TD(TABLE(self.model.toRender),valign='top')\
+                 +TD(TABLE(self.option.toRender),valign='top')\
+                 +TD(TABLE(self.method.toRender + self.scalarResult.toRender),valign='top'))
 
-      return table + self.iterationResult.table + Sum(self.iterationResult.graphCode) \
+      return table + TABLE(self.iterationResult.toRender) + Sum(self.iterationResult.graphCode) \
                if not self.iterationResult.empty else table
 
    def constructResultElement(self, (k,f,v)):
@@ -1502,23 +1487,19 @@ class State(object):
 
 
    @cached_property
-   def scalarResultTable(self):
-      if self.runComputation and self.iteration == None:
-         return self.scalarResult.table
-
-      return self.method.table
-
-   @cached_property
    def toRender(self):
+
+      runIteration = self.iteration and self.runComputation
+
       # very bad. to be fixed
-      self.scalarResultTable <= TR(TD() + TD(INPUT(Type="submit",name="Compute",value="Compute")))
+      compButton = TR(TD() + TD(INPUT(Type="submit",name="Compute",value="Compute")))
 
       table = TABLE(Class="content")
-      table <= TR(TD(self.model.table,valign='top') + \
-                  TD(self.option.table,valign='top') + \
-                  TD(self.scalarResultTable,valign='top'))
+      table <= TR(TD(TABLE(self.model.toRender),valign='top') + \
+                  TD(TABLE(self.option.toRender),valign='top') + \
+                  TD(TABLE(self.method.toRender+self.scalarResult.toRender + compButton),valign='top'))
 
-      return (table + self.iterationResult.table +Sum(self.iterationResult.graphCode)\
+      return (table + TABLE(self.iterationResult.toRender) +Sum(self.iterationResult.graphCode)\
                 if self.iteration and self.runComputation else  table) 
 
 
