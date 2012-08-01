@@ -938,11 +938,8 @@ class ResultElementBase(object):
 
    @cached_property
    def resHH(self):
-      return [(self.vlabel,self.data)] if self.showOnGraph else []
+      return [(self.vlabel,self.showGraphLabel, self.data)] if self.showOnGraph else []
 
-   @cached_property
-   def resLH(self):
-      return [self.showGraphLabel] if self.showOnGraph else []
 
 
 class ResultElementVBase(object):
@@ -973,10 +970,6 @@ class ResultElementVBase(object):
    @cached_property
    def resHH(self):
       return chain(*map(lambda e: e.resHH, self.elements))
-
-   @cached_property
-   def resLH(self):
-      return chain(*map(lambda e: e.resLH, self.elements))
 
 
 
@@ -1110,10 +1103,13 @@ class MethodHState(MethodStateBase, HStateBase):
    def showResultMembers(self):
       return self.res_t
 
-   @cached_property  # to be refactored
-   def resultMembers(self):
+   @cached_property 
+   def enabled(self):
+      return self.h_iterate_label == state.iterationLabel
+
+   @cached_property
+   def ownResultMembers(self):
       members = []
-      enabled = self.h_iterate_label == state.iterationLabel
       idx = 0  # flattened index of the output parameter being processed
       for i in range(1, len(self.res_t)): # iterating current table results
          vlabel = str(self.h_idx) + "_" + self.res_t[i][0]   # base for variable name
@@ -1121,17 +1117,25 @@ class MethodHState(MethodStateBase, HStateBase):
             for j in range(len(self.res_t[i][1][0])):   # for every component of ????
                friendly = self.res_labels[idx][0]
                idx = idx + 1   
-               members.append(HResultMember(vlabel+str(j), friendly, enabled))
+               members.append(HResultMember(vlabel+str(j), friendly, self.enabled))
          else:
             friendly = self.res_labels[idx][0]
             idx = idx + 1   
-            members.append(HResultMember(vlabel, friendly, enabled))
-      for (res_hh, res_lh) in self.res_h:   # res_h is graph series for some elder run
-         for i in range(1, len(res_hh)):
-            vlabel = str(self.h_idx) + "_" + res_hh[i][0]
-            friendly = res_lh[i-1]
-            members.append(HResultMember(vlabel, friendly, enabled))
+            members.append(HResultMember(vlabel, friendly, self.enabled))
       return members
+
+   @cached_property
+   def inheritedResultMembers(self):
+      members = []
+      for (header, rows) in self.res_h:   # res_h is graph series for some elder run
+         for (corrected, friendly, data) in rows:
+            vlabel = str(self.h_idx) + "_" + corrected
+            members.append(HResultMember(vlabel, friendly, self.enabled))
+      return members
+
+   @cached_property  # to be refactored
+   def resultMembers(self):
+      return self.ownResultMembers + self.inheritedResultMembers
 
 class HScalarResult(ScalarResultBase):
 
@@ -1267,15 +1271,15 @@ class HistoryElement(HistoryElementBase):
 
    @cached_property
    def resHH(self):
-      return chain(*map(lambda e: e.resHH, self.results))
+      return list(chain(*map(lambda e: e.resHH, self.results)))
 
    @cached_property
-   def resLH(self):
-      return chain(*map(lambda e: e.resLH, self.results))
+   def headerToSave(self):
+      return (self.iterate_label, self.domain)
 
    @cached_property
    def resH(self):
-      return [(list(self.resHH), list(self.resLH))] if self.compatible else []
+      return [(self.headerToSave, self.resHH)] if self.compatible and len(self.resHH)>0 else []
 
    @cached_property
    def series(self):
@@ -1421,6 +1425,9 @@ class State(object):
 
    @cached_property
    def serialized(self):
+      if self.iteration:
+         print "resH = ", self.iterationResult.resH
+
       return (self.asset.id, 
               self.model.obj, 
               self.option.obj,
