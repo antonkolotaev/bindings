@@ -1153,9 +1153,9 @@ class MethodHState(MethodStateBase, HStateBase):
 
 class HScalarResult(ScalarResultBase):
 
-   def __init__(self, parent):
+   def __init__(self, parent, result):
       self.parent = parent
-      self.result = parent.source[4]
+      self.result = result
 
 class IterationResultBase(object):
 
@@ -1221,9 +1221,9 @@ class IterationResultBase(object):
 
 class HIterationResult(IterationResultBase):
 
-   def __init__(self, parent):
+   def __init__(self, parent, result):
       self.parent = parent
-      self.result =  parent.source[5]
+      self.result =  result
 
    @property
    def historySeries(self):
@@ -1236,12 +1236,12 @@ class HistoryElementBase(object):
 
    @cached_property
    def domain(self):
-      ((_, data), _) = self.rawResults
+      ((_, data), _) = self.source[5] if self.source[5] else ((0,[]),0)
       return data
 
-   @cached_property
-   def results(self):
-      (_, rows) = self.rawResults
+   @cached_property  # TODO: use self.iterationResult
+   def results(self):      
+      (_, rows) = self.source[5] if self.source[5] else (0,[])
       return map(self.constructResultElement, rows)
 
    @cached_property
@@ -1254,7 +1254,6 @@ class HistoryElement(HistoryElementBase):
       self.parent = parent
       self.idx = idx
       self.source = session.history[idx]
-      self.rawResults = self.source[5]
       self.iterate_label = self.source[6]
       self.h_idx = idx
       self.asset = AssetHState(self)
@@ -1262,20 +1261,28 @@ class HistoryElement(HistoryElementBase):
       self.option = OptionHState(self)
       self.family = FamilyHState(self)
       self.method = MethodHState(self)
-      self.scalarResult = HScalarResult(self)
-      self.iterationResult = HIterationResult(self)
+
+   @cached_property
+   def scalarResult(self):
+      return HScalarResult(self, self.source[4]) if self.source[4] else None
+
+   @cached_property
+   def iterationResult(self):
+      return HIterationResult(self, self.source[5]) if self.source[5] else None 
 
    @cached_property
    def toRender(self):
 
-      table = TABLE(Class="content")
+      model = self.model.toRender
+      option = self.option.toRender
+      method = self.method.toRender
+      scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
+      iterationResult = TABLE(self.iterationResult.toRender) + Sum(self.iterationResult.graphCode) if self.iterationResult else Sum([])
 
-      table <= TR(TD(TABLE(self.model.toRender),valign='top')\
-                 +TD(TABLE(self.option.toRender),valign='top')\
-                 +TD(TABLE(self.method.toRender + self.scalarResult.toRender),valign='top'))
-
-      return table + TABLE(self.iterationResult.toRender) + Sum(self.iterationResult.graphCode) \
-               if not self.iterationResult.empty else table
+      return  TABLE(TR(TD(TABLE(model),valign='top')\
+                      +TD(TABLE(option),valign='top')\
+                      +TD(TABLE(method + scalarResult),valign='top')))  \
+               + iterationResult
 
    def constructResultElement(self, (k,f,v)):
       return HistoryResultElementV(self, (k,f,v)) \
@@ -1284,7 +1291,7 @@ class HistoryElement(HistoryElementBase):
 
    @cached_property
    def compatible(self):
-      return self.rawResults <> None and self.iterate_label == self.parent.iteration.label
+      return self.iterationResult and self.iterate_label == self.parent.iteration.label
 
    @cached_property
    def resHH(self):
@@ -1425,8 +1432,14 @@ class State(object):
       self.family = FamilyState(self)
       self.option = OptionState(self)
       self.method = MethodState(self)
-      self.scalarResult = ScalarResult(self)
-      self.iterationResult = IterationResult(self)
+
+   @cached_property
+   def scalarResult(self):
+      return ScalarResult(self) if self.runComputation and not self.iteration else None
+
+   @cached_property
+   def iterationResult(self):
+      return IterationResult(self) if self.runComputation and self.iteration else None
 
    @cached_property
    def iteration(self):
@@ -1451,15 +1464,15 @@ class State(object):
               self.model.obj,    # 1
               self.option.obj,   # 2
               self.method.obj,   # 3
-              self.result,       # 4
-              self.tableResult,  # 5
+              self.scalarResult.result if self.scalarResult else None,       # 4
+              self.iterationResult.result if self.iterationResult else None,  # 5
               self.iterationLabel,  # 6
-              self.iterationResult.resH if self.tableResult else None) \
-            if self.hasResult else None  
+              self.iterationResult.resH if self.iterationResult else None) \
+              
 
    @cached_property
    def hasResult(self):
-      return self.result or self.tableResult
+      return self.scalarResult or self.iterationResult
 
    @cached_property
    def request(self):
@@ -1472,35 +1485,20 @@ class State(object):
       return g_errors == [] and 'Compute' in self.request
 
    @cached_property
-   def result(self):
-      if not self.runComputation or self.iteration <> None:
-         return None
-      return self.scalarResult.result
-
-   @cached_property
-   def tableResult(self):
-
-      if not self.runComputation or self.iteration == None:
-         return None
-
-      return self.iterationResult.result
-
-
-   @cached_property
    def toRender(self):
 
-      runIteration = self.iteration and self.runComputation
-
-      # very bad. to be fixed
       compButton = TR(TD() + TD(INPUT(Type="submit",name="Compute",value="Compute")))
 
-      table = TABLE(Class="content")
-      table <= TR(TD(TABLE(self.model.toRender),valign='top') + \
-                  TD(TABLE(self.option.toRender),valign='top') + \
-                  TD(TABLE(self.method.toRender+self.scalarResult.toRender + compButton),valign='top'))
+      model = self.model.toRender
+      option = self.option.toRender
+      method = self.method.toRender
+      scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
+      iterationResult = TABLE(self.iterationResult.toRender) +Sum(self.iterationResult.graphCode) if self.iterationResult else Sum([])
 
-      return (table + TABLE(self.iterationResult.toRender) +Sum(self.iterationResult.graphCode)\
-                if self.iteration and self.runComputation else  table) 
+      return TABLE(TR(TD(TABLE(model),valign='top') + \
+                      TD(TABLE(option),valign='top') + \
+                      TD(TABLE(method+scalarResult+compButton),valign='top'))) + \
+             iterationResult
 
 
    
@@ -1523,7 +1521,7 @@ g_table = state.toRender
 
 form <= g_table
 
-if state.serialized <> None:
+if state.hasResult:
    session.history.append(state.serialized)
 
 if session.history <> []:
