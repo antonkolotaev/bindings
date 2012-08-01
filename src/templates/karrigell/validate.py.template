@@ -1079,6 +1079,19 @@ class HResultMember(ResultMemberCommonBase):
    def oldChecked(self):
       return 'showGraph_'+self.correctedName in REQUEST and 'showGraphLabel_'+self.correctedName in REQUEST
 
+class InheritedResultGroup(object):
+
+   def __init__(self, parent, (header, rows)):
+      self.enabled = parent.enabled
+      self.h_idx = parent.h_idx
+      self.header = header
+      self.rows = rows
+
+   @cached_property
+   def resultMembers(self):
+      return map(lambda (corrected, friendly, data):\
+               HResultMember(str(self.h_idx) + "_" + corrected, friendly, self.enabled), 
+               self.rows)
 
 class MethodHState(MethodStateBase, HStateBase):
 
@@ -1125,7 +1138,13 @@ class MethodHState(MethodStateBase, HStateBase):
       return members
 
    @cached_property
+   def inheritedResultGroups(self):
+      return map(lambda hr: InheritedResultGroup(self, hr), self.res_h)
+
+   @cached_property
    def inheritedResultMembers(self):
+      return list(chain(*map(lambda e: e.resultMembers, self.inheritedResultGroups)))
+      
       members = []
       for (header, rows) in self.res_h:   # res_h is graph series for some elder run
          for (corrected, friendly, data) in rows:
