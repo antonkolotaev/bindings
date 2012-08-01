@@ -916,7 +916,7 @@ class ResultElementBase(object):
 
    @cached_property 
    def showGraphLabel(self):
-      return REQUEST['showGraphLabel_' + self.vlabel]
+      return self.friendly
 
    @cached_property
    def showOnGraph(self):
@@ -944,32 +944,38 @@ class ResultElementBase(object):
    def resHH(self):
       return [(self.vlabel,self.showGraphLabel, self.data)] if self.showOnGraph else []
 
-
+def showGraphLabel(corrected):
+   return REQUEST['showGraphLabel_' + corrected]
 
 class ResultElementVBase(object):
 
-   def __init__(self, parent, (k,v)):
+   def __init__(self, parent, (k,f,v)):
       self.parent = parent
       self.domain = parent.domain
-      self.label = k
+      self.vlabel = k
       self.data = v
+      self.friendly = f
 
    @cached_property
    def elements(self):
-      return map(lambda i: self.vectorResultElement(self, (self.label,self.data), i), 
+      return map(lambda i: self.vectorResultElement(self, (self.vlabel,self.friendly,self.data), i), 
                  range(len(self.data[0])))            
 
    @cached_property
    def series(self):
       return chain(*map(lambda e: e.series, self.elements))
 
+   @cached_property 
+   def showGraphLabel(self):
+      return showGraphLabel(self.vlabel)
+
    @cached_property
    def serialized(self):
-      return (self.label,self.showGraphLabel, self.data)
+      return (self.vlabel,self.showGraphLabel, self.data)
 
    @cached_property
    def rows(self):
-      return spannedRowsKV(self.label, self.data)
+      return spannedRowsKV(self.vlabel, self.data)
 
    @cached_property
    def labels(self):
@@ -983,54 +989,58 @@ class ResultElementVBase(object):
 
 class CurrentResultElement(ResultElementBase):
 
-   def __init__(self, parent, (k,v)):
+   def __init__(self, parent, (k,f,v)):
       self.parent = parent
       self.label = k
+      self.friendly = f
       self.data = v
       self.vlabel = k
 
 class CurrentVectorResultElement(ResultElementBase):
 
-   def __init__(self, parent, (k,v), i):
+   def __init__(self, parent, (k,f,v), i):
       self.parent = parent
       self.label = k
       self.data = v
       self.vlabel = k
+      self.friendly = f
       self.i = i
       self.domain = parent.domain
       self.data = map(lambda L: L[i], v)
 
    @cached_property 
    def showGraphLabel(self):
-      return REQUEST['showGraphLabel_' + self.vlabel]+'['+str(self.i)+']'
+      return self.friendly+'['+str(self.i)+']'
 
 class CurrentResultElementV(ResultElementVBase):
 
-   def __init__(self, parent, (k,v)):
-      ResultElementVBase.__init__(self, parent, (k,v))
+   def __init__(self, parent, (k,f,v)):
+      ResultElementVBase.__init__(self, parent, (k,f,v))
       self.vectorResultElement = CurrentVectorResultElement
 
 class HistoryResultElement(ResultElementBase):
 
-   def __init__(self, parent, (k,v)):
+   def __init__(self, parent, (k,f,v)):
       ResultElementBase.__init__(self, parent)
       self.label = k
       self.data = v
+      self.friendly = f
       self.idx = self.parent.idx
       self.vlabel = str(self.idx) + "_" + self.label
 
 class HistoryVectorResultElement(ResultElementBase):
 
-   def __init__(self, parent, (k,v), i):
+   def __init__(self, parent, (k,f,v), i):
       ResultElementBase.__init__(self, parent)
       self.label = k
+      self.friendly = f
       self.data = map(lambda L: L[i], v)
       self.vlabel = str(self.parent.idx) + "_" + self.label + str(i)
 
 class HistoryResultElementV(ResultElementVBase):
 
-   def __init__(self, parent, (k,v)):
-      ResultElementVBase.__init__(self, parent, (k,v))
+   def __init__(self, parent, (k,f,v)):
+      ResultElementVBase.__init__(self, parent, (k,f,v))
       self.vectorResultElement = HistoryVectorResultElement
       self.idx = parent.idx
 
@@ -1106,11 +1116,10 @@ class MethodHState(MethodStateBase, HStateBase):
    def __init__(self, parent):
       self.parent = parent
       self.obj = parent.source[3]
-      self.res_labels = parent.source[4]
-      self.res_t = parent.source[6]
-      self.res_h = parent.source[8]
+      self.iterationResult = parent.source[5]
+      self.res_h = parent.source[7]
       self.h_idx = parent.h_idx
-      self.h_iterate_label = parent.source[7]
+      self.h_iterate_label = parent.source[6]
 
    @cached_property
    def id(self):
@@ -1122,7 +1131,7 @@ class MethodHState(MethodStateBase, HStateBase):
 
    @property
    def showResultMembers(self):
-      return self.res_t
+      return self.iterationResult <> None
 
    @cached_property 
    def enabled(self):
@@ -1130,20 +1139,14 @@ class MethodHState(MethodStateBase, HStateBase):
 
    @cached_property
    def ownResultMembers(self):
-      members = []
-      idx = 0  # flattened index of the output parameter being processed
-      for i in range(1, len(self.res_t)): # iterating current table results
-         vlabel = str(self.h_idx) + "_" + self.res_t[i][0]   # base for variable name
-         if type(self.res_t[i][1][0]) == list:          # if output param is list
-            for j in range(len(self.res_t[i][1][0])):   # for every component of ????
-               friendly = self.res_labels[idx][0]
-               idx = idx + 1   
-               members.append(HResultMember(vlabel+str(j), friendly, self.enabled))
+      def construct((corrected, friendly, data)):
+         vlabel = str(self.h_idx) + "_" + corrected   # base for variable name
+         if type(data[0]) == list:          # if output param is list
+            return map(lambda i: HResultMember(vlabel+str(i), friendly, self.enabled), range(len(data[0])))
          else:
-            friendly = self.res_labels[idx][0]
-            idx = idx + 1   
-            members.append(HResultMember(vlabel, friendly, self.enabled))
-      return members
+            return [HResultMember(vlabel, friendly, self.enabled)]
+      (_, rows) = self.iterationResult
+      return list(chain(*map(construct, rows)))
 
    @cached_property
    def inheritedResultGroups(self):
@@ -1161,13 +1164,14 @@ class HScalarResult(ScalarResultBase):
 
    def __init__(self, parent):
       self.parent = parent
-      self.result = parent.source[5]
+      self.result = parent.source[4]
 
 class IterationResultBase(object):
 
    @cached_property
    def headerRow(self):
-      return rowKV(self.result[0][0], self.result[0][1])
+      ((label, data), _) = self.result
+      return rowKV(label, data)
 
    @cached_property
    def rows(self):
@@ -1181,20 +1185,22 @@ class IterationResultBase(object):
 
    @cached_property
    def domain(self):
-      return self.result[0][1]
+      ((_, data), _) = self.result
+      return data
 
    @cached_property
    def results(self):
-      def construct((k,v)):
-         return CurrentResultElementV(self, (k,v)) \
+      def construct((k,f,v)):
+         return CurrentResultElementV(self, (k,f,v)) \
                   if type(v[0]) == list \
-                  else CurrentResultElement(self, (k,v))
+                  else CurrentResultElement(self, (k,f,v))
 
-      return map(construct, self.result[1:])
+      (_, rows) = self.result
+      return map(construct, rows)
 
    @cached_property
    def serialized(self):
-      return ((self.result[0][0], self.result[0][1]), map(lambda e: e.serialized, self.results))
+      return self.result
 
    @cached_property
    def series(self):
@@ -1232,7 +1238,7 @@ class HIterationResult(IterationResultBase):
 
    def __init__(self, parent):
       self.parent = parent
-      self.result =  parent.source[6]
+      self.result =  parent.source[5]
 
    @property
    def historySeries(self):
@@ -1245,11 +1251,13 @@ class HistoryElementBase(object):
 
    @cached_property
    def domain(self):
-      return self.rawResults[0][1]
+      ((_, data), _) = self.rawResults
+      return data
 
    @cached_property
    def results(self):
-      return map(self.constructResultElement, self.rawResults[1:])
+      (_, rows) = self.rawResults
+      return map(self.constructResultElement, rows)
 
    @cached_property
    def series(self):
@@ -1261,8 +1269,8 @@ class HistoryElement(HistoryElementBase):
       self.parent = parent
       self.idx = idx
       self.source = session.history[idx]
-      self.rawResults = self.source[6]
-      self.iterate_label = self.source[7]
+      self.rawResults = self.source[5]
+      self.iterate_label = self.source[6]
       self.h_idx = idx
       self.asset = AssetHState(self)
       self.model = ModelHState(self)
@@ -1284,10 +1292,10 @@ class HistoryElement(HistoryElementBase):
       return table + self.iterationResult.table + Sum(self.iterationResult.graphCode) \
                if not self.iterationResult.empty else table
 
-   def constructResultElement(self, (k,v)):
-      return HistoryResultElementV(self, (k,v)) \
+   def constructResultElement(self, (k,f,v)):
+      return HistoryResultElementV(self, (k,f,v)) \
                if type(v[0]) == list else \
-             HistoryResultElement(self, (k,v))
+             HistoryResultElement(self, (k,f,v))
 
    @cached_property
    def compatible(self):
@@ -1353,6 +1361,11 @@ class IterationResult(IterationResultBase):
 
    @cached_property
    def result(self):
+      return (self.resultRaw[0], 
+              map(lambda (corrected,data): (corrected, showGraphLabel(corrected), data), self.resultRaw[1:]))
+
+   @cached_property
+   def resultRaw(self):
 
       iteration = self.parent.iteration
 
@@ -1449,18 +1462,14 @@ class State(object):
 
    @cached_property
    def serialized(self):
-      if self.iteration:
-         print "resT = ", self.iterationResult.serialized
-
-      return (self.asset.id, 
-              self.model.obj, 
-              self.option.obj,
-              self.method.obj, 
-              self.iterationResult.resultLabels if self.iteration else None, 
-              self.result, 
-              self.tableResult, 
-              self.iterationLabel, 
-              self.iterationResult.resH if self.iteration else None) \
+      return (self.asset.id,     # 0
+              self.model.obj,    # 1
+              self.option.obj,   # 2
+              self.method.obj,   # 3
+              self.result,       # 4
+              self.tableResult,  # 5
+              self.iterationLabel,  # 6
+              self.iterationResult.resH if self.tableResult else None) \
             if self.hasResult else None  
 
    @cached_property
