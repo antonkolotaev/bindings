@@ -938,6 +938,10 @@ class ResultElementBase(object):
 def showGraphLabel(corrected):
    return REQUEST['showGraphLabel_' + corrected]
 
+def showOnGraph(corrected):
+   return 'showGraph_'+corrected in REQUEST
+
+
 class ResultElementVBase(object):
 
    def __init__(self, parent, (k,f,v)):
@@ -946,6 +950,9 @@ class ResultElementVBase(object):
       self.vlabel = k
       self.data = v
       self.friendly = f
+
+   def __repr__(self):
+      return type(self).__name__ + ":vlabel=" + self.vlabel + ";friendly=" + self.friendly + ";data=" + repr(self.data)
 
    @cached_property
    def elements(self):
@@ -1179,13 +1186,8 @@ class IterationResultBase(object):
 
    @cached_property
    def results(self):
-      def construct((k,f,v)):
-         return CurrentResultElementV(self, (k,f,v)) \
-                  if type(v[0]) == list \
-                  else CurrentResultElement(self, (k,f,v))
-
       (_, rows) = self.result
-      return map(construct, rows)
+      return map(self.constructResultElement, rows)
 
    @cached_property
    def serialized(self):
@@ -1221,34 +1223,43 @@ class IterationResultBase(object):
 
 class HIterationResult(IterationResultBase):
 
-   def __init__(self, parent, result):
+   def __init__(self, parent, result, iterate_label):
       self.parent = parent
-      self.result =  result
+      self.result = result
+      self.iterate_label = iterate_label
+      self.idx = parent.idx
 
    @property
    def historySeries(self):
       return []
+
+   @cached_property
+   def compatible(self):
+      return self.iterate_label == self.parent.currentIterationLabel
+
+   @cached_property
+   def resHH(self):
+      return list(chain(*map(lambda e: e.resHH, self.results)))
       
+   @cached_property
+   def headerToSave(self):
+      return (self.iterate_label, self.domain)
+
+   @cached_property
+   def resH(self):
+      return [(self.headerToSave, self.resHH)] if self.compatible and len(self.resHH)>0 else []
+
    def graphIdx(self, i):
       return 100+self.parent.h_idx*100 + i
 
-class HistoryElementBase(object):
+   def constructResultElement(self, (k,f,v)):
+      return HistoryResultElementV(self, (k,f,v)) \
+               if type(v[0]) == list else \
+             HistoryResultElement(self, (k,f,v))
 
-   @cached_property
-   def domain(self):
-      ((_, data), _) = self.source[5] if self.source[5] else ((0,[]),0)
-      return data
 
-   @cached_property  # TODO: use self.iterationResult
-   def results(self):      
-      (_, rows) = self.source[5] if self.source[5] else (0,[])
-      return map(self.constructResultElement, rows)
 
-   @cached_property
-   def series(self):
-      return chain(*map(lambda e: e.series, self.results)) 
-
-class HistoryElement(HistoryElementBase):
+class HistoryElement(object):
 
    def __init__(self, parent, idx):
       self.parent = parent
@@ -1263,12 +1274,16 @@ class HistoryElement(HistoryElementBase):
       self.method = MethodHState(self)
 
    @cached_property
+   def currentIterationLabel(self):
+      return self.parent.iterationLabel
+
+   @cached_property
    def scalarResult(self):
       return HScalarResult(self, self.source[4]) if self.source[4] else None
 
    @cached_property
    def iterationResult(self):
-      return HIterationResult(self, self.source[5]) if self.source[5] else None 
+      return HIterationResult(self, self.source[5], self.source[6]) if self.source[5] else None 
 
    @cached_property
    def toRender(self):
@@ -1284,30 +1299,13 @@ class HistoryElement(HistoryElementBase):
                       +TD(TABLE(method + scalarResult),valign='top')))  \
                + iterationResult
 
-   def constructResultElement(self, (k,f,v)):
-      return HistoryResultElementV(self, (k,f,v)) \
-               if type(v[0]) == list else \
-             HistoryResultElement(self, (k,f,v))
-
    @cached_property
-   def compatible(self):
-      return self.iterationResult and self.iterate_label == self.parent.iteration.label
-
-   @cached_property
-   def resHH(self):
-      return list(chain(*map(lambda e: e.resHH, self.results)))
-
-   @cached_property
-   def headerToSave(self):
-      return (self.iterate_label, self.domain)
+   def series(self):
+      return self.iterationResult.series if self.iterationResult else []
 
    @cached_property
    def resH(self):
-      return [(self.headerToSave, self.resHH)] if self.compatible and len(self.resHH)>0 else []
-
-   @cached_property
-   def series(self):
-      return super(HistoryElement,self).series if self.compatible else []
+      return self.iterationResult.resH if self.iterationResult else []      
 
 
 
@@ -1350,6 +1348,11 @@ class IterationResult(IterationResultBase):
    def __init__(self, parent):
       self.parent = parent
       self.computation_timeout = parent.computation_timeout
+
+   def constructResultElement(self, (k,f,v)):
+      return CurrentResultElementV(self, (k,f,v)) \
+               if type(v[0]) == list \
+               else CurrentResultElement(self, (k,f,v))
 
    @cached_property
    def result(self):
