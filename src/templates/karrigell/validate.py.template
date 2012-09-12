@@ -219,8 +219,9 @@ class IterationState(object):
       self.iterateTo = iterateTo
       self.stepsNo = stepsNo
 
+   @cached_property
    def keys(self):
-      return iterate(self.getter(), self.iterateTo, self.stepsNo)
+      return list(iterate(self.getter(), self.iterateTo, self.stepsNo))
 
    @cached_property
    def serialized(self):
@@ -698,9 +699,11 @@ class StateBase(StateCommonBase):
    @property
    def currentColor(self): return clr(self.colors,clridx)
 
+   iterationType = Iteration
+
    @cached_property
    def iterations(self):
-      return [Iteration(self, 0), Iteration(self, 1)]
+      return [self.iterationType(self, 0), self.iterationType(self, 1)]
 
    def createRenderer(self):
       return Renderer(self.obj, state = self)
@@ -785,6 +788,7 @@ class ModelState(ModelStateBase, StateBase):
    defaultValue = 'BS1D'
    uriOldItIdx = 'im'
    reqItIdx = 'iterate_model'
+   iterationType = ModelIteration
 
    @cached_property
    def historyState(self):
@@ -793,10 +797,6 @@ class ModelState(ModelStateBase, StateBase):
    @cached_property 
    def predsChanged(self):
       return self.parent.asset.idChanged 
-
-   @cached_property
-   def iterations(self):
-      return [ModelIteration(self, 0), ModelIteration(self, 1)]
 
 class FamilyStateBase(object):
 
@@ -866,6 +866,7 @@ class OptionState(OptionStateBase, StateBase):
    defaultValue = 'CallEuro'
    uriOldItIdx = 'io'
    reqItIdx = 'iterate_option'
+   iterationType = OptionIteration
 
    @cached_property
    def historyState(self):
@@ -874,10 +875,6 @@ class OptionState(OptionStateBase, StateBase):
    @cached_property 
    def predsChanged(self):
       return self.parent.family.idChanged or self.parent.model.idChanged
-
-   @cached_property
-   def iterations(self):
-      return [OptionIteration(self, 0), OptionIteration(self, 1)]
 
 class ResultMemberCommonBase(object):
 
@@ -1015,6 +1012,7 @@ class MethodState(MethodStateBase, StateBase):
    compButton = ComputeButton()
    settings = Settings()
    common = CommonSettings()
+   iterationType = MethodIteration
 
    @cached_property
    def historyState(self):
@@ -1048,10 +1046,6 @@ class MethodState(MethodStateBase, StateBase):
    def resultMembers(self):
       return map(lambda t: ResultMember(t[0],t[1]), 
                  self.ksModule.resultFields() + [('Time', 'Computation Time')]) 
-
-   @cached_property
-   def iterations(self):
-      return [MethodIteration(self, 0), MethodIteration(self,1)]
 
 class ScalarResultBase(object):
 
@@ -1632,7 +1626,35 @@ class HIterationResult(IterationResultBase):
                if type(v[0]) == list else \
              HistoryResultElement(self, (k,f,b,v))
 
+class HIterationResult2D(object):
 
+   def __init__(self, parent, res2d, labels):
+      self.keys_1 = res2d["keys_1"][1]
+      self.name_1 = res2d["keys_1"][0]
+      self.keys_2 = res2d["keys_2"][1]
+      self.name_2 = res2d["keys_2"][0]
+      self.data = res2d["data"]
+
+   @cached_property
+   def toRender(self):
+
+      def render((label, data)):
+
+         def at(i_1, i_2):
+            idx = len(self.keys_2) * i_1 + i_2
+            return data[idx] if idx < len(data) else ""
+
+
+         k_1 = TD(self.name_1, valign='center', rowspan=len(self.keys_1)+2, bgcolor='grey')
+         header = TR(k_1 + TD(self.name_2, align='center', colspan=len(self.keys_2)+1), bgcolor='grey')
+         keys_2 = TR(TD() + Sum(map(TD, self.keys_2)), bgcolor='grey')
+
+         def row(i_1):
+            return TD(self.keys_1[i_1], bgcolor='grey') + Sum([TD(at(i_1, i_2)) for i_2 in range(len(self.keys_2))])
+
+         return H3(label) + TABLE(header + keys_2 + Sum([TR(row(i_1)) for i_1 in range(len(self.keys_1))]))
+
+      return Sum(map(render, self.data))
 
 class HistoryElement(object):
 
@@ -1675,6 +1697,10 @@ class HistoryElement(object):
    def iterationResult(self):
       return HIterationResult(self, self.source["iterationResult"], self.source["iterationLabels"]) if self.source["iterationResult"] else None 
 
+   @cached_property
+   def iterationResult2D(self):
+      return HIterationResult2D(self, self.source["iterationResult2D"], self.source["iterationLabels"]) if self.source["iterationResult2D"] else None 
+
    def at(self, idx):
       return self.iterationResult.at(idx)
 
@@ -1701,6 +1727,7 @@ class HistoryElement(object):
 
       iterationResult = iterationTable + Sum(self.iterationResult.graphCode) \
                            if self.iterationResult \
+                        else self.iterationResult2D.toRender if self.iterationResult2D \
                            else Sum([])
 
       if not self.isCurrent:
@@ -1816,7 +1843,7 @@ class IterationResult(IterationResultBase):
       iteration = self.parent.iterations[0]
 
       def G(opt, mod, q):
-         for x in iteration.keys():
+         for x in iteration.keys:
              
              iteration.setter(x)
                   
@@ -1867,26 +1894,27 @@ class IterationResult2D(object):
       self.computation_timeout = parent.computation_timeout
 
    @cached_property
-   def resultRaw(self):
+   def result(self):
 
       iteration_1, iteration_2 = self.parent.iterations
 
       def G(opt, mod, q):
-         for x_1 in iteration_1.keys():
-            iteration_1.setter(x_1)
-
-            for x_2 in iteration_2.keys():
+         for x_1 in iteration_1.keys:
+            for x_2 in iteration_2.keys:
                iteration_2.setter(x_2)
+               iteration_1.setter(x_1)
                
                begin = time()
                res = (self.parent.method.obj(opt, mod))
                end = time()
-               res.insert(0, (iteration_1.name, x_1))
-               res.insert(1, (iteration_2.name, x_2))
                res.append(("Time", end - begin))
-               q.put(res)
+               q.put((x_1, x_2, res))
       
-      res_t = []
+      res_t = {
+         "keys_1" : (iteration_1.name, iteration_1.keys),
+         "keys_2" : (iteration_2.name, iteration_2.keys),
+         "data" : []
+      }
       try: 
          queue = Queue()
          process = Process(target = G, args = (self.parent.option.obj,self.parent.model.obj, queue))
@@ -1895,10 +1923,19 @@ class IterationResult2D(object):
 
             begin = time()
             iterations = iteration_1.stepsNo * iteration_2.stepsNo
+            data = res_t["data"]
             for i in range(iterations):
-               q = queue.get(timeout=begin + self.computation_timeout - time())
-               res_t.append(q)
-                             
+               x_1, x_2, q = queue.get(timeout=begin + self.computation_timeout - time())
+               if len(data) == 0:
+                  for k,v in q:
+                     data.append((k, [v]))
+               else:
+                  idx = 0
+                  for k,v in q:
+                      assert data[idx][0] == k
+                      data[idx][1].append(v)
+                      idx += 1
+
          except Empty, exc:
             process.terminate()
             raise Exception("Method has worked more than " + str(self.computation_timeout) + "s. Please try another parameter combination")
@@ -1940,7 +1977,7 @@ class State(object):
 
    @cached_property
    def iterationResult(self):
-      return IterationResult(self) if self.runComputation and self.iterations[0] else None
+      return IterationResult(self) if self.runComputation and self.iterations[0] and not self.iterations[1] else None
 
    @cached_property
    def iterationResult2D(self):
@@ -1980,6 +2017,7 @@ class State(object):
          "methodObj" : self.method.obj,   # 3
          "scalarResult" : self.scalarResult.result if self.scalarResult else None,       # 4
          "iterationResult" : self.iterationResult.result if self.iterationResult else None,  # 5
+         "iterationResult2D" : self.iterationResult2D.result if self.iterationResult2D else None,
          "iterationLabels" : self.iterationLabels,  # 6
          "toBeInherited" : self.history.toBeInherited, 
          "iterations" : self.iterationsSerialized
@@ -1988,7 +2026,7 @@ class State(object):
 
    @cached_property
    def hasResult(self):
-      return self.scalarResult or self.iterationResult
+      return self.scalarResult or self.iterationResult or self.iterationResult2D
 
    @cached_property
    def request(self):
@@ -2041,10 +2079,6 @@ form <= state.history.toRender
 
 if state.hasResult:
    session.history.append(state.serialized)
-
-#if state.iterationResult2D:
-#   print state.iterationResult2D.resultRaw
-
 
 #print REQUEST
 
