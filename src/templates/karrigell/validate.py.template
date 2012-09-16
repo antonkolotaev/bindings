@@ -395,6 +395,14 @@ def enum_submit_mod(n,names,v):
     L.select(value=names.index(v))
     return L
 
+def enum_submit_ex(n, names, v, disabled):
+   options = []
+   for i in range(len(names)):
+      o = OPTION(names[i], value=i, SELECTED=v==names[i], DISABLED=names[i]==disabled)
+      options.append(o)
+   L = SELECT(Sum(options), name = n, onchange="submit();")
+   return L
+
 def enum_submit(n,classes,v):
     names = [x.__name__ for x in classes]
     L = SELECT(name = n, onchange="submit();").from_list(names)
@@ -486,6 +494,10 @@ class Iteration(object):
       self.tryGet = parent.tryGet
       self.idx = idx
       self.suffix = "_" + str(self.idx)
+
+   @cached_property
+   def another(self):
+      return self.parent.iterations[1 - self.idx]
       
    @property
    def reqItIdx(self):
@@ -576,11 +588,23 @@ class Iteration(object):
       return self.oldIterationIdx != self.srcIterationIdx
 
    @cached_property
+   def label(self):
+      return self.iterables.labels[self.fixedIterationIdx]
+
+   @cached_property
    def iterationRows(self):
 
-      mc = enum_submit_mod(self.iterateVlabel, self.iterables.labels, self.iterables.labels[self.fixedIterationIdx])
+      if len(self.iterables.labels) == 1:
+         return []
 
-      table = [rowEx('Iterate', mc, '')]
+      if self.idx == 1 and not self.parent.parent.iterations[0]:
+         return []
+
+      anotherLabel = self.another.label if (self.idx == 1 or self.iteration) and self.another.iteration else ""
+
+      mc = enum_submit_ex(self.iterateVlabel, self.iterables.labels, self.label, anotherLabel)
+
+      table = [rowEx('Iterate #'+str(self.idx), mc, '')]
          
       if self.fixedIterationIdx != 0:
 
@@ -1115,7 +1139,8 @@ def todata2d(array, rowlen):
    s = '['
    for i in range(rowlen, len(array), rowlen):
       s += todata1d(array[i-rowlen:i-1]) + ","
-   s += todata1d(array[i:])
+   if 'i' in dir():
+      s += todata1d(array[i:])
    s += ']'
    return s
 
@@ -1753,7 +1778,7 @@ def texture_shader_vs():
    """
    return SCRIPT(body, id="texture-shader-vs", type="x-shader/x-vertex")
 
-def graph3d(h_idx, label, data, keys_1, keys_2, name_1, name_2):
+def graph3d(h_idx, label, friendly, data, keys_1, keys_2, name_1, name_2):
    body = """
    function setUp()
    {
@@ -1829,7 +1854,7 @@ def graph3d(h_idx, label, data, keys_1, keys_2, name_1, name_2):
             .replace("TOOLTIP", tooltip)\
             .replace("X_AXIS", name_1)\
             .replace("Y_AXIS", name_2)\
-            .replace("Z_AXIS", label)
+            .replace("Z_AXIS", friendly)
    return script(body)
 
 def surfaceDiv(h_idx, label):
@@ -1857,12 +1882,12 @@ def graph3dprologue():
 
 g_prologue3d = []
 
-def graph3dcode(h_idx, label, data, keys_1, keys_2, name_1, name_2):
+def graph3dcode(h_idx, label, friendly, data, keys_1, keys_2, name_1, name_2):
    prologue = [graph3dprologue()] if g_prologue3d == [] else []
 
    code = Sum(prologue + [
          surfaceDiv(h_idx, label),
-         graph3d(h_idx, label, data, keys_1, keys_2, name_1, name_2)
+         graph3d(h_idx, label, friendly, data, keys_1, keys_2, name_1, name_2)
       ])
 
    g_prologue3d.extend(prologue)
@@ -1881,18 +1906,23 @@ class HIterationResult2D(object):
       self.keys_2 = res2d["keys_2"][1]
       self.name_2 = res2d["keys_2"][0]
       self.data = res2d["data"]
+      print labels
 
    @cached_property
    def toRender(self):
 
       showTable = state.method.settings.showResultTable 
 
-      def render((label, data)):
+      def render(((label, friendly, show), data)):
+
+         if not show:
+            return Sum([])
 
          if data != [] and type(data[0]) == list:
             res = []
             for i in range(len(data[0])):
-               res.append(render((label+"["+str(i)+"]", map(lambda v: v[i], data))))
+               suff = "["+str(i)+"]"
+               res.append(render(((label+suff, friendly+suff, show), map(lambda v: v[i], data))))
             return Sum(res)
 
          def at(i_1, i_2):
@@ -1907,8 +1937,8 @@ class HIterationResult2D(object):
          def row(i_1):
             return TD(self.keys_1[i_1], bgcolor='grey') + Sum([TD(at(i_1, i_2)) for i_2 in range(len(self.keys_2))])
 
-         return H3(label)\
-            + graph3dcode(self.parent.h_idx, label, data, self.keys_1, self.keys_2, self.name_1, self.name_2) \
+         return H3(friendly)\
+            + graph3dcode(self.parent.h_idx, label, friendly, data, self.keys_1, self.keys_2, self.name_1, self.name_2) \
             + (TABLE(header + keys_2 + Sum([TR(row(i_1)) for i_1 in range(len(self.keys_1))])) if showTable else Sum([]))
 
       return Sum(map(render, self.data))
@@ -1980,7 +2010,7 @@ class HistoryElement(object):
    @cached_property
    def toRender(self):
 
-      iterationTable = TABLE(self.iterationResult.toRender) if state.method.settings.showResultTable else Sum([])
+      iterationTable = TABLE(self.iterationResult.toRender) if self.iterationResult and state.method.settings.showResultTable else Sum([])
 
       iterationResult = iterationTable + Sum(self.iterationResult.graphCode) \
                            if self.iterationResult \
@@ -2153,6 +2183,7 @@ class IterationResult2D(object):
    @cached_property
    def result(self):
 
+      suffix = self.parent.method.settings.suffix
       iteration_1, iteration_2 = self.parent.iterations
 
       def G(opt, mod, q):
@@ -2185,11 +2216,11 @@ class IterationResult2D(object):
                x_1, x_2, q = queue.get(timeout=begin + self.computation_timeout - time())
                if len(data) == 0:
                   for k,v in q:
-                     data.append((k, [v]))
+                     data.append(((k, showGraphLabel(k,k)+suffix, showOnGraph(k)), [v]))
                else:
                   idx = 0
                   for k,v in q:
-                      assert data[idx][0] == k
+                      assert data[idx][0][0] == k
                       data[idx][1].append(v)
                       idx += 1
 
@@ -2200,6 +2231,7 @@ class IterationResult2D(object):
          process.join(timeout=self.computation_timeout)
 
       except Exception, exc:
+         print exc
          add_error(exc)
       return res_t
 
