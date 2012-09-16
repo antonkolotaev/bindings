@@ -1099,11 +1099,6 @@ def spannedRowsKV(k,v):
                                 map(lambda i: Sum([TD(L[i]) for L in v]), range(1, dim))
 
 def script(s):
-   """
-    print "<script type=\"text/javascript\">"
-    print s
-    print "</script>"
-   """
    return SCRIPT(s, type=r"text/javascript")
 
 def todata(header, v):
@@ -1112,6 +1107,26 @@ def todata(header, v):
       s += "[" + str(header[i]) + "," + str(v[i]) + "],"
    s += "]"
    return s
+
+def todata1d(array):
+   return "[" + ','.join(map(str, array)) + "]"
+
+def todata2d(array, rowlen):
+   s = '['
+   for i in range(rowlen, len(array), rowlen):
+      s += todata1d(array[i-rowlen:i-1]) + ","
+   s += todata1d(array[i:])
+   s += ']'
+   return s
+
+def tooltipArray(data, keys_1, keys_2, name_1, name_2):
+   s = "["
+   for i in range(len(keys_1)):
+      for j in range(len(keys_2)):
+         idx = i * len(keys_2) + j
+         v = str(data[idx]) if idx < len(data) else "" 
+         s += quote("("+name_1+"="+str(keys_1[i])+","+name_2+"="+str(keys_2[j])+")="+v)+","
+   return s + "]"
 
 def groupByFirst(xs):
    res = {}
@@ -1626,9 +1641,241 @@ class HIterationResult(IterationResultBase):
                if type(v[0]) == list else \
              HistoryResultElement(self, (k,f,b,v))
 
+def js_include(filename):
+   return SCRIPT(type="text/javascript", src="premia/" + filename)
+
+def shader_fs():
+   body = """
+      #ifdef GL_ES
+      precision highp float;
+      #endif
+      
+      varying vec4 vColor;
+      varying vec3 vLightWeighting;
+      
+      void main(void)
+      {
+         gl_FragColor = vec4(vColor.rgb * vLightWeighting, vColor.a);
+      }   
+   """
+   return SCRIPT(body, id="shader-fs", type="x-shader/x-fragment")
+
+def shader_vs():
+   body = """
+      attribute vec3 aVertexPosition;
+      attribute vec3 aVertexNormal;
+      attribute vec4 aVertexColor;
+      
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+      uniform mat3 uNMatrix;
+      varying vec4 vColor;
+      
+      uniform vec3 uAmbientColor;
+      uniform vec3 uLightingDirection;
+      uniform vec3 uDirectionalColor;
+      varying vec3 vLightWeighting;
+      
+      void main(void)
+      {
+          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+          
+          vec3 transformedNormal = uNMatrix * aVertexNormal;
+          float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
+          vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting; 
+
+          vColor = aVertexColor;
+      }
+   """
+   return SCRIPT(body, id="shader-vs", type="x-shader/x-vertex")
+
+def axes_shader_fs():
+   body = """
+      precision mediump float;
+      varying vec4 vColor;
+      
+      void main(void)
+      {
+         gl_FragColor = vColor;
+      }
+   """
+   return SCRIPT(body, id="axes-shader-fs", type="x-shader/x-fragment")
+
+def axes_shader_vs():
+   body = """
+      attribute vec3 aVertexPosition;
+      attribute vec4 aVertexColor;
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+      varying vec4 vColor;
+      uniform vec3 uAxesColour;
+      
+      void main(void)
+      {
+         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+         vColor =  vec4(uAxesColour, 1.0);
+      } 
+   """
+   return SCRIPT(body, id="axes-shader-vs", type="x-shader/x-vertex")        
+
+def  texture_shader_fs():
+   body = """
+      #ifdef GL_ES
+      precision highp float;
+      #endif
+      
+      varying vec2 vTextureCoord;
+      
+      uniform sampler2D uSampler;
+      
+      void main(void)
+      {
+          gl_FragColor = texture2D(uSampler, vTextureCoord);
+      }
+   """
+   return SCRIPT(body, id="texture-shader-fs", type="x-shader/x-fragment")
+
+def texture_shader_vs():
+   body = """
+      attribute vec3 aVertexPosition;
+      
+      attribute vec2 aTextureCoord;
+      varying vec2 vTextureCoord;
+      
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+      
+      void main(void)
+      {
+          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+          vTextureCoord = aTextureCoord; 
+      }
+   """
+   return SCRIPT(body, id="texture-shader-vs", type="x-shader/x-vertex")
+
+def graph3d(h_idx, label, data, keys_1, keys_2, name_1, name_2):
+   body = """
+   function setUp()
+   {
+      var surfacePlot;
+      var keys_1 = KEYS_1;
+      var keys_2 = KEYS_2;
+      var numRows = keys_1.length;
+      var numCols = keys_2.length;
+      
+      var tooltipStrings = TOOLTIP;
+      var values = VALUES;
+      var data = {nRows: numRows, nCols: numCols, formattedValues: values};
+      
+      h_idx = H_IDX
+      surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"+h_idx));
+      
+      // Don't fill polygons in IE. It's too slow.
+      var fillPly = true;
+      
+      // Define a colour gradient.
+      var colour1 = {red:0, green:0, blue:255};
+      var colour2 = {red:0, green:255, blue:255};
+      var colour3 = {red:0, green:255, blue:0};
+      var colour4 = {red:255, green:255, blue:0};
+      var colour5 = {red:255, green:0, blue:0};
+      var colours = [colour1, colour2, colour3, colour4, colour5];
+      
+      // Axis labels.
+      var xAxisHeader   = "X_AXIS";
+      var yAxisHeader   = "Y_AXIS";
+      var zAxisHeader   = "Z_AXIS";
+
+      sizeX = XXX;
+      sizeY = YYY
+      
+      var renderDataPoints = false;
+      var background = '#ffffff';
+      var axisForeColour = '#000000';
+      var hideFloorPolygons = true;
+      var chartOrigin = {x: sizeX/2, y:sizeY/2};
+      
+      // Options for the basic canvas pliot.
+      var basicPlotOptions = {fillPolygons: fillPly, tooltips: tooltipStrings, renderPoints: renderDataPoints }
+      
+      // Options for the webGL plot.
+      var xLabels = keys_1;
+      var yLabels = keys_2;
+      var glOptions = {xLabels: xLabels, yLabels: yLabels ,autoCalcZScale: true};
+      
+      // Options common to both types of plot.
+      var options = {xPos: 0, yPos: 0, width: sizeX, height: sizeY, colourGradient: colours, 
+         xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader, 
+         backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
+      
+      surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+   }
+
+   setUp();
+   """
+   sizeX = state.method.settings.sizeX + 100
+   sizeY = state.method.settings.sizeY + 100
+   keys1 = todata1d(keys_1)
+   keys2 = todata1d(keys_2)
+   values = todata2d(data, len(keys_2))
+   tooltip = tooltipArray(data, keys_1, keys_2, name_1, name_2)
+   body = body\
+            .replace("XXX", str(sizeX))\
+            .replace("YYY", str(sizeY))\
+            .replace("H_IDX", quote(str(h_idx)+label))\
+            .replace("KEYS_1", keys1)\
+            .replace("KEYS_2", keys2)\
+            .replace("VALUES", values)\
+            .replace("TOOLTIP", tooltip)\
+            .replace("X_AXIS", name_1)\
+            .replace("Y_AXIS", name_2)\
+            .replace("Z_AXIS", label)
+   return script(body)
+
+def surfaceDiv(h_idx, label):
+   sizeX = state.method.settings.sizeX + 100
+   sizeY = state.method.settings.sizeY + 100
+   s = "width: XXXpx; height: YYYpx;" \
+         .replace("XXX",str(sizeX)) \
+         .replace("YYY",str(sizeY))
+
+   return TABLE(TR(TD(DIV(id='surfacePlotDiv'+str(h_idx)+label, style=s))))
+
+def graph3dprologue():
+   return Sum([
+         js_include('SurfacePlot.js'),
+         js_include('ColourGradient.js'),
+         js_include('glMatrix-0.9.5.min.js'),
+         js_include('webgl-utils.js'),
+         shader_fs(),
+         shader_vs(),
+         axes_shader_fs(),
+         axes_shader_vs(),
+         texture_shader_fs(),
+         texture_shader_vs(),
+      ])
+
+g_prologue3d = []
+
+def graph3dcode(h_idx, label, data, keys_1, keys_2, name_1, name_2):
+   prologue = [graph3dprologue()] if g_prologue3d == [] else []
+
+   code = Sum(prologue + [
+         surfaceDiv(h_idx, label),
+         graph3d(h_idx, label, data, keys_1, keys_2, name_1, name_2)
+      ])
+
+   g_prologue3d.extend(prologue)
+
+   return code
+
+
+
+
 class HIterationResult2D(object):
 
    def __init__(self, parent, res2d, labels):
+      self.parent = parent
       self.keys_1 = res2d["keys_1"][1]
       self.name_1 = res2d["keys_1"][0]
       self.keys_2 = res2d["keys_2"][1]
@@ -1638,7 +1885,15 @@ class HIterationResult2D(object):
    @cached_property
    def toRender(self):
 
+      showTable = state.method.settings.showResultTable 
+
       def render((label, data)):
+
+         if data != [] and type(data[0]) == list:
+            res = []
+            for i in range(len(data[0])):
+               res.append(render((label+"["+str(i)+"]", map(lambda v: v[i], data))))
+            return Sum(res)
 
          def at(i_1, i_2):
             idx = len(self.keys_2) * i_1 + i_2
@@ -1652,7 +1907,9 @@ class HIterationResult2D(object):
          def row(i_1):
             return TD(self.keys_1[i_1], bgcolor='grey') + Sum([TD(at(i_1, i_2)) for i_2 in range(len(self.keys_2))])
 
-         return H3(label) + TABLE(header + keys_2 + Sum([TR(row(i_1)) for i_1 in range(len(self.keys_1))]))
+         return H3(label)\
+            + graph3dcode(self.parent.h_idx, label, data, self.keys_1, self.keys_2, self.name_1, self.name_2) \
+            + (TABLE(header + keys_2 + Sum([TR(row(i_1)) for i_1 in range(len(self.keys_1))])) if showTable else Sum([]))
 
       return Sum(map(render, self.data))
 
@@ -1771,7 +2028,7 @@ class History(object):
 
    @cached_property
    def renderedCurrentState(self):
-      if self.parent.iterationResult:
+      if self.parent.iterationResult or self.parent.iterationResult2D:
          N = self.historyLen
          current = HistoryElement(self.parent, self.parent.serialized, N)
          return current.toRender
