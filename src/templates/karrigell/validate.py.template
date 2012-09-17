@@ -1997,7 +1997,7 @@ class HistoryElement(object):
 
    @cached_property
    def isCurrent(self):
-      return self.h_idx == len(session.history)
+      return self.h_idx == len(self.parent.workspace)
 
    @cached_property
    def varMakeCurrent(self):
@@ -2039,11 +2039,11 @@ class History(object):
    def __init__(self, parent):
       self.parent = parent
       N = self.historyLen
-      self.elements = map(lambda i: HistoryElement(parent, session.history[N-i-1], N-i-1), range(N))
+      self.elements = map(lambda i: HistoryElement(parent, self.parent.workspace[N-i-1], N-i-1), range(N))
 
    @cached_property
    def historyLen(self):
-      return len(session.history) if 'history' in dir(session) else 0
+      return len(self.parent.workspace)
 
    @cached_property
    def toBeTakenAsCurrent(self):
@@ -2289,7 +2289,8 @@ class State(object):
 
    @cached_property
    def uri(self):
-      return   self.asset.uri + \
+      return   uriPart('workspace', self.workspace_name) + \
+               self.asset.uri + \
                self.model.uri + \
                self.family.uri + \
                self.option.uri + \
@@ -2327,6 +2328,16 @@ class State(object):
    def runComputation(self):
       return g_errors == [] and self.method.compButton.value
 
+   @property
+   def workspace_name(self):
+      global workspace_name
+      return workspace_name
+
+   @property
+   def workspace(self):
+      global workspace
+      return workspace
+
    @cached_property
    def toRender(self):
 
@@ -2341,13 +2352,18 @@ class State(object):
 
 
    
-if 'history' not in dir(session):
-   session.history = []
+if 'workspaces' not in dir(session):
+   session.workspaces = {}
+
+workspace_name = tryGet(REQUEST, 'workspace', str(len(session.workspaces)))
+
+if workspace_name not in session.workspaces:
+   session.workspaces[workspace_name] = []
 
 if 'ClearHistory' in REQUEST:
-   session.history = []
+   session.workspaces[workspace_name] = []
    
-
+workspace = session.workspaces[workspace_name]
 
 state = State()
 
@@ -2361,13 +2377,13 @@ g_table = state.toRender
 form <= g_table
 
 
-if session.history <> [] or state.hasResult:
+if workspace != [] or state.hasResult:
    form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
 form <= state.history.toRender
 
 if state.hasResult:
-   session.history.append(state.serialized)
+   workspace.append(state.serialized)
 
 #print REQUEST
 
