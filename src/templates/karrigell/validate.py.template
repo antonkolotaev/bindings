@@ -5,7 +5,7 @@ from time import time
 from copy import copy
 from itertools import *
 
-saved_REQUEST = copy(REQUEST)
+saved_REQUEST = REQUEST
 
 Include('import.py')
 
@@ -2047,6 +2047,10 @@ class History(object):
 
    @cached_property
    def toBeTakenAsCurrent(self):
+      global workspace_jump
+      if workspace_jump:
+         return self.elements[0] if self.elements != [] else None
+
       for x in self.elements:
          if x.toBeTakenAsCurrent:
             return x
@@ -2339,6 +2343,18 @@ class State(object):
       return workspace
 
    @cached_property
+   def workspacesRendered(self):
+      global session
+      workspaces = session.workspaces.keys()
+
+      btnDelete = INPUT(Type="submit",name="DeleteWorkspace",value="Delete current")
+      btnCreate = INPUT(Type="submit",name="CreateWorkspace",value="Create new")
+
+      workspaces.sort()
+      L = enum_submit_ex('JumpToWorkspace', workspaces, self.workspace_name, self.workspace_name) 
+      return TABLE(TR(TD('Jump to workspace:') + TD(L) + TD(btnDelete) + TD(btnCreate)))
+
+   @cached_property
    def toRender(self):
 
       model = self.model.toRender
@@ -2346,7 +2362,8 @@ class State(object):
       method = self.method.toRender
       scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
 
-      return TABLE(TR(TD(TABLE(model),valign='top') + \
+      return self.workspacesRendered +\
+             TABLE(TR(TD(TABLE(model),valign='top') + \
                       TD(TABLE(option),valign='top') + \
                       TD(TABLE(method+scalarResult),valign='top'))) 
 
@@ -2355,7 +2372,34 @@ class State(object):
 if 'workspaces' not in dir(session):
    session.workspaces = {}
 
-workspace_name = tryGet(REQUEST, 'workspace', str(len(session.workspaces)))
+def genName():
+   for i in range(1000000):
+      if str(i) not in session.workspaces:
+         return str(i)
+   return ""
+
+workspace_name = tryGet(REQUEST, 'workspace', genName())
+workspace_jump = False
+
+if "CreateWorkspace" in REQUEST:
+   workspace_name = genName()
+
+if "DeleteWorkspace" in REQUEST:
+   workspace_jump = True
+   if workspace_name in session.workspaces:
+      del session.workspaces[workspace_name]
+   if session.workspaces == {}:
+      session.workspaces['0'] = []
+   workspace_name = session.workspaces.keys()[0]
+
+if 'JumpToWorkspace' in REQUEST and not workspace_jump and "CreateWorkspace" not in REQUEST:
+   ws = session.workspaces.keys()
+   ws.sort()
+   ws_idx = int(REQUEST['JumpToWorkspace'])
+   if ws[ws_idx] != workspace_name:
+      workspace_jump = True
+      workspace_name = ws[ws_idx]
+      
 
 if workspace_name not in session.workspaces:
    session.workspaces[workspace_name] = []
