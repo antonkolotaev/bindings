@@ -1906,7 +1906,7 @@ class HIterationResult2D(object):
       self.keys_2 = res2d["keys_2"][1]
       self.name_2 = res2d["keys_2"][0]
       self.data = res2d["data"]
-      print labels
+      #print labels
 
    @cached_property
    def toRender(self):
@@ -2362,10 +2362,10 @@ class State(object):
       method = self.method.toRender
       scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
 
-      return self.workspacesRendered +\
-             TABLE(TR(TD(TABLE(model),valign='top') + \
+      return TABLE(TR(TD(TABLE(model),valign='top') + \
                       TD(TABLE(option),valign='top') + \
-                      TD(TABLE(method+scalarResult),valign='top'))) 
+                      TD(TABLE(method+scalarResult),valign='top'))) + \
+               self.workspacesRendered
 
 
    
@@ -2428,9 +2428,57 @@ form <= state.history.toRender
 
 if state.hasResult:
    workspace.append(state.serialized)
-
-#print REQUEST
-
+print """
+<head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></head>
+"""
 print form
 
+footer = TABLE()
+
+footer <= TR(TD(A(IMG(src='premia/LogoPremia Petit 4e.jpg'), href="https://www.rocq.inria.fr/mathfi/Premia/index.html"), colspan="3"))
+footer <= TR(TD("""
+Premia is developed by the <a href="http://www.inria.fr/recherche/equipes/mathrisk.html" target="_blank">Math-Risk</a>team which gathers research scientists from <a href="http://www.inria.fr/">INRIA</a>(the French
+national institute for research in computer science and control), <a href="http://cermics.enpc.fr/">Ecole des Ponts
+ParisTech</a>(CERMICS laboratory on applied mathematics and computing),
+and the <a href="http://www.univ-mlv.fr/">University
+of Marne la Vall&eacute;e.</a>
+""", colspan="3"))
+footer <= TR(TD(A(IMG(src='premia/INRIA-CORPO-RVB.jpg'), href="http://www.inria.fr"))\
+    + TD(A(IMG(src='premia/cermics.gif'), href="http://cermics.enpc.fr/"))\
+    + TD(A(IMG(src='premia/univ-mlv.gif'), href="http://www.univ-mlv.fr/")))
+
+#print footer
+
+print """
+<table border="0" cellpadding="0" cellspacing="0" width="754px" align="center">
+
+  <tbody>
+    <tr>
+      <td align="center">
+      <div style="margin: 20px;" align="center"> <br>
+      <a href="https://www.rocq.inria.fr/mathfi/Premia/index.html"><img src="premia/LogoPremia%%20Petit%%204e.jpg" alt="" title=""></a> <br>
+Premia is developed by the <a href="http://www.inria.fr/equipes/mathfi" target="_blank">Math-Risk</a> 
+team which gathers research scientists from <a href="http://www.inria.fr/">INRIA</a> (the French
+national institute for research in computer science and control), <a href="http://cermics.enpc.fr/">Ecole des Ponts
+ParisTech</a> (CERMICS laboratory on applied mathematics and computing),
+and the <a href="http://www.univ-mlv.fr/"> University
+of Marne la Vall&eacute;e.</a><br>
+      </div>
+      <div align="center"> <a href="http://www.inria.fr/equipes/mathfi"><img src="premia/INRIA-CORPO-RVB.jpg" alt="Premia" title=""></a>&nbsp;&nbsp;&nbsp;
+      <a href="http://cermics.enpc.fr/"><img src="premia/cermics.gif" alt="Premia" title=""></a>&nbsp;&nbsp;&nbsp;
+      <a href="http://www.univ-mlv.fr/"><img src="premia/univ-mlv.gif" alt="Premia" title=""></a> </div>
+      Bug found? Please contact premia -at- inria.fr or anton.kolotaev -at- gmail.com.
+      </td>
+    </tr>
+    <tr>
+      <td class="bottomnav padlt10" align="right" height="15">Copyright
+&copy; 2012 Premia. All rights reserved.</td>
+    </tr>
+    <tr>
+      <td height="15"><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+"""
 
