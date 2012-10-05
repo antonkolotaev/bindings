@@ -1,5 +1,5 @@
 # ===========================================================================
-#            http://autoconf-archive.cryp.to/ax_boost_python.html
+#      http://www.gnu.org/software/autoconf-archive/ax_boost_python.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -18,14 +18,11 @@
 #
 #   This macro calls AC_SUBST(BOOST_PYTHON_LIB).
 #
-#   In order to ensure that the Python headers are specified on the include
-#   path, this macro requires AX_PYTHON to be called.
+#   In order to ensure that the Python headers and the Boost libraries are
+#   specified on the include path, this macro requires AX_PYTHON and
+#   AX_BOOST_BASE to be called.
 #
-# LAST MODIFICATION
-#
-#   2008-04-12
-#
-# COPYLEFT
+# LICENSE
 #
 #   Copyright (c) 2008 Michael Tindal
 #
@@ -51,41 +48,44 @@
 #   all other use of the material that constitutes the Autoconf Macro.
 #
 #   This special exception to the GPL applies to versions of the Autoconf
-#   Macro released by the Autoconf Macro Archive. When you make and
-#   distribute a modified version of the Autoconf Macro, you may extend this
-#   special exception to the GPL to apply to your modified version as well.
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
+
+#serial 15
 
 AC_DEFUN([AX_BOOST_PYTHON],
-[dnl AC_REQUIRE([AX_PYTHON])dnl
+[ dnl AC_REQUIRE([AX_PYTHON])dnl
 AC_CACHE_CHECK(whether the Boost::Python library is available,
 ac_cv_boost_python,
 [AC_LANG_SAVE
  AC_LANG_CPLUSPLUS
  CPPFLAGS_SAVE="$CPPFLAGS"
- if test "x$PYTHON_INCLUDE_DIR" != "x"; then
+ if test x$PYTHON_INCLUDE_DIR != x; then
    CPPFLAGS="-I$PYTHON_INCLUDE_DIR $CPPFLAGS"
  fi
  CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
- AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[
+ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
  #include <boost/python/module.hpp>
  using namespace boost::python;
  BOOST_PYTHON_MODULE(test) { throw "Boost::Python test."; }]],
- 			   [[return 0;]]),
-  			   ac_cv_boost_python=yes, ac_cv_boost_python=no)
+			   [[return 0;]])],
+			   ac_cv_boost_python=yes, ac_cv_boost_python=no)
  AC_LANG_RESTORE
- CPPFLAGS=$CPPFLAGS_SAVE
+ CPPFLAGS="$CPPFLAGS_SAVE"
 ])
 if test "$ac_cv_boost_python" = "yes"; then
   AC_DEFINE(HAVE_BOOST_PYTHON,,[define if the Boost::Python library is available])
   ax_python_lib=boost_python
-  AC_ARG_WITH([boost-python],AS_HELP_STRING([--with-boost-python],[specify the boost python library or suffix to use]),
+  AC_ARG_WITH([boost-python],AS_HELP_STRING([--with-boost-python],[specify yes/no or the boost python library or suffix to use]),
   [if test "x$with_boost_python" != "xno"; then
      ax_python_lib=$with_boost_python
      ax_boost_python_lib=boost_python-$with_boost_python
    fi])
+  BOOSTLIBDIR=`echo $BOOST_LDFLAGS | sed -e 's/@<:@^\/@:>@*//'`
   save_LDFLAGS="$LDFLAGS"
   LDFLAGS="$LDFLAGS $PYTHON_LDFLAGS $BOOST_LDFLAGS"
-  for ax_lib in $ax_python_lib $ax_boost_python_lib boost_python; do
+  for ax_lib in `ls $BOOSTLIBDIR/libboost_python*.so* $BOOSTLIBDIR/libboost_python*.dylib* $BOOSTLIBDIR/libboost_python*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_python.*\)\.so.*$;\1;' -e 's;^lib\(boost_python.*\)\.dylib.*$;\1;' -e 's;^lib\(boost_python.*\)\.a.*$;\1;' ` $ax_python_lib $ax_boost_python_lib boost_python; do
     AC_CHECK_LIB($ax_lib, exit, [BOOST_PYTHON_LIB="-l$ax_lib" LDFLAGS="$LDFLAGS_save" break])
   done
   AC_SUBST(BOOST_PYTHON_LIB)
