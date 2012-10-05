@@ -141,6 +141,18 @@ namespace api    {
         return fs::path("mod") / model_name / pricing_name / method_name;
     }
 
+    inline fs::path relativeHtmlPath(PricingMethod const &method)
+    {
+        std::string model_name = correctedFilename(*method.pricing.model);
+        std::string method_name = correctedFilename(method);
+        std::string family_name = method.pricing.family->name;
+        boost::to_lower(model_name);
+        boost::to_lower(method_name);
+        boost::to_lower(family_name); 
+        std::string pricing_name = model_name + "_" + family_name;
+
+        return fs::path("mod") / model_name / pricing_name / (method_name + "_doc") / (method_name + "_doc.html");
+    }
 
 
 	/// \brief gets the ordinal number of the method in the pricing

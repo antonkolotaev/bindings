@@ -31,10 +31,18 @@ namespace karrigell {
 			("OBJ", "opt")
 			("BGCOLOR_BASE","opt_colors")
 			("ENTITY_NAME", "option")
+			("FAMILY_PDF", ctx.pdf(opt.family).string())
+			("PDF", ctx.pdf(opt).string())
+			("HTML", ctx.html(opt).string())
+			("FAMILY_HTML", ctx.html(opt.family).string())
 			<< (seq, 
 			   foreach_x(opt.vars, print::includeEnums),
 			   call(print::commonHeader),			   
 			   "from premia.opt.%FAMILY_NAME%.%OPT_NAME% import %OPT_NAME%",
+			   "def pdf(): return r'%PDF%'",
+			   "def familyPdf(): return r'%FAMILY_PDF%'",
+			   "def html(): return r'%HTML%'",
+			   "def familyHtml(): return r'%FAMILY_HTML%'",
 			   "def underlyingType(): return %OPT_NAME%", "",
 			   "def name(): return '%OPT_NAME%'", "",
 			   "def familyName(): return '%FAMILY_NAME%'", "",

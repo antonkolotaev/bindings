@@ -98,11 +98,32 @@ namespace api    {
 		::Family**				source;
 	};
 
+    inline fs::path relativeDocPath(Family const &f)
+    {
+        std::string familyName = f.name;
+        boost::to_lower(familyName);
+        return fs::path("opt") / familyName / familyName;
+    }
+
+    inline fs::path relativeHtmlPath(Family const &f)
+    {
+        std::string familyName = f.name;
+        boost::to_lower(familyName);
+        return fs::path("opt") / familyName / (familyName + "_doc") / (familyName + "_doc.html") ;
+    }
+
     inline fs::path relativeDocPath(Option const &opt)
     {
         std::string optionName = correctedFilename(opt);
         boost::to_lower(optionName);
         return fs::path("opt") / boost::to_lower_copy(opt.family.name) / optionName;
+    }
+
+    inline fs::path relativeHtmlPath(Option const &opt)
+    {
+        std::string optionName = correctedFilename(opt);
+        boost::to_lower(optionName);
+        return fs::path("opt") / boost::to_lower_copy(opt.family.name) / (optionName + "_doc") / (optionName + "_doc.html");
     }
 
 	/// \brief gets the ordinal number of the family

@@ -64,6 +64,13 @@ namespace api	 {
         return fs::path("mod") / modelName / modelName;
     }
 
+    inline fs::path relativeHtmlPath(Model const &m)
+    {
+        std::string modelName = correctedFilename(m);
+        boost::to_lower(modelName);
+        return fs::path("mod") / modelName / (modelName + "_doc") / (modelName + "_doc.html");
+    }
+
     inline fs::path pdf(fs::path const &relative_path)
     {
         return fs::path(relative_path.string() + "_doc.pdf");

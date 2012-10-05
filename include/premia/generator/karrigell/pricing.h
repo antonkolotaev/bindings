@@ -32,10 +32,14 @@ namespace karrigell {
 			("BGCOLOR_BASE","met_colors")
 			("OBJ", "method")
 			("ENTITY_NAME", "method")
+			("PDF", ctx.pdf(met).string())
+			("HTML", ctx.html(met).string())
 			<< (seq, 
 			   foreach_x(met.members, print::includeEnums),
 			   call(print::commonHeader),
 			   "from premia.mod.%MODEL_NAME%.%MODEL_NAME%_%FAMILY_NAME%.%METHOD_NAME% import %METHOD_NAME%",
+			   "def pdf(): return r'%PDF%'",
+			   "def html(): return r'%HTML%'",
 			   "def underlyingType(): return %METHOD_NAME%", "",
 			   "def name(): return '%METHOD_NAME%'", "",
 			   "def fields():",

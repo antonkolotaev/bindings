@@ -18,10 +18,11 @@ namespace karrigell {
 
 	struct Ctx
 	{
-		Ctx(path_t const &output_dir, path_t const &package_dir, int verbosity) 
+		Ctx(path_t const &output_dir, path_t const &package_dir, path_t const &pdf_base, int verbosity) 
 		    :   output_dir_(output_dir) 
 		    ,   package_dir_(package_dir)
 		    ,   base_path_(output_dir / "premia") 
+		    ,   pdf_base_(pdf_base)
 		    ,   verbosity_(verbosity)
 		{}
 		
@@ -47,6 +48,28 @@ namespace karrigell {
 		/// creates a directory
 		/// \param p path to directory
 		void create(fs::path const & p) const 	{	createDir(p);	}
+
+		fs::path check(fs::path const f) const
+		{
+			if (!fs::exists(output_dir_ / f))
+			{
+				out(2) << f << " doesn't exist\n"; 
+				return "";
+			}
+			return f;
+		}
+
+		template <class Entity>
+			fs::path pdf(Entity const &e) const 
+		{ 
+			return check(pdf_base_ / premia::pygen::api::pdf(relativeDocPath(e))); 
+		}
+
+		template <class Entity>
+			fs::path html(Entity const &e) const 
+		{ 
+			return check(pdf_base_ / relativeHtmlPath(e)); 
+		}
 
 		/// adds .py extension to a string
 		static std::string py(std::string const & p) { return p + ".py"; }
@@ -91,6 +114,7 @@ namespace karrigell {
 	   fs::path    output_dir_;
 	   fs::path    package_dir_;
 		fs::path	   base_path_;
+		fs::path    pdf_base_;
 		int         verbosity_;
 	};
 

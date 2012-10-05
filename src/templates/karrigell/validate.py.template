@@ -469,10 +469,18 @@ class StateCommonBase(object):
       return self.header + self.visitFields(self.createRenderer()) + self.iterationRows 
 
    @cached_property
+   def pdfRendered(self):
+      return A("[pdf]", href=self.ksModule.pdf()) if self.ksModule.pdf() != "" else Sum([])
+
+   @cached_property
+   def htmlRendered(self):
+      return A("[html]", href=self.ksModule.html()) if self.ksModule.html() != "" else Sum([])
+
+   @cached_property
    def myHeaderImpl(self):
       """ List of rows representing the entity header 
       """
-      return [rowEx(B(self.printLabel), self.headerContent)]      
+      return [rowEx(B(self.printLabel), self.headerContent, self.pdfRendered + self.htmlRendered)]      
 
    @cached_property
    def header(self):
@@ -748,6 +756,13 @@ class AssetStateBase(object):
    def name(self):
       return self.id
 
+   @cached_property
+   def pdfRendered(self):
+      return Sum([])
+
+   @cached_property
+   def htmlRendered(self):
+      return Sum([])
 
 class AssetState(AssetStateBase, StateBase):
 
@@ -829,6 +844,17 @@ class FamilyStateBase(object):
    @cached_property
    def name(self):
       return self.id
+
+   @cached_property
+   def pdfRendered(self):
+      return A("[pdf]", href=self.parent.option.ksModule.familyPdf()) \
+         if self.parent.option.ksModule.familyPdf() != "" else Sum([])
+
+   @cached_property
+   def htmlRendered(self):
+      return A("[html]", href=self.parent.option.ksModule.familyHtml()) \
+         if self.parent.option.ksModule.familyHtml() != "" else Sum([])
+
 
 class FamilyState(FamilyStateBase, StateBase):
 

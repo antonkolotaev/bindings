@@ -24,10 +24,14 @@ namespace karrigell {
 			("OBJ", "model")
 			("BGCOLOR_BASE","mod_colors")
 			("ENTITY_NAME", "model")
+			("PDF", ctx.pdf(m).string())
+			("HTML", ctx.html(m).string())
 			<< (seq, 
 			   foreach_x(m.members, print::includeEnums),
 			   call(print::commonHeader),	
 			   "from premia.mod.%ID%.model import %MODEL_NAME%",
+			   "def pdf(): return r'%PDF%'",
+			   "def html(): return r'%HTML%'",
 			   "def underlyingType(): return %MODEL_NAME%", "",
 			   "def name(): return '%MODEL_NAME%'", "",
 			   "def fields():",

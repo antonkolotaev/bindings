@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
     path_t data_dir;
     path_t template_dir;
     path_t output_path;
+    path_t pdf_base;
 
     int verbosity;
     
@@ -129,6 +130,7 @@ int main(int argc, char *argv[])
         ("pypremia-dir",po::value(&python_dir)->default_value(root / "bindings" / "python"), "directory containing premia python bindings")
         ("template-dir", po::value(&template_dir)->default_value(current_path / "templates" / "karrigell"), "directory containing templates for ksgen")
         ("data-dir",   po::value(&data_dir)->default_value(root / "data"), "directory containing premia data files")
+        ("pdf-base", po::value(&pdf_base)->default_value("pdf_html"), "path relative to 'output-dir' directory containing PDF documentation")
         ("verbosity,v", po::value(&verbosity)->default_value(1), "verbosity level (0 - no output, 1 - basic, 2 - detailed)")
         ;
 
@@ -139,7 +141,7 @@ int main(int argc, char *argv[])
     fs::path package_path = output_path / "karrigell" / "package" / "kspremia";
     output_path = output_path / "www";
 
-    karrigell::Ctx ctx(output_path, package_path, verbosity);
+    karrigell::Ctx ctx(output_path, package_path, pdf_base, verbosity);
 
     ctx.out(1)
         << "premia-root: "  << root         << std::endl
@@ -147,6 +149,7 @@ int main(int argc, char *argv[])
         << "package-dir: "  << package_path << std::endl
         << "python-dir: "   << python_dir   << std::endl
         << "data-dir: "     << data_dir     << std::endl
+        << "pdf-base: "     << pdf_base     << std::endl
         << "template-dir: " << template_dir << std::endl;
 
     if (vm.count("help")) {
