@@ -1096,7 +1096,13 @@ class ScalarResult(ScalarResultBase):
       res = []
       def F(opt, mod, q):
          begin = time()
-         res = self.parent.method.obj(opt, mod)
+         try:
+            res = self.parent.method.obj(opt, mod)
+         except Exception, exc:
+            print "Caught:", exc
+            res = [("Exception", str(exc))]
+            q.put(res)
+            return
          end = time()
          res.append(("Time", end - begin))
          q.put(res)
@@ -1106,6 +1112,9 @@ class ScalarResult(ScalarResultBase):
          process.start()
          try:
             res = queue.get(timeout=self.computation_timeout)
+            if res[0][0] == "Exception":
+               add_error(res[0][1])
+               res = None
          except Empty, exc:
             process.terminate()
             raise Exception("Method has worked more than " + str(self.computation_timeout) + "s. Please try another parameter combination")
@@ -2123,6 +2132,8 @@ class IterationResult(IterationResultBase):
    @cached_property
    def result(self):
       suffix = self.parent.method.settings.suffix
+      if self.resultRaw == []:
+         return None
       return (self.resultRaw[0], 
               map(lambda (corrected,data): \
                      (corrected, showGraphLabel(corrected)+suffix, showOnGraph(corrected), data), 
@@ -2139,7 +2150,13 @@ class IterationResult(IterationResultBase):
              iteration.setter(x)
                   
              begin = time()
-             res = (self.parent.method.obj(opt, mod))
+             try:
+               res = (self.parent.method.obj(opt, mod))
+             except Exception, exc:
+               res = [("Exception", str(exc))]
+               q.put(res)
+               continue
+
              end = time()
              res.insert(0, (iteration.name, x))
              res.append(("Time", end - begin))
@@ -2156,15 +2173,18 @@ class IterationResult(IterationResultBase):
             iterations = iteration.stepsNo
             for i in range(iterations):
               q = queue.get(timeout=begin + self.computation_timeout - time())
-              if res_t == []:
-                  for k,v in q:
-                      res_t.append((k,[v]))
+              if q[0][0] == "Exception":
+                  add_error(q[0][1])
               else:
-                  idx = 0
-                  for k,v in q:
-                      assert res_t[idx][0] == k
-                      res_t[idx][1].append(v)
-                      idx = idx + 1
+                 if res_t == []:
+                     for k,v in q:
+                         res_t.append((k,[v]))
+                 else:
+                     idx = 0
+                     for k,v in q:
+                         assert res_t[idx][0] == k
+                         res_t[idx][1].append(v)
+                         idx = idx + 1
                              
          except Empty, exc:
             process.terminate()
@@ -2361,8 +2381,12 @@ class State(object):
       option = self.option.toRender
       method = self.method.toRender
       scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
+      t = self.hasResult and self.hasResult.result # forcing result evaluation
 
-      return TABLE(TR(TD(TABLE(model),valign='top') + \
+      err_table = g_err_table if len(g_errors) > 0 else Sum([])
+
+      return err_table + \
+             TABLE(TR(TD(TABLE(model),valign='top') + \
                       TD(TABLE(option),valign='top') + \
                       TD(TABLE(method+scalarResult),valign='top'))) + \
                self.workspacesRendered
@@ -2412,9 +2436,6 @@ workspace = session.workspaces[workspace_name]
 state = State()
 
 form = FORM(action='/index?'+ state.uri[1:],method="post")
-
-if len(g_errors) > 0:
-    form <= TR(TD(g_err_table))
 
 g_table = state.toRender
 
