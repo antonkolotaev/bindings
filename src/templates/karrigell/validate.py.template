@@ -38,14 +38,15 @@ def spannedRows2(c1, c2s):
 def spannedColEx(c):
    return [TD(c, colspan='3')]
 
-def colorizeRows(rows, colors):
+def colorizeRows(rows, suffix=""):
    colored = []
    color_idx = 0
    for r in rows:
       color_idx = color_idx + 1
       try:
          for rr in r:
-            colored.append(TR(rr, bgcolor=clr(colors, color_idx)))
+            cn = ("odd" if color_idx %% 2 == 1 else "even")+suffix
+            colored.append(TR(rr, Class=cn))
       except Exception, ex:
          print "r=(",type(r), dir(r), type(r).__name__,")"
    return Sum(colored)
@@ -419,7 +420,7 @@ res_colors = ['lightgray', 'white']
 
 def clr(color_table,idx): return color_table[idx%%len(color_table)]
 
-g_err_table = TABLE(Class="content")
+g_err_table = TABLE(Class="errors")
 g_errors = []
 
 def add_error(s): 
@@ -492,7 +493,7 @@ class StateCommonBase(object):
    def toRender(self):
       """ Returns list of Tags containing the entity rendered
       """
-      return colorizeRows(self.rows, self.colors)
+      return colorizeRows(self.rows)
 
 class Iteration(object):
 
@@ -1109,7 +1110,7 @@ class ScalarResultBase(object):
 
    @cached_property
    def toRender(self):
-      return colorizeRows(self.rows, res_colors) if self.result else Sum([])
+      return colorizeRows(self.rows) if self.result else Sum([])
 
 class ScalarResult(ScalarResultBase):
 
@@ -1581,8 +1582,8 @@ class CanBeInheritedGroup(object):
    def toRender(self):
       header = [[TD(B("Inherit to the current graph"), colspan='2')]]
       rows = map(lambda e: e.toRender, self.elements)
-      colored = colorizeRows(header + rows, met_colors)
-      return TABLE(colored)
+      colored = colorizeRows(header + rows)
+      return TABLE(colored, Class="inherit")
 
 def back(xs):
    return xs[len(xs)-1]
@@ -1627,7 +1628,7 @@ class HIterationResult(IterationResultBase):
                   [self.myData])
 
       def toTable((header, rows)):
-         return TABLE(colorizeRows([rowKV(*header)] + rows, res_colors))
+         return TABLE(colorizeRows([rowKV(*header)] + rows), Class="result1d")
 
       return Sum(map(toTable, acc))
 
@@ -1974,7 +1975,7 @@ class HIterationResult2D(object):
 
          return H3(friendly)\
             + graph3dcode(self.parent.h_idx, label, friendly, data, self.keys_1, self.keys_2, self.name_1, self.name_2) \
-            + (TABLE(header + keys_2 + Sum([TR(row(i_1)) for i_1 in range(len(self.keys_1))])) if showTable else Sum([]))
+            + (TABLE(header + keys_2 + Sum([TR(row(i_1)) for i_1 in range(len(self.keys_1))]), Class="result2d") if showTable else Sum([]))
 
       return Sum(map(render, self.data))
 
@@ -2045,7 +2046,7 @@ class HistoryElement(object):
    @cached_property
    def toRender(self):
 
-      iterationTable = TABLE(self.iterationResult.toRender) if self.iterationResult and state.method.settings.showResultTable else Sum([])
+      iterationTable = TABLE(self.iterationResult.toRender, Class="result1d") if self.iterationResult and state.method.settings.showResultTable else Sum([])
 
       iterationResult = iterationTable + Sum(self.iterationResult.graphCode) \
                            if self.iterationResult \
@@ -2060,9 +2061,9 @@ class HistoryElement(object):
          scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
          makeCurrentButton = TR(TD()+TD(INPUT(Type="submit",name=self.varMakeCurrent,value="Make current"))+TD())
 
-         return  TABLE(TR(TD(TABLE(model),valign='top')\
-                         +TD(TABLE(option),valign='top')\
-                         +TD(TABLE(method + scalarResult + makeCurrentButton),valign='top')))  \
+         return  TABLE(TR(TD(TABLE(model, Class="model"),valign='top')\
+                         +TD(TABLE(option, Class="option"),valign='top')\
+                         +TD(TABLE(method + scalarResult + makeCurrentButton, Class="pricing_method"),valign='top')), Class="history")  \
                   + iterationResult
 
       else:
@@ -2398,7 +2399,7 @@ class State(object):
 
       workspaces.sort()
       L = enum_submit_ex('JumpToWorkspace', workspaces, self.workspace_name, self.workspace_name) 
-      return TABLE(TR(TD('Jump to workspace:') + TD(L) + TD(btnDelete) + TD(btnCreate)))
+      return TABLE(TR(TD('Jump to workspace:') + TD(L) + TD(btnDelete) + TD(btnCreate)), Class="workspace")
 
    @cached_property
    def toRender(self):
@@ -2412,9 +2413,9 @@ class State(object):
       err_table = g_err_table if len(g_errors) > 0 else Sum([])
 
       return err_table + \
-             TABLE(TR(TD(TABLE(model),valign='top') + \
-                      TD(TABLE(option),valign='top') + \
-                      TD(TABLE(method+scalarResult),valign='top'))) + \
+             TABLE(TR(TD(TABLE(model, Class="model"),valign='top') + \
+                      TD(TABLE(option, Class="option"),valign='top') + \
+                      TD(TABLE(method+scalarResult, Class="pricing_method"),valign='top')), Class="current") + \
                self.workspacesRendered
 
 
@@ -2476,11 +2477,14 @@ form <= state.history.toRender
 if state.hasResult:
    workspace.append(state.serialized)
 print """
-<head><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"></head>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <link rel="stylesheet" type="text/css" href="premia/style.css" />
+</head>
 """
 print form
 
-footer = TABLE()
+footer = TABLE(Class="footer")
 
 footer <= TR(TD(A(IMG(src='premia/LogoPremia Petit 4e.jpg'), href="https://www.rocq.inria.fr/mathfi/Premia/index.html"), colspan="3"))
 footer <= TR(TD("""

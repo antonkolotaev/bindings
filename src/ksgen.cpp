@@ -100,7 +100,8 @@ bool tocopy(fs::path const &p)
       e == ".pih"||
       e == ".py" ||
       e == ".jpg"||
-      e == ".gif"
+      e == ".gif"||
+      e == ".css"
       ; 
 }
 

@@ -1,0 +1,31 @@
+.odd {
+   background-color: white;
+}
+
+.model .even {
+   background-color: lightgreen;
+}
+
+.option .even {
+   background-color: #FFFFC0;
+}
+
+.pricing_method .even{
+   background-color: lightblue;
+}
+
+.even_scalar  {
+   background-color: lightgrey;
+}
+
+.result1d .even {
+   background-color: lightgrey;
+}
+
+.result2d .even {
+   background-color: lightgrey;
+}
+
+.inherit .even {
+   background-color: lightblue;
+}
