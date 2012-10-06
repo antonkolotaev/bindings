@@ -24,6 +24,9 @@ def tryGet3(request, key, postfunc, defaultValue):
 def rowEx(c1, c2, c3=''):
    return [TD(c1,align='right')+TD(c2)+TD(c3)] 
 
+def headerEx(c1, c2, c3=''):
+   return [TH(c1,align='right')+TH(c2)+TH(c3)] 
+
 def row2(c1, c2):
    return [TD(c1,align='right')+TD(c2)] 
 
@@ -470,18 +473,28 @@ class StateCommonBase(object):
       return self.header + self.visitFields(self.createRenderer()) + self.iterationRows 
 
    @cached_property
+   def pdf(self):
+      return self.ksModule.pdf()
+
+   @cached_property
    def pdfRendered(self):
-      return A("[pdf]", href=self.ksModule.pdf()) if self.ksModule.pdf() != "" else Sum([])
+      return A(IMG(src=r'premia/pdf-icon48.png', height="24", border="0"), href=self.pdf) if self.pdf != "" else Sum([])
+      #return IMG(src=r'premia/pdf_icon.gif', href=self.ksModule.pdf()) if self.ksModule.pdf() != "" else Sum([]))
+
+   @cached_property
+   def html(self):
+      return self.ksModule.html()
 
    @cached_property
    def htmlRendered(self):
-      return A("[html]", href=self.ksModule.html()) if self.ksModule.html() != "" else Sum([])
+      return A(IMG(src=r'premia/html-icon.png', height="24", border="0"), href=self.html) if self.html != "" else Sum([])
+      #return A("[html]", href=self.ksModule.html()) if self.ksModule.html() != "" else Sum([])
 
    @cached_property
    def myHeaderImpl(self):
       """ List of rows representing the entity header 
       """
-      return [rowEx(B(self.printLabel), self.headerContent, self.pdfRendered + self.htmlRendered)]      
+      return [headerEx(B(self.printLabel), self.headerContent,  self.htmlRendered + self.pdfRendered)]      
 
    @cached_property
    def header(self):
@@ -847,14 +860,12 @@ class FamilyStateBase(object):
       return self.id
 
    @cached_property
-   def pdfRendered(self):
-      return A("[pdf]", href=self.parent.option.ksModule.familyPdf()) \
-         if self.parent.option.ksModule.familyPdf() != "" else Sum([])
+   def pdf(self):
+      return self.parent.option.ksModule.familyPdf()
 
    @cached_property
-   def htmlRendered(self):
-      return A("[html]", href=self.parent.option.ksModule.familyHtml()) \
-         if self.parent.option.ksModule.familyHtml() != "" else Sum([])
+   def html(self):
+      return self.parent.option.ksModule.familyHtml()
 
 
 class FamilyState(FamilyStateBase, StateBase):
@@ -1102,7 +1113,7 @@ class ScalarResultBase(object):
 
    @staticmethod
    def renderScalarResultElement((k,v)):
-      return [spannedRows2(k, v)] if type(v) == list else [row2(k, v)]
+      return [spannedRowsEx(k, v)] if type(v) == list else [rowEx(k, v)]
 
    @cached_property
    def rows(self):
