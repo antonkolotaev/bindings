@@ -22,10 +22,10 @@ class Scalar (FieldBase):
           
    def render(self, v):
       mc = INPUT(name=self.fullName,onchange=self.onChange,value=getattr(v.entity, self.propertyName))  
-      return [v.rowEx(self.friendlyName, mc, self.constraint)]
+      return [v.rowEx(self.friendlyName, mc, self.constraint)] if self.fromString != str else []
 
    def renderHistoryEx(self, v):
-      return [v.rowEx(self.friendlyName, getattr(v.entity, self.propertyName))]
+      return [v.rowEx(self.friendlyName, getattr(v.entity, self.propertyName))] if self.fromString != str else []
 
    def getIterables(self, v):
       ctx = v.ctx

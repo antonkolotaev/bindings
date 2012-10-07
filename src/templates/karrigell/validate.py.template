@@ -294,6 +294,13 @@ class RendererH(Renderer):
    def __init__(self, obj, state):
       Renderer.__init__(self, obj, state=state)
 
+   def rowEx(self, c1, c2):
+      return [TD(c1,Class='keys') + TD(c2, Class='values', colspan="2")]
+
+   def spannedRowsEx(self, c1, c2s):
+      return [TD(c1, Class='keys',rowspan=len(c2s)) + TD(c2s[0], Class='values', colspan="2")] + \
+             [TD(c2s[i], Class='values', colspan="2") for i in range(1,len(c2s))]
+
    def process(self, field):
       return field.renderHistoryEx(self)
 
@@ -1470,11 +1477,12 @@ class HStateBase(StateCommonBase):
       if iteration:
          (idx, limit, steps_no) = iteration
          friendly = self.iterables.labels[idx] 
+         r = self.createRenderer()
 
          return [
-            rowEx('Iterate over', friendly),
-            rowEx('Iterate to', limit), 
-            rowEx('#Iterations', steps_no)
+            r.rowEx('Iterate over', friendly),
+            r.rowEx('Iterate to', limit), 
+            r.rowEx('#Iterations', steps_no)
          ]
       else:
          return []
