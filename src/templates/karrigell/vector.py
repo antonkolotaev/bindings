@@ -19,7 +19,7 @@ class Vector(FieldBase):
     def mc(idx):
       return INPUT(name=brackets(self.fullName, idx),value=pmem[idx])
 
-    return [v.spannedRowsEx(self.friendlyName, map(mc, range(len(pmem))), 'R')]
+    return [v.spannedRowsEx(self.friendlyName, map(mc, range(len(pmem))), '&#8477;')]
 
   def renderHistoryEx(self, v):
 

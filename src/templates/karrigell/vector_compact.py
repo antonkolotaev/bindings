@@ -51,7 +51,7 @@ class VectorCompact(FieldBase):
       def mc(i): 
           return INPUT(name=self.varnameIdx(i),value=pmem[i])
       L.select(value=1)
-      return [v.spannedRowsEx(self.friendlyName, [L]+map(mc, range(len(pmem))), 'R')] 
+      return [v.spannedRowsEx(self.friendlyName, [L]+map(mc, range(len(pmem))), '&#8477;')] 
 
   def renderHistoryEx(self, v):
 

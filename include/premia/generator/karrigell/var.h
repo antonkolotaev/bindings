@@ -109,15 +109,15 @@ namespace karrigell {
 
 				if (c != 0) 
 				{
-					res = "in ";
+					res = "&#8745; ";
 
 					res += c->low_inclusive ? "[" : "(";
 
-					res += c->has_low() ? str(c->low) : "-inf";
+					res += c->has_low() ? str(c->low) : "-&infin;";
 
 					res += ";";
 
-					res += c->has_hi() ? str(c->hi) : "+inf";
+					res += c->has_hi() ? str(c->hi) : "+&infin;";
 
 					res += c->hi_inclusive ? "]" : ")";
 				}
@@ -128,8 +128,8 @@ namespace karrigell {
 			}
 		}
 
-		template <class T> const char * symbol() { return "Z"; }
-		template <> const char * symbol<double>(){ return "R"; }
+		template <class T> const char * symbol() { return "&#8484;"; }
+		template <> const char * symbol<double>(){ return "&#8477;"; }
 
 		template <class T> const char * converter() { return "int"; }
 		template <> const char * converter<double>(){ return "float"; }
