@@ -994,27 +994,38 @@ class ComputeButton(object):
    def value(self):
       return 'Compute' in REQUEST
 
+session_settings = session.settings if 'settings' in dir(session) else None
+
+def tryGetSetting(name, defaultValue):
+   global session
+   return session.settings[name] if 'settings' in dir(session) and name in session.settings else defaultValue
+
 class CommonSettings(object):
 
    @cached_property
    def historyLen(self):
-      return int(tryGet(REQUEST, 'HistoryLen', 0))
+      
+      return int(tryGet(REQUEST, 'HistoryLen', tryGetSetting('history_length', 0)))
 
    @cached_property
    def toRender(self):
-      return [
-            rowEx("History items to show", INPUT(name="HistoryLen", value=self.historyLen)),
-         ]
+      L = enum_submit_ex('HistoryLen', map(str, range(20)), str(self.historyLen), str(self.historyLen)) 
+      return TD("History items to show") + TD(L)
+
+   @cached_property
+   def serialized(self):
+      return { "history_length" : self.historyLen }
+         
 
 class Settings(object):
 
    @cached_property
    def sizeX(self):
-      return int(tryGet(REQUEST, 'SizeX', 640))
+      return int(tryGet(REQUEST, 'SizeX', tryGetSetting("graph_size_x", 640)))
 
    @cached_property
    def sizeY(self):
-      return int(tryGet(REQUEST, 'SizeY', 384))
+      return int(tryGet(REQUEST, 'SizeY', tryGetSetting("graph_size_y", 384)))
 
    @cached_property
    def suffix(self):
@@ -1026,11 +1037,20 @@ class Settings(object):
 
    @cached_property
    def inheritByDefault(self):
-      return 'InheritByDefault' in REQUEST if not self.initial else True
+      return 'InheritByDefault' in REQUEST if not self.initial else bool(tryGetSetting("inherit_by_default", True))
 
    @cached_property
    def showResultTable(self):
-      return 'ShowResultTable' in REQUEST if not self.initial else False
+      return 'ShowResultTable' in REQUEST if not self.initial else bool(tryGetSetting("show_result_table", False))
+
+   @cached_property
+   def serialized(self):
+      return {
+         "graph_size_x": self.sizeX,
+         "graph_size_y": self.sizeY,
+         "inherit_by_default": self.inheritByDefault,
+         "show_result_table": self.showResultTable
+      }
 
    #@cached_property
    #def recordHistory(self):
@@ -1077,6 +1097,10 @@ class MethodState(MethodStateBase, StateBase):
    iterationType = MethodIteration
 
    @cached_property
+   def settingsSerialized(self):
+      return dict(list(self.common.serialized.iteritems()) + list(self.settings.serialized.iteritems()))
+
+   @cached_property
    def historyState(self):
       return self.historyElement.method
 
@@ -1086,7 +1110,7 @@ class MethodState(MethodStateBase, StateBase):
 
    @cached_property
    def rows(self):
-      return self.superRows + self.common.toRender + self.resultTable + self.compButton.toRender
+      return self.superRows + self.resultTable + self.compButton.toRender
 
    @cached_property
    def resultTable(self):
@@ -2407,10 +2431,15 @@ class State(object):
 
       btnDelete = INPUT(Type="submit",name="DeleteWorkspace",value="Delete current")
       btnCreate = INPUT(Type="submit",name="CreateWorkspace",value="Create new")
+      
+      btnClear = Sum([])
+      if workspace != [] or state.hasResult:
+         btnClear = INPUT(Type="submit",name="ClearHistory",value="Clear history")
 
       workspaces.sort()
       L = enum_submit_ex('JumpToWorkspace', workspaces, self.workspace_name, self.workspace_name) 
-      return TABLE(TR(TD('Jump to workspace:') + TD(L) + TD(btnDelete) + TD(btnCreate)), Class="workspace")
+      return TABLE(TR(TD('Jump to workspace:') + TD(L) + TD(btnDelete) + TD(btnCreate) + TD(btnClear) + self.method.common.toRender),
+                      Class="workspace")
 
    @cached_property
    def toRender(self):
@@ -2479,11 +2508,9 @@ g_table = state.toRender
 
 form <= g_table
 
-
-if workspace != [] or state.hasResult:
-   form <= INPUT(Type="submit",name="ClearHistory",value="Clear history")
-
 form <= state.history.toRender
+
+session.settings = state.method.settingsSerialized
 
 if state.hasResult:
    workspace.append(state.serialized)
