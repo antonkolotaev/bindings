@@ -109,7 +109,7 @@ namespace karrigell {
 
 				if (c != 0) 
 				{
-					res = "&#8745; ";
+					res = "&#8745;";
 
 					res += c->low_inclusive ? "[" : "(";
 

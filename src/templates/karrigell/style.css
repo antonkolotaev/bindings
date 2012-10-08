@@ -14,8 +14,22 @@ select {
    text-align: right;
 }
 
-.history .values {
+.values {
    font-style: italic;
+   text-align: right;
+}
+
+.keys {
+   text-align: right;  
+}
+
+.footer {
+   font-style: italic;
+}
+
+.error {
+   background-color: red;
+   color: white;
 }
 
 .odd {
