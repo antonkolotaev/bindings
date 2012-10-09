@@ -146,7 +146,7 @@ namespace karrigell {
 				   ("SYMB", symbol<Scalar>())
 				   ("CONV", converter<Scalar>())
 				   ("ITERABLE", iterable ? "True" : "False")	
-				   << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB% %CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%),"
+				   << "Scalar('_%VAR_NAME%', '%FRIENDLY_NAME%', %PREFIX%+'_%VAR_NAME%', '%SYMB%%CONSTR%', %ONCHANGE%, %ITERABLE%, %CONV%),"
 ;
 			}
 

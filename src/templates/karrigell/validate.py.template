@@ -1897,7 +1897,7 @@ def graph3d(h_idx, label, friendly, data, keys_1, keys_2, name_1, name_2):
       var zAxisHeader   = "Z_AXIS";
 
       sizeX = XXX;
-      sizeY = YYY
+      sizeY = YYY;
       
       var renderDataPoints = false;
       var background = '#ffffff';
@@ -2110,10 +2110,11 @@ class HistoryElement(object):
          scalarResult = self.scalarResult.toRender if self.scalarResult else Sum([])
          makeCurrentButton = TR(TD()+TD(INPUT(Type="submit",name=self.varMakeCurrent,value="Make current"))+TD())
 
-         return  TABLE(TR(TD(TABLE(model, Class="model"),valign='top')\
+         return  DIV(H3("#"+str(self.h_idx))+\
+                  TABLE(TR(TD(TABLE(model, Class="model"),valign='top')\
                          +TD(TABLE(option, Class="option"),valign='top')\
                          +TD(TABLE(method + scalarResult + makeCurrentButton, Class="pricing_method"),valign='top')), Class="history")  \
-                  + iterationResult
+                  + iterationResult, Class="history_element")
 
       else:
 
@@ -2534,25 +2535,9 @@ print """
    <link rel="stylesheet" type="text/css" href="premia/style.css" />
 </head>
 """
-print form
 
-footer = TABLE(Class="footer")
 
-footer <= TR(TD(A(IMG(src='premia/LogoPremia Petit 4e.jpg'), href="https://www.rocq.inria.fr/mathfi/Premia/index.html"), colspan="3"))
-footer <= TR(TD("""
-Premia is developed by the <a href="http://www.inria.fr/recherche/equipes/mathrisk.html" target="_blank">Math-Risk</a>team which gathers research scientists from <a href="http://www.inria.fr/">INRIA</a>(the French
-national institute for research in computer science and control), <a href="http://cermics.enpc.fr/">Ecole des Ponts
-ParisTech</a>(CERMICS laboratory on applied mathematics and computing),
-and the <a href="http://www.univ-mlv.fr/">University
-of Marne la Vall&eacute;e.</a>
-""", colspan="3"))
-footer <= TR(TD(A(IMG(src='premia/INRIA-CORPO-RVB.jpg'), href="http://www.inria.fr"))\
-    + TD(A(IMG(src='premia/cermics.gif'), href="http://cermics.enpc.fr/"))\
-    + TD(A(IMG(src='premia/univ-mlv.gif'), href="http://www.univ-mlv.fr/")))
-
-#print footer
-
-print """
+footer = TEXT("""
 <table border="0" cellpadding="0" cellspacing="0" width="754px" align="center" class="footer">
 
   <tbody>
@@ -2583,5 +2568,7 @@ of Marne la Vall&eacute;e.</a><br>
     </tr>
   </tbody>
 </table>
-"""
+""")
 
+print form
+print footer
