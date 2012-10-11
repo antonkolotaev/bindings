@@ -2545,7 +2545,7 @@ footer = TEXT("""
       <td align="center">
       <div style="margin: 20px;" align="center"> <br>
       <a href="https://www.rocq.inria.fr/mathfi/Premia/index.html"><img src="premia/LogoPremia%%20Petit%%204e.jpg" alt="" title=""></a> <br>
-Premia is developed by the <a href="http://www.inria.fr/equipes/mathfi" target="_blank">Math-Risk</a> 
+ <a href="http://premia.fr" target="_blank">Premia</a> is developed by the <a href="http://www.inria.fr/equipes/mathfi" target="_blank">Math-Risk</a> 
 team which gathers research scientists from <a href="http://www.inria.fr/">INRIA</a> (the French
 national institute for research in computer science and control), <a href="http://cermics.enpc.fr/">Ecole des Ponts
 ParisTech</a> (CERMICS laboratory on applied mathematics and computing),
