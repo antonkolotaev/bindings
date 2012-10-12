@@ -63,10 +63,14 @@ void copyDir(const fs::path& source, const fs::path& dest, Filter filter) {
                 if (filter(current)) 
                 {
                    fs::create_directories(dest);
-                   
+
+                   fs::path to = dest / current.filename();
+
+                   if (fs::exists(to))
+                       fs::remove(to);
+
                    // Found file: Copy
-                   fs::copy_file(current,
-                       fs::path(dest / current.filename()), fs::copy_option::overwrite_if_exists);
+                   fs::copy_file(current, to);
                 }
             }
         }

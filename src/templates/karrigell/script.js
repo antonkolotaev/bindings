@@ -8,13 +8,13 @@ function get(query) {
    return $.parseJSON(z.responseText);
 }
 
-function Models() {
+function CachedMap(query_fun) {
    var self = this;
    self._storage = {};
-   return function (asset) {
-        if (self._storage[asset] == undefined)
-            self._storage[asset] = get('models?a='+asset)
-        return self._storage[asset];
+   return function (key) {
+        if (self._storage[key] == undefined)
+            self._storage[key] = get(query_fun(key));
+        return self._storage[key];
    };  
 }
 
@@ -23,13 +23,31 @@ function ModelView() {
 
     self.assets = get('assets');
 
-    self.models = Models();
+    self.models = CachedMap(function(asset) {return 'models?a='+asset; });;
+    self.families = CachedMap(function(model) {return 'families?m='+model; });;
+    self.options = CachedMap(function(args){ return 'options?m='+args[0]+"&f="+args[1];});;
+    self.methods = CachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args[1]+"&o="+args[2];});
 
     self.myAsset = ko.observable(self.assets[0]);
     self.myModels = ko.computed(function(){
         return self.models(self.myAsset());
     });
     self.myModel = ko.observable(self.myModels()[0]);
+
+    self.myFamilies = ko.computed(function(){
+        return self.families(self.myModel());
+    });
+    self.myFamily = ko.observable(self.myFamilies()[0]);
+
+    self.myOptions = ko.computed(function(){
+        return self.options([self.myModel(), self.myFamily()]);
+    });
+    self.myOption = ko.observable(self.myOptions()[0]);
+    
+    self.myMethods = ko.computed(function(){
+        return self.methods([self.myModel(), self.myFamily(), self.myOption()]);
+    });
+    self.myMethod = ko.observable(self.myMethods()[0]);    
 }
 
 ko.applyBindings(new ModelView());
