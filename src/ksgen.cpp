@@ -97,6 +97,7 @@ bool tocopy(fs::path const &p)
 
    return
       e == ".js" ||
+      e == ".ks" ||
       e == ".pih"||
       e == ".py" ||
       e == ".jpg"||
