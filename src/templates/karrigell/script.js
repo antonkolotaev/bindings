@@ -38,11 +38,37 @@ function VectorField(label, values) {
     self.values = $.map(values, function (value) {
         return ko.observable(value);
     });
+    self.spansize = function () {
+        return self.values.length;
+    }
     self.getFields = function() {
         return [self];
     }
 }
 
+function VectorCompactField(label, isvector, values) {
+    var self = this;
+    self.label = label;
+    self.type = 3;
+    self.spanned = true;
+    self.options = ["Constant", "Array"];
+    self.isvector = ko.observable(isvector ? "Array" : "Constant");
+    self.spansize = function () {
+        return 1 + (self.isvector() == "Array" ? self.vector.length : 1);
+    }
+    self.scalar = ko.observable(values[0]);
+    self.vector = $.map(values, function (value) {
+        return ko.observable(value);
+    });
+
+    self.elements = ko.computed(function() {
+        return self.isvector() == "Array" ? self.vector : [self.scalar];
+    });
+
+    self.getFields = function() {
+        return [self];
+    }
+}
 
 
 function iterkeys(d) {
@@ -83,6 +109,7 @@ function Student_Params() {
 
 function Bs1D_Params() {
     return [
+        new VectorCompactField("Compact", false, [100, 100, 200]),
         new VectorField("Vector", [0, 0.2, 0.3, 0.5]),
         new EnumField("CopulaType", "Clayton", { 
             "Clayton" : Clayton_Params(),

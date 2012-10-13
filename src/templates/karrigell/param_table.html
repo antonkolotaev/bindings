@@ -1,14 +1,29 @@
 <script type="text/html" id="row-template">
-        <!-- ko if: spanned -->
+        <!-- ko if: type==2 -->
           <!-- ko foreach: values -->
             <tr>
               <!-- ko ifnot: $index -->
-                <td data-bind="text: $parent.label, attr: { rowspan: $parent.values.length }"></td>
+                <td data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
               <!-- /ko -->
               <td>
                 <input data-bind="value: $data"></input>
               </td>
             </tr>
+          <!-- /ko -->
+        <!-- /ko -->
+        <!-- ko if: type==3 -->
+          <tr>
+            <td data-bind="text: label, attr: { rowspan: spansize() }"></td>
+            <td>
+              <select data-bind="options: options, value: isvector"></select>
+            </td>
+          </tr>
+          <!-- ko foreach: elements -->
+            <tr>
+              <td>
+                <input data-bind="value: $data"></input>
+              </td>
+            </tr>   
           <!-- /ko -->
         <!-- /ko -->
         <tr data-bind="ifnot: spanned">
