@@ -18,8 +18,90 @@ function CachedMap(query_fun) {
    };  
 }
 
+function ScalarField(label, value) {
+    var self = this;
+    self.label = label;
+    self.value = ko.observable(value);
+    self.type = 0;
+    self.spanned = false;
+
+    self.getFields = function() {
+        return [self];
+    }
+}
+
+function VectorField(label, values) {
+    var self = this;
+    self.label = label;
+    self.type = 2;
+    self.spanned = true;
+    self.values = $.map(values, function (value) {
+        return ko.observable(value);
+    });
+    self.getFields = function() {
+        return [self];
+    }
+}
+
+
+
+function iterkeys(d) {
+    acc = [];    
+    for (e in d) {
+        acc.push(e);
+    }
+    return acc;
+}
+
+function flatten(arr){
+    return arr.reduce(function(acc, val){
+        return acc.concat(val.getFields());
+    },[]);
+}
+
+
+function EnumField(label, value, options) {
+    var self = this;
+    self.label = label;
+    self.value = ko.observable(value);
+    self.options = iterkeys(options);
+    self.type = 1;
+    self.spanned = false;
+
+    self.getFields = function() {
+        return [self].concat(flatten(options[self.value()]));
+    }
+}
+
+function Clayton_Params() {
+    return [new ScalarField("alpha", 0.1), new ScalarField("beta", -0.3)];
+}
+
+function Student_Params() {
+    return [new ScalarField("gamma", 0.21)];
+}
+
+function Bs1D_Params() {
+    return [
+        new VectorField("Vector", [0, 0.2, 0.3, 0.5]),
+        new EnumField("CopulaType", "Clayton", { 
+            "Clayton" : Clayton_Params(),
+            "Student" : Student_Params()
+        }),
+        new ScalarField("Volatility", 0.2),
+        new ScalarField("Spot", 100.0)
+    ];
+}
+
+
 function ModelView() {
     var self = this; 
+
+    self.params = Bs1D_Params();
+
+    self.params_flattened = ko.computed(function() {
+        return flatten(self.params);
+    });
 
     self.assets = get('assets');
 

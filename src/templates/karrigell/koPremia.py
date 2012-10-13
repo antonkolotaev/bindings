@@ -8,6 +8,8 @@ print HEAD(Sum([ \
    js_include("knockout-2.1.0.js"),
    ]))
 
+Include("param_table.html")
+
 print """
 <table>
     <select data-bind="options: assets, value: myAsset"></select>
@@ -15,6 +17,12 @@ print """
     <select data-bind="options: myFamilies, value: myFamily"></select>
     <select data-bind="options: myOptions, value: myOption"></select>
     <select data-bind="options: myMethods, value: myMethod"></select>
+</table>
+
+
+<table>
+    <tbody data-bind="template: { name: 'row-template', foreach: params_flattened }">
+    </tbody>
 </table>
 """
 

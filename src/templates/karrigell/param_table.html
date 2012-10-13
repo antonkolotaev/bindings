@@ -1,0 +1,25 @@
+<script type="text/html" id="row-template">
+        <!-- ko if: spanned -->
+          <!-- ko foreach: values -->
+            <tr>
+              <!-- ko ifnot: $index -->
+                <td data-bind="text: $parent.label, attr: { rowspan: $parent.values.length }"></td>
+              <!-- /ko -->
+              <td>
+                <input data-bind="value: $data"></input>
+              </td>
+            </tr>
+          <!-- /ko -->
+        <!-- /ko -->
+        <tr data-bind="ifnot: spanned">
+            <td data-bind="text: label"></td>
+            <td>
+              <!-- ko if: type==0 -->
+                <input data-bind="value: value"></input>
+              <!-- /ko -->
+              <!-- ko if: type==1 -->
+                <select data-bind="options: options, value: value"></select>
+              <!-- /ko -->
+            </td>
+        </tr>
+</script>
