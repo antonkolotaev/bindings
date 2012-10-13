@@ -22,9 +22,8 @@ function ScalarField(label, value) {
     var self = this;
     self.label = label;
     self.value = ko.observable(value);
-    self.type = 0;
-    self.spanned = false;
-
+    self.renderer = 'scalar-row-template';
+    
     self.getFields = function() {
         return [self];
     }
@@ -33,8 +32,7 @@ function ScalarField(label, value) {
 function VectorField(label, values) {
     var self = this;
     self.label = label;
-    self.type = 2;
-    self.spanned = true;
+    self.renderer = 'vector-row-template';
     self.values = $.map(values, function (value) {
         return ko.observable(value);
     });
@@ -49,8 +47,7 @@ function VectorField(label, values) {
 function VectorCompactField(label, isvector, values) {
     var self = this;
     self.label = label;
-    self.type = 3;
-    self.spanned = true;
+    self.renderer = 'vectorcompact-row-template';
     self.options = ["Constant", "Array"];
     self.isvector = ko.observable(isvector ? "Array" : "Constant");
     self.spansize = function () {
@@ -91,9 +88,8 @@ function EnumField(label, value, options) {
     self.label = label;
     self.value = ko.observable(value);
     self.options = iterkeys(options);
-    self.type = 1;
-    self.spanned = false;
-
+    self.renderer = 'enum-row-template';
+    
     self.getFields = function() {
         return [self].concat(flatten(options[self.value()]));
     }

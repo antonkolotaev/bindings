@@ -1,40 +1,51 @@
+<script type="text/html" id="vector-row-template">
+  <!-- ko foreach: values -->
+    <tr>
+      <!-- ko ifnot: $index -->
+        <td data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
+      <!-- /ko -->
+      <td>
+        <input data-bind="value: $data"></input>
+      </td>
+    </tr>
+  <!-- /ko -->
+</script>
+
+<script type="text/html" id="vectorcompact-row-template">
+    <tr>
+      <td data-bind="text: label, attr: { rowspan: spansize() }"></td>
+      <td>
+        <select data-bind="options: options, value: isvector"></select>
+      </td>
+    </tr>
+    <!-- ko foreach: elements -->
+      <tr>
+        <td>
+          <input data-bind="value: $data"></input>
+        </td>
+      </tr>   
+    <!-- /ko -->
+</script>
+
+<script type="text/html" id="scalar-row-template">
+  <tr>
+    <td data-bind="text: label"></td>
+    <td>
+        <input data-bind="value: value"></input>
+    </td>
+  </tr>
+</script>
+
+<script type="text/html" id="enum-row-template">
+  <tr>
+    <td data-bind="text: label"></td>
+    <td>
+        <select data-bind="options: options, value: value"></select>
+    </td>
+  </tr>
+</script>
+
 <script type="text/html" id="row-template">
-        <!-- ko if: type==2 -->
-          <!-- ko foreach: values -->
-            <tr>
-              <!-- ko ifnot: $index -->
-                <td data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
-              <!-- /ko -->
-              <td>
-                <input data-bind="value: $data"></input>
-              </td>
-            </tr>
-          <!-- /ko -->
-        <!-- /ko -->
-        <!-- ko if: type==3 -->
-          <tr>
-            <td data-bind="text: label, attr: { rowspan: spansize() }"></td>
-            <td>
-              <select data-bind="options: options, value: isvector"></select>
-            </td>
-          </tr>
-          <!-- ko foreach: elements -->
-            <tr>
-              <td>
-                <input data-bind="value: $data"></input>
-              </td>
-            </tr>   
-          <!-- /ko -->
-        <!-- /ko -->
-        <tr data-bind="ifnot: spanned">
-            <td data-bind="text: label"></td>
-            <td>
-              <!-- ko if: type==0 -->
-                <input data-bind="value: value"></input>
-              <!-- /ko -->
-              <!-- ko if: type==1 -->
-                <select data-bind="options: options, value: value"></select>
-              <!-- /ko -->
-            </td>
-        </tr>
+  <!-- ko template: { name : renderer } -->
+  <!-- /ko -->
 </script>
