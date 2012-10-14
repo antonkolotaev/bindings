@@ -8,14 +8,28 @@ function get(query) {
    return $.parseJSON(z.responseText);
 }
 
-function CachedMap(query_fun) {
+function CachedMap(getter) {
    var self = this;
    self._storage = {};
    return function (key) {
         if (self._storage[key] == undefined)
-            self._storage[key] = get(query_fun(key));
+            self._storage[key] = getter(key);
         return self._storage[key];
    };  
+}
+
+function KsCachedMap(query_fun) {
+    return new CachedMap(function (key) {
+        return get(query_fun(key));
+    });
+}
+
+function ParamCachedMap(query_fun) {
+    return new CachedMap(function (key) {
+        return ko.computed(function() {
+            return flatten(loadParams(get(query_fun(key))));
+        });
+    });
 }
 
 function ScalarField(label, value) {
@@ -116,6 +130,14 @@ function Bs1D_Params() {
     ];
 }
 
+function loadParams(raw) {
+    return $.map(raw, function (e) {
+        return (
+            (e[1] == 0) ? new ScalarField(e[0], e[2]) :
+            (e[1] == 1) ? new VectorField(e[0], e[2]) :
+            undefined);
+    });
+}
 
 function ModelView() {
     var self = this; 
@@ -128,10 +150,14 @@ function ModelView() {
 
     self.assets = get('assets');
 
-    self.models = CachedMap(function(asset) {return 'models?a='+asset; });;
-    self.families = CachedMap(function(model) {return 'families?m='+model; });;
-    self.options = CachedMap(function(args){ return 'options?m='+args[0]+"&f="+args[1];});;
-    self.methods = CachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args[1]+"&o="+args[2];});
+    self.models = KsCachedMap(function(asset) {return 'models?a='+asset; });;
+    self.families = KsCachedMap(function(model) {return 'families?m='+model; });;
+    self.options = KsCachedMap(function(args){ return 'options?m='+args[0]+"&f="+args[1];});;
+    self.methods = KsCachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args[1]+"&o="+args[2];});
+
+    self.model_params = ParamCachedMap(function (model) { return 'model_params?m='+model; });
+    self.option_params = ParamCachedMap(function (args) { return 'option_params?f='+args[0]+"&o="+args[1]; });
+    self.method_params = ParamCachedMap(function (args) { return 'method_params?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
 
     self.myAsset = ko.observable(self.assets[0]);
     self.myModels = ko.computed(function(){
@@ -142,6 +168,7 @@ function ModelView() {
     self.myFamilies = ko.computed(function(){
         return self.families(self.myModel());
     });
+
     self.myFamily = ko.observable(self.myFamilies()[0]);
 
     self.myOptions = ko.computed(function(){
@@ -153,6 +180,16 @@ function ModelView() {
         return self.methods([self.myModel(), self.myFamily(), self.myOption()]);
     });
     self.myMethod = ko.observable(self.myMethods()[0]);    
+
+    self.myModelParams = ko.computed(function () {
+        return self.model_params(self.myModel()); 
+    });
+    self.myOptionParams = ko.computed(function () {
+        return self.option_params([self.myFamily(), self.myOption()]); 
+    });
+    self.myMethodParams = ko.computed(function () {
+        return self.method_params([self.myModel(), self.myFamily(), self.myMethod()]); 
+    });
 }
 
 ko.applyBindings(new ModelView());
