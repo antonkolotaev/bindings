@@ -58,8 +58,17 @@ function VectorField(label, values) {
     }
 }
 
-function VectorCompactField(label, isvector, values) {
+function allequal(arr) {
+    var a = arr[0];
+    for (i = 1; i < arr.length; i++)
+        if (a != arr[i])
+            return false;
+    return true;
+}
+
+function VectorCompactField(label, values) {
     var self = this;
+    var isvector = allequal(values) == false;
     self.label = label;
     self.renderer = 'vectorcompact-row-template';
     self.options = ["Constant", "Array"];
@@ -122,7 +131,7 @@ function Student_Params() {
 
 function Bs1D_Params() {
     return [
-        new VectorCompactField("Compact", false, [100, 100, 200]),
+        new VectorCompactField("Compact", [100, 100, 200]),
         new VectorField("Vector", [0, 0.2, 0.3, 0.5]),
         new EnumField("CopulaType", "Clayton", { 
             "Clayton" : Clayton_Params(),
@@ -138,7 +147,7 @@ function loadParams(raw) {
         return (
             (e[1] == 0) ? new ScalarField(e[0], e[2]) :
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
-            (e[1] == 2) ? new VectorCompactField(e[0], false, e[2]) :
+            (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
             undefined);
     });
 }
