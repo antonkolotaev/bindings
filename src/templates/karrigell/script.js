@@ -96,7 +96,6 @@ function flatten(arr){
     },[]);
 }
 
-
 function EnumField(label, value, options) {
     var self = this;
     self.label = label;

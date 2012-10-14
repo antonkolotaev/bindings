@@ -14,6 +14,10 @@ select {
    text-align: right;
 }
 
+tr {
+   vertical-align: top;
+}
+
 .values {
    font-style: italic;
    text-align: right;
@@ -21,6 +25,7 @@ select {
 
 .keys {
    text-align: right;  
+   vertical-align: middle;
 }
 
 .footer {

@@ -2,7 +2,7 @@
   <!-- ko foreach: values -->
     <tr>
       <!-- ko ifnot: $index -->
-        <td data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
+        <td class="keys" data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
       <!-- /ko -->
       <td>
         <input data-bind="value: $data"></input>
@@ -13,7 +13,7 @@
 
 <script type="text/html" id="vectorcompact-row-template">
     <tr>
-      <td data-bind="text: label, attr: { rowspan: spansize() }"></td>
+      <td class="keys" data-bind="text: label, attr: { rowspan: spansize() }"></td>
       <td>
         <select data-bind="options: options, value: isvector"></select>
       </td>
@@ -28,8 +28,8 @@
 </script>
 
 <script type="text/html" id="scalar-row-template">
-  <tr>
-    <td data-bind="text: label"></td>
+  <tr data-bind="css: { even: $index()%2==0 }">
+    <td class="keys" data-bind="text: label"></td>
     <td>
         <input data-bind="value: value"></input>
     </td>
@@ -38,7 +38,7 @@
 
 <script type="text/html" id="enum-row-template">
   <tr>
-    <td data-bind="text: label"></td>
+    <td class="keys" data-bind="text: label"></td>
     <td>
         <select data-bind="options: options, value: value"></select>
     </td>
