@@ -21,6 +21,13 @@ namespace python {
 			   << "%ID% : '%LABEL%',";
 		}
 
+		void Meta(Formatter & out, Enum::Members::const_reference p)
+		{
+			out("LABEL", p.second.quoted_original_label)
+			   ("CLASS", p.second.label) 
+			   << "('%LABEL%' , %CLASS%),";
+		}
+
 		/// prints accessors to enum members
 		void Prop(Formatter & out, Enum::Members::const_reference p)
 		{
@@ -46,6 +53,9 @@ namespace python {
 			    "class %LABEL%(object):", +(seq,
 			        "def __init__(self):", 
 			        +call(boost::bind(print::Initializers, _1, p.second.params)), "",
+						"@staticmethod",
+						"def meta(): ", +(seq, 
+							"return [", +foreach_x(p.second.params, print::meta), "]"),
 			        "def key(self): return %ID%", "",
 			        foreach_x(p.second.params, boost::bind(print::PropertyEx, _1, _2, boost::cref(p.second.params))),
 			        "def export(self):", +(seq,
@@ -70,6 +80,10 @@ namespace python {
 					"_labels = {", +(
 						foreach_x(e.members, print::Ini)),
 					"}",
+					"@staticmethod",
+					"def meta(): return [", 
+						+foreach_x(e.members, print::Meta),
+					"]",
 					"def __init__(self, newval): self._value = newval", "",
 					"",
 					"def __repr__(self): return self._value.__repr__()",

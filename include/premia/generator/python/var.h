@@ -280,6 +280,9 @@ namespace python {
 			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
+    			out("KEY", e.type->label)
+    				("VAL", e.type->members.find(e.value)->second.quoted_original_label)
+    				<< "['%PROP_NAME%', '%KEY%', '%VAL%'],";
 			}
 		private:
 			Formatter & out;

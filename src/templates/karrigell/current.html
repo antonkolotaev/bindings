@@ -10,7 +10,7 @@
           <th>Model:</th>
           <th><select data-bind="options: myModels, value: myModel"></select></th>
         </tr>
-        <tbody data-bind="template: { name: 'row-template', foreach: myModelParams() }">
+        <tbody data-bind="template: { name: 'row-template', foreach: myModelParams }">
         </tbody>
       </table>
     </td>
@@ -25,7 +25,7 @@
           <th>Option:</th>
           <th><select data-bind="options: myOptions, value: myOption"></select></th>
         </tr>
-        <tbody data-bind="template: { name: 'row-template', foreach: myOptionParams() }">
+        <tbody data-bind="template: { name: 'row-template', foreach: myOptionParams }">
         </tbody>
       </table>
     </td>
@@ -36,7 +36,7 @@
           <th>Pricing method:</th>
           <th><select data-bind="options: myMethods, value: myMethod"></select></th>
         </tr>
-        <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams() }">
+        <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams }">
         </tbody>
       </table>
     </td>

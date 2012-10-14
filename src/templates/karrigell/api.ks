@@ -2,6 +2,7 @@ import json
 
 Include('../import.py')
 import premia.assets
+import premia.enum
 
 def _return(x):
    print json.dumps(x)
@@ -50,3 +51,15 @@ def option_params(f, o):
 
 def method_params(m, f, meth):
    _return(_params(_lookupMethod(m, f, meth)()))
+
+def myImport(m):
+   exec 'import ' + m
+   return eval(m)
+
+def _lookupEnum(e):
+   exec 'import premia.enum.'+e
+   return eval('premia.enum.'+e+'.'+e)
+
+def enum_params(e):
+   obj = _lookupEnum(e).meta()
+   _return([(k, v.meta()) for (k,v) in obj]) 
