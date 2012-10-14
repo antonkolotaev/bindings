@@ -47,9 +47,9 @@ function VectorField(label, values) {
     var self = this;
     self.label = label;
     self.renderer = 'vector-row-template';
-    self.values = $.map(values, function (value) {
-        return ko.observable(value);
-    });
+
+    self.values = $.map(values, function (value, i) { return ko.observable(value); });
+
     self.spansize = function () {
         return self.values.length;
     }
@@ -67,14 +67,18 @@ function VectorCompactField(label, isvector, values) {
     self.spansize = function () {
         return 1 + (self.isvector() == "Array" ? self.vector.length : 1);
     }
-    self.scalar = ko.observable(values[0]);
     self.vector = $.map(values, function (value) {
         return ko.observable(value);
     });
+    self.scalar = self.vector[0];
 
     self.elements = ko.computed(function() {
         return self.isvector() == "Array" ? self.vector : [self.scalar];
     });
+
+    self.at = function(i) {
+        return self.elements()[i];
+    }
 
     self.getFields = function() {
         return [self];
@@ -134,6 +138,7 @@ function loadParams(raw) {
         return (
             (e[1] == 0) ? new ScalarField(e[0], e[2]) :
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
+            (e[1] == 2) ? new VectorCompactField(e[0], false, e[2]) :
             undefined);
     });
 }

@@ -5,7 +5,7 @@
         <td class="keys" data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
       <!-- /ko -->
       <td>
-        <input data-bind="value: $data"></input>
+        <input data-bind="value: $parent.values[$index()]"></input>
       </td>
     </tr>
   <!-- /ko -->
@@ -21,7 +21,7 @@
     <!-- ko foreach: elements -->
       <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
         <td>
-          <input data-bind="value: $data"></input>
+          <input data-bind="value: $parent.at($index())"></input>
         </td>
       </tr>   
     <!-- /ko -->

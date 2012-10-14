@@ -235,6 +235,64 @@ namespace python {
 			out("PROP_NAME", vr.name) << "'%PROP_NAME%',";
 		}
 
+		struct meta_writer : var_visitor<meta_writer>
+		{
+			meta_writer(Formatter & out, VAR const *src) : out(out), src(src) {}
+
+			/// assert for INT based types
+			void operator () (Numeric<int> const & i) 
+			{
+				out("VAL", i.value) << "['%PROP_NAME%', 0, %VAL%],";
+			}
+
+			/// assert for LONG based types
+			void operator () (Numeric<long> const & i) 
+			{
+				out("VAL", i.value) << "['%PROP_NAME%', 0, %VAL%],";
+			}
+
+			/// assert for DOUBLE based types
+			void operator () (Numeric<double> const & i) 
+			{
+				out("VAL", i.value) << "['%PROP_NAME%', 0, %VAL%],";
+			}
+
+			/// assert for FILENAME
+			void operator () (std::string const & i)  
+			{
+			}
+
+			/// assert for PNLVECT and PNLVECTCOMPACT
+			void operator () (std::vector<double> const & i) 
+			{
+				std::stringstream acc;
+				acc << "[";
+				BOOST_FOREACH(double x, i)
+					 acc << x << ",";
+				acc << "]";
+
+		      out("VAL", acc.str())
+		      	("KEY", (src && src->Vtype==PNLVECTCOMPACT) ? 2 : 1) 
+		      	<< 
+			   		"['%PROP_NAME%', %KEY%, %VAL%],";
+			}
+
+			/// assert for ENUM
+			void operator() (EnumValue const & e) 
+			{
+			}
+		private:
+			Formatter & out;
+			VAR const * src;
+		};
+
+
+		/// prints meta information about the property 
+		inline void meta(Formatter &out, NamedVar const & vr)
+		{
+			meta_writer(out("PROP_NAME", vr.src->Vname), vr.src).apply(vr.value);
+		}
+
 		/// \brief returns a python statement copying a parameter from a Python class to Premia runtime
 		struct param_writer : var_visitor<param_writer, const char *>
 		{

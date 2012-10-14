@@ -77,7 +77,10 @@ namespace python {
  						), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 
-						"return [", +foreach_x(m.members, print::member), "]")
+						"return [", +foreach_x(m.members, print::member), "]"),
+					"@staticmethod",
+					"def meta(): ", +(seq, 
+						"return [", +foreach_x(m.members, print::meta), "]")
 				));
 
 		Formatter ff(ctx.modelPricingsName(m));

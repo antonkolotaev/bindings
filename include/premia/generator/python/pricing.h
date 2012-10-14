@@ -93,6 +93,9 @@ namespace python {
 				"def parameters(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::member), "]"), "",
 				"@staticmethod",
+				"def meta(): ", +(seq, 
+					"return [", +foreach_x(method.members, print::meta), "]"),
+				"@staticmethod",
 				"def model(): return %MODEL_NAME%", ""
 				"@staticmethod",
 				"def options():", +(seq, 

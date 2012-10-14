@@ -40,15 +40,7 @@ def methods(m, f, o):
    _return(methods)
 
 def _params(obj):
-   res = [];
-   for f_name in obj.parameters():
-      f = getattr(obj, '_'+f_name)
-      if type(f) in [long, int, float]:
-         res.append([f_name, 0, f])
-      if type(f) == list:
-         res.append([f_name, 1, f])
-   return res;
-
+   return obj.meta()
    
 def model_params(m):
    _return(_params(_lookupModel(m)()))
