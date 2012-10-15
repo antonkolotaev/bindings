@@ -88,7 +88,11 @@ namespace python {
 			/// assert for ENUM
 			void operator() (EnumValue const & e) 
 			{
-				out << "assert(x.__class__ == self.%FLD_NAME%.__class__)";
+				out << (seq, 
+					"if type(x) == list:",
+					"  self.%FLD_NAME%.assign(x[0], x[1])",
+					"  return",
+					"assert(x.__class__ == self.%FLD_NAME%.__class__)");
 			}
 		private:
 
@@ -349,6 +353,11 @@ namespace python {
 		inline void load_param(Formatter & out, NamedVar const & vr)
 		{
 			out("PROP_NAME", vr.name) << param_loader().apply(vr.value);
+		}
+
+		inline void assign_param(Formatter &out, NamedVar const &vr)
+		{
+			out("PROP_NAME", vr.name) << "self.set_%PROP_NAME%(it.next())";		
 		}
 	}
 

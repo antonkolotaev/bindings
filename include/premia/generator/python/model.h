@@ -39,6 +39,7 @@ namespace python {
 			("ID",   m.ID())
 			("ASSET_ID", id(m.asset))
 			("ASSET_TYPE", m.asset.source->name)
+			("MEMBERS_LEN", m.members.size())
 			("MODEL_ID", id(m)) << (seq, 
 				"from ...common import *",
 				"",
@@ -74,6 +75,11 @@ namespace python {
 						"interop.readCurrentModel()",
 						foreach_x(m.members, print::load_param),
 						"interop.stopReadParameters()"
+ 						), "",
+ 					"def assign(self, *args):", +(seq,
+ 						"assert(len(args) == %MEMBERS_LEN%)",
+						"it = args.__iter__()",
+						foreach_x(m.members, print::assign_param)
  						), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 

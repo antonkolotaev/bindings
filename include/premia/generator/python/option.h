@@ -13,6 +13,7 @@ namespace python {
 			("ASSET_ID",  id(opt.family.asset))
 			("FAMILY_ID", id(opt.family))
 			("FAMILY_NAME", opt.family.name)
+			("MEMBERS_LEN", opt.vars.size())
 			<< (seq, 
 				"from ...common import *", "",
 				"class %NAME%(object):", +(seq, "",
@@ -29,6 +30,11 @@ namespace python {
 						foreach_x(opt.vars, print::copy_param),
 						"interop.stopWriteParameters()"
  					), "",
+ 					"def assign(self, *args):", +(seq,
+ 						"assert(len(args) == %MEMBERS_LEN%)",
+						"it = args.__iter__()",
+						foreach_x(opt.vars, print::assign_param)
+ 						), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 
 						"return [", +foreach_x(opt.vars, print::member), "]"),

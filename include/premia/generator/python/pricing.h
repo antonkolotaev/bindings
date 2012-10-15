@@ -60,6 +60,7 @@ namespace python {
 		   ("ASSET_ID", id(method.pricing.asset))
 		   ("PRICING_ID", id(method.pricing))
 		   ("METHOD_ID", id(method))
+			("MEMBERS_LEN", method.members.size())
 			<< (seq, 
 			"from ..model import %MODEL_NAME%", 
 			"from ....opt.%FAMILY_ID%.%FAMILY_ID% import *",
@@ -92,6 +93,11 @@ namespace python {
 				"@staticmethod",
 				"def parameters(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::member), "]"), "",
+ 				"def assign(self, *args):", +(seq,
+ 					"assert(len(args) == %MEMBERS_LEN%)",
+					"it = args.__iter__()",
+					foreach_x(method.members, print::assign_param)
+ 					), "",
 				"@staticmethod",
 				"def meta(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::meta), "]"),

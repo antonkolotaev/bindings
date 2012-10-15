@@ -63,3 +63,10 @@ def _lookupEnum(e):
 def enum_params(e):
    obj = _lookupEnum(e).meta()
    _return([(k, v.meta()) for (k,v) in obj]) 
+
+def _parse(kwargs):
+   request = kwargs.iterkeys().__iter__().next()
+   return json.loads(request)
+
+def id(*args, **kwargs):
+   print str(_parse(kwargs)['e'])

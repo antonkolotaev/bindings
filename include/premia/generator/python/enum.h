@@ -28,6 +28,13 @@ namespace python {
 			   << "('%LABEL%' , %CLASS%),";
 		}
 
+		void Assign(Formatter & out, Enum::Members::const_reference p)
+		{
+			out("LABEL", p.second.quoted_original_label)
+			   ("CLASS", p.second.label) 
+			   << "if label=='%LABEL%': self.set_%CLASS%()";
+		}
+
 		/// prints accessors to enum members
 		void Prop(Formatter & out, Enum::Members::const_reference p)
 		{
@@ -48,7 +55,7 @@ namespace python {
 		
 		void Choice(Formatter & out, Enum::Members::const_reference p)
 		{
-			(out && p) << (seq,
+			(out && p)("MEMBERS_LEN", p.second.params.size()) << (seq,
 			    "", 
 			    "class %LABEL%(object):", +(seq,
 			        "def __init__(self):", 
@@ -58,6 +65,11 @@ namespace python {
 							"return [", +foreach_x(p.second.params, print::meta), "]"),
 			        "def key(self): return %ID%", "",
 			        foreach_x(p.second.params, boost::bind(print::PropertyEx, _1, _2, boost::cref(p.second.params))),
+		 				"def assign(self, *args):", +(seq,
+		 					"assert(len(args) == %MEMBERS_LEN%)",
+							"it = args.__iter__()",
+							foreach_x(p.second.params, print::assign_param)
+		 					), "",
 			        "def export(self):", +(seq,
 			            "from premia import interop",
 			            "interop.write_enum(%ID%)",
@@ -80,6 +92,9 @@ namespace python {
 					"_labels = {", +(
 						foreach_x(e.members, print::Ini)),
 					"}",
+					"def assign(self, label, data):", +(seq, 
+						foreach_x(e.members, print::Assign),
+						"self._value.assign(*data)"), "",
 					"@staticmethod",
 					"def meta(): return [", 
 						+foreach_x(e.members, print::Meta),

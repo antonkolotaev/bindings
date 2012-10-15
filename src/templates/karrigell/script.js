@@ -8,6 +8,8 @@ function get(query) {
    return $.parseJSON(z.responseText);
 }
 
+//$.post('api.ks/id', "{'e':''}", function (data) {console.log("!!!");});
+
 function CachedMap(getter) {
    var self = this;
    self._storage = {};
