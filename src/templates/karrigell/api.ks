@@ -70,3 +70,16 @@ def _parse(kwargs):
 
 def id(*args, **kwargs):
    print str(_parse(kwargs)['e'])
+
+def compute(*args, **kwargs):
+   [asset, model, model_params], [family, option, option_params], [method, method_params] = _parse(kwargs)
+
+   #_return([[asset, model, model_params], [family, option, option_params], [method, method_params]])
+
+   model_obj = _lookupModel(model).create(model_params)
+   option_obj = _lookupOption(family, option).create(option_params)
+   method_obj = _lookupMethod(model, family, method).create(method_params)
+
+   result = method_obj(option_obj, model_obj)
+   _return(result)
+

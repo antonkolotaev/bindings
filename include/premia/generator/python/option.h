@@ -30,10 +30,13 @@ namespace python {
 						foreach_x(opt.vars, print::copy_param),
 						"interop.stopWriteParameters()"
  					), "",
- 					"def assign(self, *args):", +(seq,
+					"@staticmethod",
+	 				"def create(args):", +(seq,
+	 					"self = %NAME%()",
  						"assert(len(args) == %MEMBERS_LEN%)",
 						"it = args.__iter__()",
-						foreach_x(opt.vars, print::assign_param)
+						foreach_x(opt.vars, print::assign_param),
+						"return self"
  						), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 

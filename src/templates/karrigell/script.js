@@ -8,8 +8,6 @@ function get(query) {
    return $.parseJSON(z.responseText);
 }
 
-//$.post('api.ks/id', "{'e':''}", function (data) {console.log("!!!");});
-
 function CachedMap(getter) {
    var self = this;
    self._storage = {};
@@ -45,7 +43,7 @@ function ScalarField(label, value) {
     }
 
     self.serialized = function() {
-        return [self.value()];
+        return [parseFloat(self.value())];
     }
 }
 
@@ -64,7 +62,7 @@ function VectorField(label, values) {
     }
 
     self.serialized = function() {
-        return [$.map(self.values, function (value, i) { return value(); })];
+        return [$.map(self.values, function (value, i) { return parseFloat(value()); })];
     }
 }
 
@@ -114,11 +112,11 @@ function VectorCompactField(label, values) {
 
     self.serialized = function() {
         if (self.isvector() == "Array")
-            return [$.map(self.vector, function (value, i) { return value(); })];
+            return [$.map(self.vector, function (value, i) { return parseFloat(value()); })];
         else {
             var res = [];
             for (i = 0; i < self.vector.length; i++) 
-                res.push(self.scalar());
+                res.push(parseFloat(self.scalar()));
             return [res];
         }
     }
@@ -291,12 +289,22 @@ function ModelView() {
                 [self.myMethod(), serialized(self.myMethodParamsNF())]
             ]);
     });
+
+    self.scalarResult = ko.observable([]);
 }
 
-g_model = new ModelView();
+//$.post('api.ks/id', "{'e':''}", function (data) {console.log("!!!");});
 
-ko.applyBindings(g_model);
+mv = new ModelView();
 
+ko.applyBindings(mv);
+
+$('#Compute').click(function() { 
+    $.post('api.ks/compute', mv.query(), function (data) {
+        console.log(data);
+        mv.scalarResult($.parseJSON(data));
+    }); 
+});
 
 /*
 // Class to represent a row in the seat reservations grid

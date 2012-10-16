@@ -93,10 +93,13 @@ namespace python {
 				"@staticmethod",
 				"def parameters(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::member), "]"), "",
- 				"def assign(self, *args):", +(seq,
+				"@staticmethod",
+ 				"def create(args):", +(seq,
+ 					"self = %CLASS%()",
  					"assert(len(args) == %MEMBERS_LEN%)",
 					"it = args.__iter__()",
-					foreach_x(method.members, print::assign_param)
+					foreach_x(method.members, print::assign_param),
+					"return self"
  					), "",
 				"@staticmethod",
 				"def meta(): ", +(seq, 

@@ -76,10 +76,13 @@ namespace python {
 						foreach_x(m.members, print::load_param),
 						"interop.stopReadParameters()"
  						), "",
- 					"def assign(self, *args):", +(seq,
+					"@staticmethod",
+	 				"def create(args):", +(seq,
+	 					"self = %NAME%()",
  						"assert(len(args) == %MEMBERS_LEN%)",
 						"it = args.__iter__()",
-						foreach_x(m.members, print::assign_param)
+						foreach_x(m.members, print::assign_param),
+						"return self"
  						), "",
 					"@staticmethod",
 					"def parameters(): ", +(seq, 

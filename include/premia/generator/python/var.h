@@ -74,7 +74,9 @@ namespace python {
 			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
-				out << "assert(type(x) == str)";
+				out << (seq, 
+					"if type(x)==unicode: x = str(x)",
+					"assert(type(x) == str)");
 			}
 
 			/// assert for PNLVECT and PNLVECTCOMPACT
