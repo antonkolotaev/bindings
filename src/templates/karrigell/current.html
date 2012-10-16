@@ -8,7 +8,7 @@
         </tr>
         <tr>
           <th>Model:</th>
-          <th><select data-bind="options: myModels, value: myModel"></select></th>
+          <th><select data-bind="options: myModels, value: myModelProxy"></select></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myModelParams }">
         </tbody>
@@ -40,6 +40,6 @@
         </tbody>
       </table>
     </td>
-
   </tr>
 </table>
+<span data-bind="text: query"></span>

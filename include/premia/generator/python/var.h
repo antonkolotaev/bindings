@@ -264,6 +264,7 @@ namespace python {
 			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
+				out("VAL", i) << "['%PROP_NAME%', 3, r'%VAL%'],";
 			}
 
 			/// assert for PNLVECT and PNLVECTCOMPACT

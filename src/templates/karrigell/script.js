@@ -43,6 +43,10 @@ function ScalarField(label, value) {
     self.getFields = function() {
         return [self];
     }
+
+    self.serialized = function() {
+        return [self.value()];
+    }
 }
 
 function VectorField(label, values) {
@@ -58,6 +62,19 @@ function VectorField(label, values) {
     self.getFields = function() {
         return [self];
     }
+
+    self.serialized = function() {
+        return [$.map(self.values, function (value, i) { return value(); })];
+    }
+}
+
+function FilenameField(label, value) {
+    var self = this;
+    self.label = label;
+    self.value = value;
+    self.renderer = 'filename-row-template';
+    self.getFields = function () { return []; }
+    self.serialized = function () { return [self.value]; }
 }
 
 function allequal(arr) {
@@ -94,6 +111,17 @@ function VectorCompactField(label, values) {
     self.getFields = function() {
         return [self];
     }
+
+    self.serialized = function() {
+        if (self.isvector() == "Array")
+            return [$.map(self.vector, function (value, i) { return value(); })];
+        else {
+            var res = [];
+            for (i = 0; i < self.vector.length; i++) 
+                res.push(self.scalar());
+            return [res];
+        }
+    }
 }
 
 
@@ -118,6 +146,12 @@ function flatten(arr){
     },[]);
 }
 
+function serialized(arr){
+    return arr.reduce(function(acc, val){
+        return acc.concat(val.serialized());
+    },[]);
+}
+
 function EnumField(label, value, options) {
     // console.log(options)
     var self = this;
@@ -128,6 +162,10 @@ function EnumField(label, value, options) {
 
     self.getFields = function() {
         return [self].concat(flatten(lookup(options, self.value())));
+    }
+
+    self.serialized = function() {
+        return [[self.value(), serialized(lookup(options, self.value()))]];
     }
 }
 
@@ -182,6 +220,7 @@ function loadParams(raw) {
             (e[1] == 0) ? new ScalarField(e[0], e[2]) :
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
             (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
+            (e[1] == 3) ? new FilenameField(e[0], e[2]) :
             new EnumField(e[0], e[2], enum_params.at(e[1])));
     });
 }
@@ -199,7 +238,13 @@ function ModelView() {
     self.myModels = ko.computed(function(){
         return models.at(self.myAsset());
     });
+    
     self.myModel = ko.observable(self.myModels()[0]);
+
+    self.myModelProxy = ko.computed({
+        read: function () { return self.myModel() },
+        write: function (value) { self.myModel(value); }
+    });
 
     self.myFamilies = ko.computed(function(){
         return families.at(self.myModel());
@@ -217,19 +262,40 @@ function ModelView() {
     });
     self.myMethod = ko.observable(self.myMethods()[0]);    
 
-    self.myModelParams = ko.computed(function () {
-        return flatten(model_params.at(self.myModel()));
+    self.myModelParamsNF = ko.computed(function () {
+        return model_params.at(self.myModel());
     });
 
-    self.myOptionParams = ko.computed(function () {
-        return flatten(option_params.at([self.myFamily(), self.myOption()]));
+    self.myModelParams = ko.computed(function () {
+        return flatten(self.myModelParamsNF());
     });
+
+    self.myOptionParamsNF = ko.computed(function () {
+        return option_params.at([self.myFamily(), self.myOption()]);
+    });
+    self.myOptionParams = ko.computed(function () {
+        return flatten(self.myOptionParamsNF());
+    });
+    self.myMethodParamsNF = ko.computed(function () {
+        return method_params.at([self.myModel(), self.myFamily(), self.myMethod()]);
+    });
+
     self.myMethodParams = ko.computed(function () {
-        return flatten(method_params.at([self.myModel(), self.myFamily(), self.myMethod()]));
+        return flatten(self.myMethodParamsNF());
+    });
+
+    self.query = ko.computed(function () {
+        return $.toJSON([
+                [self.myAsset(), self.myModel(), serialized(self.myModelParamsNF())],
+                [self.myFamily(), self.myOption(), serialized(self.myOptionParamsNF())],
+                [self.myMethod(), serialized(self.myMethodParamsNF())]
+            ]);
     });
 }
 
-ko.applyBindings(new ModelView());
+g_model = new ModelView();
+
+ko.applyBindings(g_model);
 
 
 /*
