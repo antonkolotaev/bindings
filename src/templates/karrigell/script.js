@@ -236,7 +236,6 @@ function ModelView() {
     self.myAssetProxy = ko.computed({
         read: function () { return self.myAsset() },
         write: function (value) { 
-            self.resultIsRelevant(false);
             self.myAsset(value); 
         }
     });
@@ -250,7 +249,6 @@ function ModelView() {
     self.myModelProxy = ko.computed({
         read: function () { return self.myModel() },
         write: function (value) { 
-            self.resultIsRelevant(false);
             self.myModel(value); 
         }
     });
@@ -263,7 +261,6 @@ function ModelView() {
     self.myFamilyProxy = ko.computed({
         read: function () { return self.myFamily() },
         write: function (value) { 
-            self.resultIsRelevant(false);
             self.myFamily(value); 
         }
     });
@@ -275,7 +272,6 @@ function ModelView() {
     self.myOptionProxy = ko.computed({
         read: function () { return self.myOption() },
         write: function (value) { 
-            self.resultIsRelevant(false);
             self.myOption(value); 
         }
     });
@@ -287,7 +283,7 @@ function ModelView() {
     self.myMethodProxy = ko.computed({
         read: function () { return self.myMethod() },
         write: function (value) { 
-            self.resultIsRelevant(false);
+            //self.resultIsRelevant(false);
             self.myMethod(value); 
         }
     });
@@ -323,24 +319,25 @@ function ModelView() {
     });
 
     self.scalarResultRaw = ko.observable([]);
-    self.resultIsRelevant = ko.observable(false);
+    self.resultQuery = ko.observable("");
 
     self.scalarResult = ko.computed(function() {
-        return self.resultIsRelevant() ? self.scalarResultRaw() : [];
+        return self.resultQuery() == self.query() ? self.scalarResultRaw() : [];
     });
 }
-
-//$.post('api.ks/id', "{'e':''}", function (data) {console.log("!!!");});
 
 mv = new ModelView();
 
 ko.applyBindings(mv);
 
 $('#Compute').click(function() { 
-    mv.resultIsRelevant(true);
-    $.getJSON('api.ks/compute?'+mv.query(), function (data) {
+    var my_query = mv.query();
+    mv.scalarResultRaw([]);
+    mv.resultQuery(my_query);
+    $.getJSON('api.ks/compute?'+my_query, function (data) {
         console.log(data);
-        mv.scalarResultRaw(data);
+        if (my_query == mv.query())
+            mv.scalarResultRaw(data);
     }); 
 });
 
