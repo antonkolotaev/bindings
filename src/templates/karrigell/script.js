@@ -233,6 +233,14 @@ function ModelView() {
     });
 
     self.myAsset = ko.observable(assets[0]);
+    self.myAssetProxy = ko.computed({
+        read: function () { return self.myAsset() },
+        write: function (value) { 
+            self.resultIsRelevant(false);
+            self.myAsset(value); 
+        }
+    });
+
     self.myModels = ko.computed(function(){
         return models.at(self.myAsset());
     });
@@ -241,7 +249,10 @@ function ModelView() {
 
     self.myModelProxy = ko.computed({
         read: function () { return self.myModel() },
-        write: function (value) { self.myModel(value); }
+        write: function (value) { 
+            self.resultIsRelevant(false);
+            self.myModel(value); 
+        }
     });
 
     self.myFamilies = ko.computed(function(){
@@ -249,16 +260,37 @@ function ModelView() {
     });
 
     self.myFamily = ko.observable(self.myFamilies()[0]);
+    self.myFamilyProxy = ko.computed({
+        read: function () { return self.myFamily() },
+        write: function (value) { 
+            self.resultIsRelevant(false);
+            self.myFamily(value); 
+        }
+    });
 
     self.myOptions = ko.computed(function(){
         return options.at([self.myModel(), self.myFamily()]);
     });
     self.myOption = ko.observable(self.myOptions()[0]);
+    self.myOptionProxy = ko.computed({
+        read: function () { return self.myOption() },
+        write: function (value) { 
+            self.resultIsRelevant(false);
+            self.myOption(value); 
+        }
+    });
     
     self.myMethods = ko.computed(function(){
         return methods.at([self.myModel(), self.myFamily(), self.myOption()]);
     });
     self.myMethod = ko.observable(self.myMethods()[0]);    
+    self.myMethodProxy = ko.computed({
+        read: function () { return self.myMethod() },
+        write: function (value) { 
+            self.resultIsRelevant(false);
+            self.myMethod(value); 
+        }
+    });
 
     self.myModelParamsNF = ko.computed(function () {
         return model_params.at(self.myModel());
@@ -290,7 +322,12 @@ function ModelView() {
             ]);
     });
 
-    self.scalarResult = ko.observable([]);
+    self.scalarResultRaw = ko.observable([]);
+    self.resultIsRelevant = ko.observable(false);
+
+    self.scalarResult = ko.computed(function() {
+        return self.resultIsRelevant() ? self.scalarResultRaw() : [];
+    });
 }
 
 //$.post('api.ks/id', "{'e':''}", function (data) {console.log("!!!");});
@@ -300,9 +337,10 @@ mv = new ModelView();
 ko.applyBindings(mv);
 
 $('#Compute').click(function() { 
-    $.post('api.ks/compute', mv.query(), function (data) {
+    mv.resultIsRelevant(true);
+    $.getJSON('api.ks/compute?'+mv.query(), function (data) {
         console.log(data);
-        mv.scalarResult($.parseJSON(data));
+        mv.scalarResultRaw(data);
     }); 
 });
 

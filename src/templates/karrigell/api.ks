@@ -1,4 +1,7 @@
 import json
+from Queue import Empty
+from multiprocessing import Process,Queue
+from time import time
 
 Include('../import.py')
 import premia.assets
@@ -80,6 +83,37 @@ def compute(*args, **kwargs):
    option_obj = _lookupOption(family, option).create(option_params)
    method_obj = _lookupMethod(model, family, method).create(method_params)
 
-   result = method_obj(option_obj, model_obj)
+   def compute():
+      res = []
+      def F(opt, mod, q):
+         begin = time()
+         try:
+            res = method_obj(opt, mod)
+         except Exception, exc:
+            print "Caught:", exc
+            res = [("Exception", str(exc))]
+            q.put(res)
+            return
+         end = time()
+         res.append(("Time", end - begin))
+         q.put(res)
+      try:
+         queue = Queue()
+         process = Process(target = F, args = (option_obj,model_obj, queue))
+         process.start()
+         try:
+            res = queue.get(timeout=30)
+            if res[0][0] == "Exception":
+               res = None
+         except Empty, exc:
+            process.terminate()
+            raise Exception("Method has worked more than " + str(30) + "s. Please try another parameter combination")
+         process.join(timeout=30)
+      except Exception, exc:
+         pass
+      return res 
+
+   result = compute()
+   #result = method_obj(option_obj, model_obj)
    _return(result)
 
