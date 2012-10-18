@@ -32,13 +32,27 @@ function ParamCachedMap(query_fun) {
         });
 }
 
+var iterables = ko.observableArray([]);
+
 function ScalarValue(value) {
     var self = this;
     self.value = ko.observable(value);
 
-    self.hasIteration = ko.observable(false);
     self.iterateTo = ko.observable(value);
     self.iterationsCount = ko.observable(10);
+
+    self.hasIteration = ko.computed({
+        read: function () { return iterables().indexOf(self) != -1; },
+        write: function (value) {
+            if (value) {
+                iterables.push(self);
+                if (iterables().length > 2)
+                    iterables.splice(0,1);
+            } else {
+                iterables.splice(iterables.indexOf(self), 1);
+            }
+        }
+    })
 
     self.serialized = function() {
         return parseFloat(self.value());
