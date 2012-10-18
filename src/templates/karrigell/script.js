@@ -32,24 +32,31 @@ function ParamCachedMap(query_fun) {
         });
 }
 
-function ScalarField(label, value) {
+function ScalarValue(value) {
     var self = this;
-    self.label = label;
     self.value = ko.observable(value);
-    self.renderer = 'scalar-row-template';
 
     self.hasIteration = ko.observable(false);
     self.iterateTo = ko.observable(value);
     self.iterationsCount = ko.observable(10);
-    // self.toggleIteration = function () { self.hasIteration(!self.hasIteration()); }
 
+    self.serialized = function() {
+        return parseFloat(self.value());
+    }
+}
+
+function ScalarField(label, value) {
+    var self = this;
+    self.label = label;
+    self.value = new ScalarValue(value);
+    self.renderer = 'scalar-row-template';
 
     self.getFields = function() {
         return [self];
     }
 
     self.serialized = function() {
-        return [parseFloat(self.value())];
+        return [self.value.serialized()];
     }
 }
 
@@ -58,17 +65,19 @@ function VectorField(label, values) {
     self.label = label;
     self.renderer = 'vector-row-template';
 
-    self.values = $.map(values, function (value, i) { return ko.observable(value); });
+    self.values = $.map(values, function (value, i) { return new ScalarValue(value); });
 
     self.spansize = function () {
-        return self.values.length;
+        return self.values.reduce(function(acc, val){
+            return acc + (val.hasIteration() ? 2 : 1);
+        },0);
     }
     self.getFields = function() {
         return [self];
     }
 
     self.serialized = function() {
-        return [$.map(self.values, function (value, i) { return parseFloat(value()); })];
+        return [$.map(self.values, function (value, i) { return value.serialized(); })];
     }
 }
 
@@ -97,10 +106,12 @@ function VectorCompactField(label, values) {
     self.options = ["Constant", "Array"];
     self.isvector = ko.observable(isvector ? "Array" : "Constant");
     self.spansize = function () {
-        return 1 + (self.isvector() == "Array" ? self.vector.length : 1);
+        return 1 + self.elements().reduce(function(acc, val){
+            return acc + (val.hasIteration() ? 2 : 1);
+        },0);
     }
     self.vector = $.map(values, function (value) {
-        return ko.observable(value);
+        return new ScalarValue(value);
     });
     self.scalar = self.vector[0];
 
@@ -118,11 +129,11 @@ function VectorCompactField(label, values) {
 
     self.serialized = function() {
         if (self.isvector() == "Array")
-            return [$.map(self.vector, function (value, i) { return parseFloat(value()); })];
+            return [$.map(self.vector, function (value, i) { return value.serialized(); })];
         else {
             var res = [];
             for (i = 0; i < self.vector.length; i++) 
-                res.push(parseFloat(self.scalar()));
+                res.push(self.scalar.serialized());
             return [res];
         }
     }

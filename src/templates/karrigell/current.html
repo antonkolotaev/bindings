@@ -4,10 +4,12 @@
       <table class="model">
         <tr>
           <th>Asset type:</th>
+          <th></th>
           <th><select data-bind="options: assets, value: myAsset"></select></th>
         </tr>
         <tr>
           <th>Model:</th>
+          <th></th>
           <th><select data-bind="options: myModels, value: myModelProxy"></select></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myModelParams }">
@@ -19,10 +21,12 @@
       <table class="option">
         <tr>
           <th>Family:</th>
+          <th></th>
           <th><select data-bind="options: myFamilies, value: myFamily"></select></th>
         </tr>
         <tr>
           <th>Option:</th>
+          <th></th>
           <th><select data-bind="options: myOptions, value: myOption"></select></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myOptionParams }">
@@ -34,17 +38,19 @@
       <table class="pricing_method">
         <tr>
           <th>Pricing method:</th>
+          <th></th>
           <th><select data-bind="options: myMethods, value: myMethod"></select></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams }">
         </tbody>
         <tr data-bind="if: scalarResult().length>0">
-          <th>Result:</th><th></th>
+          <th>Result:</th><th></th><th></th>
         </tr>
         <!-- ko foreach: scalarResult() -->
           <!-- ko if: typeof($data[1])=="number" -->
             <tr data-bind="css: { even: $index()%2==0 }">
               <td class="keys" data-bind="text: $data[0]"></td>
+              <td></td>
               <td class="values" data-bind="text: $data[1]"></td>
             </tr>
           <!-- /ko -->
@@ -54,12 +60,14 @@
                 <!-- ko ifnot: $index -->
                   <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
                 <!-- /ko -->
-                <td class="values" data-bind="text: $data"></td>
+                <td></td>
+              <td class="values" data-bind="text: $data"></td>
               </tr>
             <!-- /ko -->
           <!-- /ko -->
         <!-- /ko -->
         <tr>
+          <td></td>
           <td></td>
           <td><button id="Compute">Compute</button></td>
         </tr>
