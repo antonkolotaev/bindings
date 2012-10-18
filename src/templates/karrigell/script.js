@@ -55,7 +55,8 @@ function ScalarValue(value) {
     })
 
     self.serialized = function() {
-        return parseFloat(self.value());
+        var x = parseFloat(self.value());
+        return self.hasIteration() ? ['iterate', x, parseFloat(self.iterateTo()), parseFloat(self.iterationsCount())] : x;
     }
 }
 
@@ -72,6 +73,13 @@ function ScalarField(label, value) {
     self.serialized = function() {
         return [self.value.serialized()];
     }
+}
+
+function map(elements, f) {
+    var res = [];
+    for (i=0; i<elements.length; i++)
+        res.push(f(elements[i]));
+    return res;
 }
 
 function VectorField(label, values) {
@@ -91,7 +99,7 @@ function VectorField(label, values) {
     }
 
     self.serialized = function() {
-        return [$.map(self.values, function (value, i) { return value.serialized(); })];
+        return [map(self.values, function (value) { return value.serialized(); })];
     }
 }
 
@@ -143,12 +151,9 @@ function VectorCompactField(label, values) {
 
     self.serialized = function() {
         if (self.isvector() == "Array")
-            return [$.map(self.vector, function (value, i) { return value.serialized(); })];
+            return [map(self.vector, function (value) { return value.serialized(); })];
         else {
-            var res = [];
-            for (i = 0; i < self.vector.length; i++) 
-                res.push(self.scalar.serialized());
-            return [res];
+            return [[self.scalar.serialized()]];
         }
     }
 }

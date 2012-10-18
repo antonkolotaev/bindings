@@ -51,7 +51,7 @@ namespace python {
 		/// \brief prints Python assertion(s) for the given Premia VAR type
 		struct property_value_assert : var_visitor<property_value_assert>
 		{
-			property_value_assert(Formatter & out) : out(out) {}
+			property_value_assert(Formatter & out, VAR const * src) : out(out), src(src) {}
 
 			/// assert for INT based types
 			void operator () (Numeric<int> const & i) 
@@ -85,11 +85,20 @@ namespace python {
 			/// assert for PNLVECT and PNLVECTCOMPACT
 			void operator () (std::vector<double> const & i) 
 			{
-				out << (seq, 
-						"x = list(x)", 
-						"for i in range(len(x)):",
-						"   if type(x[i])==list and x[i][0]=='iterate': x[i] = x[i][1]",
-						"assert(len(x) == 0 or type(x[0]) == int or type(x[0]) == long or type(x[0]) == float)"); 
+				if (src && src->Vtype==PNLVECTCOMPACT)
+					out << (seq, 
+							"x = list(x)", 
+							"for i in range(len(x)):",
+							"   if type(x[i])==list and x[i][0]=='iterate': x[i] = x[i][1]",
+							"if len(x)==1:",
+							"   x = len(self.%FLD_NAME%) * x",
+							"assert(len(x) == 0 or type(x[0]) == int or type(x[0]) == long or type(x[0]) == float)"); 
+				else 
+					out << (seq, 
+							"x = list(x)", 
+							"for i in range(len(x)):",
+							"   if type(x[i])==list and x[i][0]=='iterate': x[i] = x[i][1]",
+							"assert(len(x) == 0 or type(x[0]) == int or type(x[0]) == long or type(x[0]) == float)"); 
 			}
 
 			/// assert for ENUM
@@ -113,6 +122,7 @@ namespace python {
 			}
 		private:
 			Formatter & out;
+			VAR const * src;
 		};
 
 		void copy_or_ignore_param(NamedVar const *to_copy, Formatter & out, NamedVar const & vr);
@@ -122,7 +132,7 @@ namespace python {
 		inline void propertySetter(Formatter & out, NamedVar const & vr, VarList const & vars)
 		{
 			// prints type and constraint assertions
-			property_value_assert(out).apply(vr.value);
+			property_value_assert(out, vr.src).apply(vr.value);
 			
 			if (vr.has_setter)
     			out << "self.makeCurrent()";

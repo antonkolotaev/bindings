@@ -95,7 +95,7 @@ def compute(*args, **kwargs):
             print "Caught:", exc
             res = [("Exception", str(exc))]
             q.put(res)
-            return
+            return res
          end = time()
          res.append(("Time", end - begin))
          q.put(res)
