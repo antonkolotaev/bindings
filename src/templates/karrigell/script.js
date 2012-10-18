@@ -37,7 +37,13 @@ function ScalarField(label, value) {
     self.label = label;
     self.value = ko.observable(value);
     self.renderer = 'scalar-row-template';
-    
+
+    self.hasIteration = ko.observable(false);
+    self.iterateTo = ko.observable(value);
+    self.iterationsCount = ko.observable(10);
+    // self.toggleIteration = function () { self.hasIteration(!self.hasIteration()); }
+
+
     self.getFields = function() {
         return [self];
     }
@@ -232,6 +238,8 @@ function ModelView() {
         return flatten(self.params);
     });
 
+    //------------------------------------------------------- Asset
+
     self.myAsset = ko.observable(assets[0]);
     self.myAssetProxy = ko.computed({
         read: function () { return self.myAsset() },
@@ -239,6 +247,8 @@ function ModelView() {
             self.myAsset(value); 
         }
     });
+
+    //-------------------------------------------------------- Model
 
     self.myModels = ko.computed(function(){
         return models.at(self.myAsset());
@@ -253,6 +263,16 @@ function ModelView() {
         }
     });
 
+    self.myModelParamsNF = ko.computed(function () {
+        return model_params.at(self.myModel());
+    });
+
+    self.myModelParams = ko.computed(function () {
+        return flatten(self.myModelParamsNF());
+    });
+
+    //---------------------------------------------------------- Family
+
     self.myFamilies = ko.computed(function(){
         return families.at(self.myModel());
     });
@@ -265,6 +285,8 @@ function ModelView() {
         }
     });
 
+    //------------------------------------------------------------ Option
+
     self.myOptions = ko.computed(function(){
         return options.at([self.myModel(), self.myFamily()]);
     });
@@ -276,6 +298,15 @@ function ModelView() {
         }
     });
     
+    self.myOptionParamsNF = ko.computed(function () {
+        return option_params.at([self.myFamily(), self.myOption()]);
+    });
+    self.myOptionParams = ko.computed(function () {
+        return flatten(self.myOptionParamsNF());
+    });
+
+    //--------------------------------------------------------------- Method
+
     self.myMethods = ko.computed(function(){
         return methods.at([self.myModel(), self.myFamily(), self.myOption()]);
     });
@@ -288,20 +319,6 @@ function ModelView() {
         }
     });
 
-    self.myModelParamsNF = ko.computed(function () {
-        return model_params.at(self.myModel());
-    });
-
-    self.myModelParams = ko.computed(function () {
-        return flatten(self.myModelParamsNF());
-    });
-
-    self.myOptionParamsNF = ko.computed(function () {
-        return option_params.at([self.myFamily(), self.myOption()]);
-    });
-    self.myOptionParams = ko.computed(function () {
-        return flatten(self.myOptionParamsNF());
-    });
     self.myMethodParamsNF = ko.computed(function () {
         return method_params.at([self.myModel(), self.myFamily(), self.myMethod()]);
     });
@@ -309,6 +326,8 @@ function ModelView() {
     self.myMethodParams = ko.computed(function () {
         return flatten(self.myMethodParamsNF());
     });
+
+    //------------------------------------------------------------------- Result
 
     self.query = ko.computed(function () {
         return $.toJSON([

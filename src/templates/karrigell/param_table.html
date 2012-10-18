@@ -27,13 +27,38 @@
     <!-- /ko -->
 </script>
 
+<script type="text/html" id="iterations">
+  <!-- ko if: hasIteration -->
+    <tr data-bind="css: { even: $index()%2==0 }">
+      <td></td>
+      <td>
+        <table class="iteration">
+          <tr>
+            <td class="keys">Iterate to:</td>
+            <td class="values"><input data-bind="value: iterateTo"></input></td>
+          </tr>
+          <tr>
+            <td class="keys">#Iterations:</td>
+            <td class="values"><input data-bind="value: iterationsCount"></input></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  <!-- /ko -->
+</script>
+
 <script type="text/html" id="scalar-row-template">
   <tr data-bind="css: { even: $index()%2==0 }">
-    <td class="keys" data-bind="text: label"></td>
+    <td class="keys">
+      <span data-bind="text: label"></span>
+      <input type="checkbox" data-bind="checked: hasIteration">
+    </td>
     <td>
         <input data-bind="value: value"></input>
     </td>
   </tr>
+  <!-- ko template: { name : 'iterations' } -->
+  <!-- /ko -->
 </script>
 
 <script type="text/html" id="filename-row-template">

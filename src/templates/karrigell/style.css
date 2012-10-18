@@ -18,6 +18,20 @@ tr {
    vertical-align: top;
 }
 
+.iteration {
+   padding:0px;   
+   margin: 0px;
+   width: 100%
+}
+
+.iteration .values {
+    max-width: 80px;
+}
+
+.iteration input {
+    text-align: right;
+}
+
 .values {
    font-style: italic;
    text-align: right;
@@ -46,6 +60,10 @@ table {
    border-collapse:collapse;
    padding:3px 7px 2px 7px;   
    margin: 3px 5px 10px 5px;
+}
+
+.iteration {
+   
 }
 
 .model {
