@@ -56,18 +56,21 @@ namespace python {
 			/// assert for INT based types
 			void operator () (Numeric<int> const & i) 
 			{
+				out << "if type(x)==list and x[0]=='iterate': x = x[1]";
 				print_asserts(i, "assert(type(x) == int)");
 			}
 
 			/// assert for LONG based types
 			void operator () (Numeric<long> const & i) 
 			{
+				out << "if type(x)==list and x[0]=='iterate': x = x[1]";
 				print_asserts(i, "assert(type(x) == int or type(x) == long)");
 			}
 
 			/// assert for DOUBLE based types
 			void operator () (Numeric<double> const & i) 
 			{
+				out << "if type(x)==list and x[0]=='iterate': x = x[1]";
 				print_asserts(i, "assert(type(x) == int or type(x) == long or type(x) == float)");
 			}
 
@@ -84,6 +87,8 @@ namespace python {
 			{
 				out << (seq, 
 						"x = list(x)", 
+						"for i in range(len(x)):",
+						"   if type(x[i])==list and x[i][0]=='iterate': x[i] = x[i][1]",
 						"assert(len(x) == 0 or type(x[0]) == int or type(x[0]) == long or type(x[0]) == float)"); 
 			}
 
@@ -92,7 +97,7 @@ namespace python {
 			{
 				out << (seq, 
 					"if type(x) == list:",
-					"  self.%FLD_NAME%.assign(x[0], x[1])",
+					"  self.%FLD_NAME%.assign(x[0], x[1], iterables)",
 					"  return",
 					"assert(x.__class__ == self.%FLD_NAME%.__class__)");
 			}
@@ -116,17 +121,6 @@ namespace python {
 		/// prints body of the generated property setter for the variable
 		inline void propertySetter(Formatter & out, NamedVar const & vr, VarList const & vars)
 		{
-			// if var is Model_Size we need adjust some other dependent properties
-			/*if (v == reinterpret_cast<VAR*>(BSND_model.TypeModel))	// Model_Size
-			{
-				out << (seq, 
-						"if x > self._Model_Size:", +(seq, 
-							"extend(self._Spot, x)",
-							"extend(self._Trend, x)",
-							"extend(self._Volatility, x)",
-							"extend(self._Annual_Dividend_Rate, x)"));
-			}*/
-
 			// prints type and constraint assertions
 			property_value_assert(out).apply(vr.value);
 			
@@ -162,7 +156,7 @@ namespace python {
 			out("PROP_NAME", vr.name)
 			   ("FLD_NAME", fieldName(vr.name))  << (seq, 
 					"def get_%PROP_NAME%(self): return self.%FLD_NAME%", 
-					"def set_%PROP_NAME%(self,x):", +
+					"def set_%PROP_NAME%(self,x,iterables=None):", +
 						call(boost::bind(print::propertySetter, _1, vr, boost::cref(vars))), 
 					"%PROP_NAME% = property(get_%PROP_NAME%, set_%PROP_NAME%)", ""
 			);
@@ -360,7 +354,8 @@ namespace python {
 
 		inline void assign_param(Formatter &out, NamedVar const &vr)
 		{
-			out("PROP_NAME", vr.name) << "self.set_%PROP_NAME%(it.next())";		
+			out("PROP_NAME", vr.name) << (seq, 
+				"self.set_%PROP_NAME%(it.next(), iterables)");		
 		}
 	}
 

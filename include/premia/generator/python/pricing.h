@@ -94,7 +94,7 @@ namespace python {
 				"def parameters(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::member), "]"), "",
 				"@staticmethod",
- 				"def create(args):", +(seq,
+ 				"def create(args, iterables):", +(seq,
  					"self = %CLASS%()",
  					"assert(len(args) == %MEMBERS_LEN%)",
 					"it = args.__iter__()",

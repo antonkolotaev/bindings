@@ -77,7 +77,7 @@ namespace python {
 						"interop.stopReadParameters()"
  						), "",
 					"@staticmethod",
-	 				"def create(args):", +(seq,
+	 				"def create(args, iterables):", +(seq,
 	 					"self = %NAME%()",
  						"assert(len(args) == %MEMBERS_LEN%)",
 						"it = args.__iter__()",

@@ -79,9 +79,11 @@ def compute(*args, **kwargs):
 
    #_return([[asset, model, model_params], [family, option, option_params], [method, method_params]])
 
-   model_obj = _lookupModel(model).create(model_params)
-   option_obj = _lookupOption(family, option).create(option_params)
-   method_obj = _lookupMethod(model, family, method).create(method_params)
+   iterables = []
+
+   model_obj = _lookupModel(model).create(model_params, iterables)
+   option_obj = _lookupOption(family, option).create(option_params, iterables)
+   method_obj = _lookupMethod(model, family, method).create(method_params, iterables)
 
    def compute():
       res = []

@@ -65,7 +65,7 @@ namespace python {
 							"return [", +foreach_x(p.second.params, print::meta), "]"),
 			        "def key(self): return %ID%", "",
 			        foreach_x(p.second.params, boost::bind(print::PropertyEx, _1, _2, boost::cref(p.second.params))),
-		 				"def assign(self, args):", +(seq,
+		 				"def assign(self, args, iterables):", +(seq,
 		 					"assert(len(args) == %MEMBERS_LEN%)",
 							"it = args.__iter__()",
 							foreach_x(p.second.params, print::assign_param)
@@ -92,9 +92,9 @@ namespace python {
 					"_labels = {", +(
 						foreach_x(e.members, print::Ini)),
 					"}",
-					"def assign(self, label, data):", +(seq, 
+					"def assign(self, label, data, iterables):", +(seq, 
 						foreach_x(e.members, print::Assign),
-						"self._value.assign(data)"), "",
+						"self._value.assign(data, iterables)"), "",
 					"@staticmethod",
 					"def meta(): return [", 
 						+foreach_x(e.members, print::Meta),
