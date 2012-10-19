@@ -66,6 +66,8 @@ install-karrigell: install-python ksgen
 		exit 1; \
 	else \
 		./ksgen --output-dir=$(WWW) ;\
+		sed -e "s|KARRIGELL_DIR=|KARRIGELL_DIR=\"$(WWW)\"|" -e "s|PYTHON=|PYTHON=\"$(PYTHON_BIN)\"|" Karrigell-daemon > $(WWW)/Karrigell-daemon ;\
+		chmod 755 $(WWW)/Karrigell-daemon ;\
 	fi
 
 install-fsharp: fsgen libfspremia.la

@@ -194,8 +194,18 @@ if test "$ax_python_lib" = "no" || test "$ax_python_header" = "no"; then
 fi
 AC_SUBST(PYTHON_CPPFLAGS)
 AC_SUBST(PYTHON_LDFLAGS)
+
+
 builtin(include,config/ax_boost_python.m4)
 AX_BOOST_PYTHON()
+
+# tweak to recover the --with-python in PYTHON_BIN if any
+if test -n "$with_python"; then
+   PYTHON_BIN="$with_python"
+fi
+AC_SUBST(PYTHON_BIN)
+# end of tweak
+
 
 ###################
 # Some more subst #
