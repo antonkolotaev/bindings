@@ -46,7 +46,7 @@ class VectorCompact(FieldBase):
     if isConstant:
       L.select(value=0)
       mc = INPUT(name=self.varnameConst,value=pmem[0])
-      return [v.spannedRowsEx(self.friendlyName, [L,mc],'R')]
+      return [v.spannedRowsEx(self.friendlyName, [L,mc],'&#8477;')]
     else:
       def mc(i): 
           return INPUT(name=self.varnameIdx(i),value=pmem[i])
