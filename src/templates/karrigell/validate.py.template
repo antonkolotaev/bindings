@@ -507,7 +507,7 @@ class StateCommonBase(object):
    def myHeaderImpl(self):
       """ List of rows representing the entity header 
       """
-      return [headerEx(B(self.printLabel), self.headerContent,  self.htmlRendered + self.pdfRendered)]      
+      return [headerEx(B(self.printLabel), self.headerContent,  self.htmlRendered)]      
 
    @cached_property
    def header(self):
