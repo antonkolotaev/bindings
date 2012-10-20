@@ -93,28 +93,31 @@ class Iterable(object):
 
    def __init__(self, label, setter, startValue, stopValue, interationsNo):
       self.keys = list(iterate(startValue, stopValue, interationsNo))
-      self.label = label
+      self.name = label
       self.setter = setter
+      self.stepsNo = interationsNo
 
 _timeout = 30
 
+def wrap_exc(F, q, *args):
+   try:
+      F(q, *args)
+   except Exception, exc:
+      res = [("Exception", str(exc))]
+      q.put(res)
+      return 
+
 def _compute_scalar(model_obj, option_obj, method_obj):
    res = []
-   def F(opt, mod, q):
+   def F(q, opt, mod):
       begin = time()
-      try:
-         res = method_obj(opt, mod)
-      except Exception, exc:
-         print "Caught:", exc
-         res = [("Exception", str(exc))]
-         q.put(res)
-         return res
+      res = method_obj(opt, mod)
       end = time()
       res.append(("Time", end - begin))
       q.put(res)
    try:
       queue = Queue()
-      process = Process(target = F, args = (option_obj,model_obj, queue))
+      process = Process(target = wrap_exc, args = (F, queue, option_obj,model_obj))
       process.start()
       try:
          res = queue.get(timeout=_timeout)
@@ -128,6 +131,53 @@ def _compute_scalar(model_obj, option_obj, method_obj):
       pass
    return res 
 
+def _compute_iteration_1d(model_obj, option_obj, method_obj, iteration):
+
+   def G(q, opt, mod):
+      for x in iteration.keys:
+          iteration.setter(x)
+
+          begin = time()
+          res = (method_obj(opt, mod))
+          end = time()
+
+          res.insert(0, (iteration.name, x))
+          res.append(("Time", end - begin))
+          q.put(res)
+  
+   res_t = []
+   try: 
+      queue = Queue()
+      process = Process(target = wrap_exc, args = (G, queue, option_obj,model_obj))
+      try:            
+         process.start()
+
+         begin = time()
+         iterations = iteration.stepsNo
+         for i in range(iterations):
+           q = queue.get(timeout=begin + _timeout - time())
+           if q[0][0] == "Exception":
+               return q
+           else:
+              if res_t == []:
+                  for k,v in q:
+                      res_t.append((k,[v]))
+              else:
+                  idx = 0
+                  for k,v in q:
+                      assert res_t[idx][0] == k
+                      res_t[idx][1].append(v)
+                      idx = idx + 1
+                          
+      except Empty, exc:
+         process.terminate()
+         raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
+                  
+      process.join(timeout=_timeout)
+
+   except Exception, exc:
+      return [("Exception", str(exc))]#add_error(exc)
+   return res_t
 
 
 def compute(*args, **kwargs):
@@ -144,9 +194,10 @@ def compute(*args, **kwargs):
    option_obj = _lookupOption(family, option).create(option_params, append_iterables)
    method_obj = _lookupMethod(model, family, method).create(method_params, append_iterables)
 
-   result = _compute_scalar(model_obj, option_obj, method_obj)
-   for k in iterables:
-      result.append((k.label, k.keys))
+   
+   result = _compute_scalar(model_obj, option_obj, method_obj) if iterables == [] else \
+            _compute_iteration_1d(model_obj, option_obj, method_obj, iterables[0]) if len(iterables) == 1 else \
+            []
 
    _return(result)
 
