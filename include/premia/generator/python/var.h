@@ -53,24 +53,34 @@ namespace python {
 		{
 			property_value_assert(Formatter & out, VAR const * src) : out(out), src(src) {}
 
+			void scalar_iteration(const char * cast) {
+				out("CAST", cast) 
+				<< (seq, 
+					"if type(x)==list and x[0]=='iterate':",
+					"   def setter(v): self.%FLD_NAME%=v",
+					"   iterables(r'%PRINTABLE%', setter, %CAST%(x[1]), %CAST%(x[2]), x[3])",
+					"   x = x[1]");
+			}
+
+
 			/// assert for INT based types
 			void operator () (Numeric<int> const & i) 
 			{
-				out << "if type(x)==list and x[0]=='iterate': x = x[1]";
+				scalar_iteration("int");
 				print_asserts(i, "assert(type(x) == int)");
 			}
 
 			/// assert for LONG based types
 			void operator () (Numeric<long> const & i) 
 			{
-				out << "if type(x)==list and x[0]=='iterate': x = x[1]";
+				scalar_iteration("long");
 				print_asserts(i, "assert(type(x) == int or type(x) == long)");
 			}
 
 			/// assert for DOUBLE based types
 			void operator () (Numeric<double> const & i) 
 			{
-				out << "if type(x)==list and x[0]=='iterate': x = x[1]";
+				scalar_iteration("float");
 				print_asserts(i, "assert(type(x) == int or type(x) == long or type(x) == float)");
 			}
 
@@ -89,7 +99,13 @@ namespace python {
 					out << (seq, 
 							"x = list(x)", 
 							"for i in range(len(x)):",
-							"   if type(x[i])==list and x[i][0]=='iterate': x[i] = x[i][1]",
+							"   if type(x[i])==list and x[i][0]=='iterate':",
+							"      if len(x)==1:",
+							"         def setter(v): self.%FLD_NAME% = len(self.%FLD_NAME%) * [v]",
+							"      else:",
+							"         def setter(v): self.%FLD_NAME%[i] = v",
+							"      iterables(r'%PRINTABLE%', setter, float(x[i][1]), float(x[i][2]), x[i][3])",
+							"      x[i] = x[i][1]",
 							"if len(x)==1:",
 							"   x = len(self.%FLD_NAME%) * x",
 							"assert(len(x) == 0 or type(x[0]) == int or type(x[0]) == long or type(x[0]) == float)"); 
@@ -97,7 +113,10 @@ namespace python {
 					out << (seq, 
 							"x = list(x)", 
 							"for i in range(len(x)):",
-							"   if type(x[i])==list and x[i][0]=='iterate': x[i] = x[i][1]",
+							"   if type(x[i])==list and x[i][0]=='iterate':",
+							"      def setter(v): self.%FLD_NAME%[i] = v",
+							"      iterables(r'%PRINTABLE%', setter, float(x[i][1]), float(x[i][2]), x[i][3])",
+							"      x[i] = x[i][1]",
 							"assert(len(x) == 0 or type(x[0]) == int or type(x[0]) == long or type(x[0]) == float)"); 
 			}
 
@@ -164,6 +183,7 @@ namespace python {
 		inline void PropertyEx(Formatter & out, NamedVar const& vr, VarList const & vars)
 		{
 			out("PROP_NAME", vr.name)
+			   ("PRINTABLE", vr.src->Vname)
 			   ("FLD_NAME", fieldName(vr.name))  << (seq, 
 					"def get_%PROP_NAME%(self): return self.%FLD_NAME%", 
 					"def set_%PROP_NAME%(self,x,iterables=None):", +

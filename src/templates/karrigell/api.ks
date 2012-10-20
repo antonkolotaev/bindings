@@ -74,6 +74,62 @@ def _parse(kwargs):
 def id(*args, **kwargs):
    print str(_parse(kwargs)['e'])
 
+def roundIfNeeded(dstType):
+   if dstType == type(1):
+      return lambda x: int(round(x))
+   if dstType == type(1L):
+      return lambda x: long(round(x))
+   return lambda x: x
+
+def iterate(initial, limit, stepsNo):
+
+   cast = roundIfNeeded(type(initial))
+
+   for i in range(stepsNo):
+      x = initial + 1. * i / (stepsNo - 1) * (limit - initial) if stepsNo > 1 else initial
+      yield cast(x)     
+
+class Iterable(object):
+
+   def __init__(self, label, setter, startValue, stopValue, interationsNo):
+      self.keys = list(iterate(startValue, stopValue, interationsNo))
+      self.label = label
+      self.setter = setter
+
+_timeout = 30
+
+def _compute_scalar(model_obj, option_obj, method_obj):
+   res = []
+   def F(opt, mod, q):
+      begin = time()
+      try:
+         res = method_obj(opt, mod)
+      except Exception, exc:
+         print "Caught:", exc
+         res = [("Exception", str(exc))]
+         q.put(res)
+         return res
+      end = time()
+      res.append(("Time", end - begin))
+      q.put(res)
+   try:
+      queue = Queue()
+      process = Process(target = F, args = (option_obj,model_obj, queue))
+      process.start()
+      try:
+         res = queue.get(timeout=_timeout)
+         if res[0][0] == "Exception":
+            res = None
+      except Empty, exc:
+         process.terminate()
+         raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
+      process.join(timeout=_timeout)
+   except Exception, exc:
+      pass
+   return res 
+
+
+
 def compute(*args, **kwargs):
    [asset, model, model_params], [family, option, option_params], [method, method_params] = _parse(kwargs)
 
@@ -81,41 +137,16 @@ def compute(*args, **kwargs):
 
    iterables = []
 
-   model_obj = _lookupModel(model).create(model_params, iterables)
-   option_obj = _lookupOption(family, option).create(option_params, iterables)
-   method_obj = _lookupMethod(model, family, method).create(method_params, iterables)
+   def append_iterables(label, setter, startValue, stopValue, interationsNo):
+      iterables.append(Iterable(label, setter, startValue, stopValue, interationsNo))
 
-   def compute():
-      res = []
-      def F(opt, mod, q):
-         begin = time()
-         try:
-            res = method_obj(opt, mod)
-         except Exception, exc:
-            print "Caught:", exc
-            res = [("Exception", str(exc))]
-            q.put(res)
-            return res
-         end = time()
-         res.append(("Time", end - begin))
-         q.put(res)
-      try:
-         queue = Queue()
-         process = Process(target = F, args = (option_obj,model_obj, queue))
-         process.start()
-         try:
-            res = queue.get(timeout=30)
-            if res[0][0] == "Exception":
-               res = None
-         except Empty, exc:
-            process.terminate()
-            raise Exception("Method has worked more than " + str(30) + "s. Please try another parameter combination")
-         process.join(timeout=30)
-      except Exception, exc:
-         pass
-      return res 
+   model_obj = _lookupModel(model).create(model_params, append_iterables)
+   option_obj = _lookupOption(family, option).create(option_params, append_iterables)
+   method_obj = _lookupMethod(model, family, method).create(method_params, append_iterables)
 
-   result = compute()
-   #result = method_obj(option_obj, model_obj)
+   result = _compute_scalar(model_obj, option_obj, method_obj)
+   for k in iterables:
+      result.append((k.label, k.keys))
+
    _return(result)
 
