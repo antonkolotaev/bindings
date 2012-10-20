@@ -1,4 +1,6 @@
 import json
+import sys
+import traceback
 from Queue import Empty
 from multiprocessing import Process,Queue
 from time import time
@@ -103,7 +105,7 @@ def wrap_exc(F, q, *args):
    try:
       F(q, *args)
    except Exception, exc:
-      res = [("Exception", str(exc))]
+      res = [("Exception", str(exc)+traceback.format_tb())]
       q.put(res)
       return 
 
@@ -179,11 +181,57 @@ def _compute_iteration_1d(model_obj, option_obj, method_obj, iteration):
       return [("Exception", str(exc))]#add_error(exc)
    return res_t
 
+def _compute_iteration_2d(model_obj, option_obj, method_obj, iteration_1, iteration_2):
+
+   def G(q, opt, mod):
+      for x_1 in iteration_1.keys:
+         for x_2 in iteration_2.keys:
+            iteration_2.setter(x_2)
+            iteration_1.setter(x_1)
+            
+            begin = time()
+            res = (method_obj(opt, mod))
+            end = time()
+            res.append(("Time", end - begin))
+            q.put((x_1, x_2, res))
+   
+   try: 
+      keys = [
+         (iteration_1.name, iteration_1.keys),
+         (iteration_2.name, iteration_2.keys)
+      ]
+      data = []
+      queue = Queue()
+      process = Process(target = wrap_exc, args = (G, queue, option_obj, model_obj))
+      try:            
+         process.start()
+
+         begin = time()
+         iterations = iteration_1.stepsNo * iteration_2.stepsNo
+         for i in range(iterations):
+            x_1, x_2, q = queue.get(timeout=begin + _timeout - time())
+            if len(data) == 0:
+               for k,v in q:
+                  data.append((k, [v]))
+            else:
+               idx = 0
+               for k,v in q:
+                   assert data[idx][0] == k
+                   data[idx][1].append(v)
+                   idx += 1
+
+      except Empty, exc:
+         process.terminate()
+         raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
+                  
+      process.join(timeout=_timeout)
+
+   except Exception, exc:
+      return [("Exception", str(exc)+''.join(traceback.format_tb(sys.exc_info()[2])))]
+   return keys + data
 
 def compute(*args, **kwargs):
    [asset, model, model_params], [family, option, option_params], [method, method_params] = _parse(kwargs)
-
-   #_return([[asset, model, model_params], [family, option, option_params], [method, method_params]])
 
    iterables = []
 
@@ -197,6 +245,7 @@ def compute(*args, **kwargs):
    
    result = _compute_scalar(model_obj, option_obj, method_obj) if iterables == [] else \
             _compute_iteration_1d(model_obj, option_obj, method_obj, iterables[0]) if len(iterables) == 1 else \
+            _compute_iteration_2d(model_obj, option_obj, method_obj, iterables[0], iterables[1]) if len(iterables) == 2 else \
             []
 
    _return(result)
