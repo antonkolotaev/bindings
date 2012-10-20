@@ -109,126 +109,82 @@ def wrap_exc(F, q, *args):
       q.put(res)
       return 
 
-def _compute_scalar(model_obj, option_obj, method_obj):
-   res = []
-   def F(q, opt, mod):
+def _compute_impl(q, (mod, opt, method_obj)):
+   begin = time()
+   res = method_obj(opt, mod)
+   end = time()
+   res.append(("Time", end - begin))
+   q.put(res)
+
+def _fetch_scalar(queue):
+   return queue.get(timeout=_timeout)
+
+def _fetch_iterations(iterations):
+   def inner(queue):
+      data = []
       begin = time()
-      res = method_obj(opt, mod)
-      end = time()
-      res.append(("Time", end - begin))
-      q.put(res)
-   try:
-      queue = Queue()
-      process = Process(target = wrap_exc, args = (F, queue, option_obj,model_obj))
-      process.start()
-      try:
-         res = queue.get(timeout=_timeout)
-         if res[0][0] == "Exception":
-            res = None
-      except Empty, exc:
-         process.terminate()
-         raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
-      process.join(timeout=_timeout)
-   except Exception, exc:
-      pass
-   return res 
+      for i in range(iterations):
+         q = queue.get(timeout=begin + _timeout - time())
+         if len(data) == 0:
+            for k,v in q:
+               data.append((k, [v]))
+         else:
+            idx = 0
+            for k,v in q:
+                assert data[idx][0] == k
+                data[idx][1].append(v)
+                idx += 1
+      return data
+   return inner
 
-def _compute_iteration_1d(model_obj, option_obj, method_obj, iteration):
-
-   def G(q, opt, mod):
-      for x in iteration.keys:
-          iteration.setter(x)
-
-          begin = time()
-          res = (method_obj(opt, mod))
-          end = time()
-
-          res.insert(0, (iteration.name, x))
-          res.append(("Time", end - begin))
-          q.put(res)
-  
-   res_t = []
+def _spawn_process(G, indata, fetcher):
    try: 
       queue = Queue()
-      process = Process(target = wrap_exc, args = (G, queue, option_obj,model_obj))
+      process = Process(target = wrap_exc, args = (G, queue, indata))
       try:            
          process.start()
+         data = fetcher(queue)
 
-         begin = time()
-         iterations = iteration.stepsNo
-         for i in range(iterations):
-           q = queue.get(timeout=begin + _timeout - time())
-           if q[0][0] == "Exception":
-               return q
-           else:
-              if res_t == []:
-                  for k,v in q:
-                      res_t.append((k,[v]))
-              else:
-                  idx = 0
-                  for k,v in q:
-                      assert res_t[idx][0] == k
-                      res_t[idx][1].append(v)
-                      idx = idx + 1
-                          
       except Empty, exc:
          process.terminate()
          raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
                   
       process.join(timeout=_timeout)
-
+      return data
    except Exception, exc:
-      return [("Exception", str(exc))]#add_error(exc)
-   return res_t
+      return [("Exception", str(exc)+''.join(traceback.format_tb(sys.exc_info()[2])))]
 
-def _compute_iteration_2d(model_obj, option_obj, method_obj, iteration_1, iteration_2):
+def _compute_scalar(indata):
+   return _spawn_process(_compute_impl, indata, _fetch_scalar)
 
-   def G(q, opt, mod):
+def _compute_iteration_1d(indata, iteration):
+
+   def G(q, indata):
+      for x in iteration.keys:
+         iteration.setter(x)
+         _compute_impl(q, indata)
+  
+   keys = [
+      (iteration.name, iteration.keys)
+   ]
+
+   return keys + _spawn_process(G, indata, _fetch_iterations(iteration.stepsNo))
+
+def _compute_iteration_2d(indata, iteration_1, iteration_2):
+
+   def G(q, indata):
       for x_1 in iteration_1.keys:
          for x_2 in iteration_2.keys:
             iteration_2.setter(x_2)
             iteration_1.setter(x_1)
-            
-            begin = time()
-            res = (method_obj(opt, mod))
-            end = time()
-            res.append(("Time", end - begin))
-            q.put((x_1, x_2, res))
+            _compute_impl(q, indata)
+
+   keys = [
+      (iteration_1.name, iteration_1.keys),
+      (iteration_2.name, iteration_2.keys)
+   ]
    
-   try: 
-      keys = [
-         (iteration_1.name, iteration_1.keys),
-         (iteration_2.name, iteration_2.keys)
-      ]
-      data = []
-      queue = Queue()
-      process = Process(target = wrap_exc, args = (G, queue, option_obj, model_obj))
-      try:            
-         process.start()
-
-         begin = time()
-         iterations = iteration_1.stepsNo * iteration_2.stepsNo
-         for i in range(iterations):
-            x_1, x_2, q = queue.get(timeout=begin + _timeout - time())
-            if len(data) == 0:
-               for k,v in q:
-                  data.append((k, [v]))
-            else:
-               idx = 0
-               for k,v in q:
-                   assert data[idx][0] == k
-                   data[idx][1].append(v)
-                   idx += 1
-
-      except Empty, exc:
-         process.terminate()
-         raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
-                  
-      process.join(timeout=_timeout)
-
-   except Exception, exc:
-      return [("Exception", str(exc)+''.join(traceback.format_tb(sys.exc_info()[2])))]
-   return keys + data
+   return keys + _spawn_process(G, indata, _fetch_iterations(iteration_1.stepsNo * iteration_2.stepsNo))
 
 def compute(*args, **kwargs):
    [asset, model, model_params], [family, option, option_params], [method, method_params] = _parse(kwargs)
@@ -238,14 +194,13 @@ def compute(*args, **kwargs):
    def append_iterables(label, setter, startValue, stopValue, interationsNo):
       iterables.append(Iterable(label, setter, startValue, stopValue, interationsNo))
 
-   model_obj = _lookupModel(model).create(model_params, append_iterables)
-   option_obj = _lookupOption(family, option).create(option_params, append_iterables)
-   method_obj = _lookupMethod(model, family, method).create(method_params, append_iterables)
-
+   indata = (_lookupModel(model).create(model_params, append_iterables),
+             _lookupOption(family, option).create(option_params, append_iterables),
+             _lookupMethod(model, family, method).create(method_params, append_iterables))
    
-   result = _compute_scalar(model_obj, option_obj, method_obj) if iterables == [] else \
-            _compute_iteration_1d(model_obj, option_obj, method_obj, iterables[0]) if len(iterables) == 1 else \
-            _compute_iteration_2d(model_obj, option_obj, method_obj, iterables[0], iterables[1]) if len(iterables) == 2 else \
+   result = _compute_scalar(indata) if iterables == [] else \
+            _compute_iteration_1d(indata, iterables[0]) if len(iterables) == 1 else \
+            _compute_iteration_2d(indata, iterables[0], iterables[1]) if len(iterables) == 2 else \
             []
 
    _return(result)
