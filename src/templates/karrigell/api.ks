@@ -57,6 +57,9 @@ def option_params(f, o):
 def method_params(m, f, meth):
    _return(_params(_lookupMethod(m, f, meth)()))
 
+def method_results(m, f, meth):
+   _return(_lookupMethod(m, f, meth).results() + [('Computation time', -1, False)])
+
 def myImport(m):
    exec 'import ' + m
    return eval(m)

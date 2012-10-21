@@ -34,9 +34,14 @@ namespace python {
 			out("RES_NAME", v.name)("RES_IDX", boost::get<1>(e)) << getResultFmt(v.src->Vtype);
 		}
 		
-		void OutParamName(Formatter & out, NamedVar const & v)
+		void OutParamName(PyCtx const &ctx, Formatter & out, NamedVar const & v)
 		{
-			out("RES_NAME", v.name) << "'%RES_NAME%',";
+			karrigell::ResultKinds::Kind k = ctx.resultKinds().lookup(v.name);
+			out("RES_NAME", v.src->Vname)
+				("KIND", k.second)
+				("VISIBLE", k.first ? "True" : "False") 
+				<< 
+					"('%RES_NAME%', %KIND%, %VISIBLE%),";
 		}
 		
 	}
@@ -89,7 +94,7 @@ namespace python {
 
 				"@staticmethod",
 				"def results(): ", +(seq, 
-					"return [", +foreach_x(method.results, print::OutParamName), "]"), "",
+					"return [", +foreach_x(method.results, boost::bind(print::OutParamName, boost::cref(ctx), _1, _2)), "]"), "",
 				"@staticmethod",
 				"def parameters(): ", +(seq, 
 					"return [", +foreach_x(method.members, print::member), "]"), "",

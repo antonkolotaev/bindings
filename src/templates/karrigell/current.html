@@ -67,14 +67,30 @@
           <!-- /ko -->
         <!-- /ko -->
         <!-- ko if: iterationRang()  -->
+          <tr>
+            <th colspan="3">Graph visualisation options</th>
+          </tr>
           <tr class="even">
             <td>Graph size X</td>
+            <td></td>
             <td><input data-bind="value: graphSizeX"></input></td>
           </tr>
           <tr class="odd">
             <td>Graph size Y</td>
+            <td></td>
             <td><input data-bind="value: graphSizeY"></input></td>
           </tr>
+          <!-- ko foreach: myMethodResults -->
+            <tr data-bind="css: { even: $index()%2==0 }">
+              <td></td>
+              <td>
+                <input type="checkbox" data-bind="checked: visible"></input>
+              </td>
+              <td>
+                <input data-bind="value: label"></input>
+              </td>
+            </tr>
+          <!-- /ko -->
         <!-- /ko -->
         <tr>
           <td></td>
@@ -87,8 +103,6 @@
 </table>
 <style type="text/css">
     .graph1d {
-      width : 600px;
-      height: 384px;
       margin: 8px auto;
     }
 </style>

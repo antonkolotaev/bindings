@@ -39,8 +39,9 @@ namespace karrigell {
          out("LABEL", k.first)("ID", k.second.second)("SHOW", k.second.first ? "True" : "False")
             << "'%LABEL%' : (%SHOW%, %ID%),";
       }
-      
-	   friend Ctx& operator << (Ctx & ctx, ResultKinds const & kinds)
+     
+     template <class Ctx> 
+	     friend Ctx& operator << (Ctx & ctx, ResultKinds const & kinds)
 	   {
 	      Formatter out(ctx.packageDir() / "result_kinds.py");   
 	      

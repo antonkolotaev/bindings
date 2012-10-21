@@ -8,6 +8,14 @@ function get(query) {
    return $.parseJSON(z.responseText);
 }
 
+function map(elements, f) {
+    var res = [];
+    for (var i=0; i<elements.length; i++)
+        res.push(f(elements[i], i));
+    return res;
+}
+
+
 function CachedMap(getter) {
    var self = this;
    self._storage = {};
@@ -29,6 +37,22 @@ function KsCachedMap(query_fun) {
 function ParamCachedMap(query_fun) {
     return new CachedMap(function (key) {
             return loadParams(get(query_fun(key)));
+        });
+}
+
+function loadResult(results) {
+    return map(results, function (r) {
+        return { 
+            label: ko.observable(r[0]),
+            kind: r[1], 
+            visible: ko.observable(r[2])
+        }; 
+    });
+}
+
+function ResultCachedMap(query_fun) {
+    return new CachedMap(function (key) {
+            return loadResult(get(query_fun(key)));
         });
 }
 
@@ -74,13 +98,6 @@ function ScalarField(label, value) {
         return [self.value.serialized()];
     }
 
-}
-
-function map(elements, f) {
-    var res = [];
-    for (var i=0; i<elements.length; i++)
-        res.push(f(elements[i], i));
-    return res;
 }
 
 function VectorField(label, values) {
@@ -223,6 +240,7 @@ var methods = KsCachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args
 var model_params = ParamCachedMap(function (model) { return 'model_params?m='+model; });
 var option_params = ParamCachedMap(function (args) { return 'option_params?f='+args[0]+"&o="+args[1]; });
 var method_params = ParamCachedMap(function (args) { return 'method_params?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
+var method_results = ResultCachedMap(function (args) { return 'method_results?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
 
 function loadParams(raw) {
     return $.map(raw, function (e) {
@@ -319,6 +337,10 @@ function ModelView() {
         }
     });
 
+    self.myMethodResults = ko.computed(function () {
+        return method_results.at([self.myModel(), self.myFamily(), self.myMethod()]);
+    });
+
     self.myMethodParamsNF = ko.computed(function () {
         return method_params.at([self.myModel(), self.myFamily(), self.myMethod()]);
     });
@@ -338,7 +360,13 @@ function ModelView() {
     });
 
     self.iterationRang = ko.computed(function() {
-        return iterables().length;
+        var q = self.query();
+        var s = '"iterate"';
+        var pos = q.indexOf(s, 0);
+        if (pos == -1) return 0;
+        pos = q.indexOf(s, pos+1);
+        if (pos == -1) return 1;
+        return 2;
     })
 
     self.resultRaw = ko.observable([]);
@@ -346,7 +374,7 @@ function ModelView() {
 
     self.scalarResult = ko.computed(function() {
         return (self.iterationRang() == 0 && self.resultQuery() == self.query() 
-            ? self.resultRaw() 
+            ? map(self.resultRaw(), function (val, i) { return [self.myMethodResults()[i].label, val[1]]; })
             : []);
     });
 
@@ -360,15 +388,38 @@ function ModelView() {
     })  
 
     self.iteration1dGraphsData = ko.computed(function() {
-        var graphs = [];
+        var kinds = {};
         var src = self.iterationResult1d();
         for (var i = 1; i<src.length; i++) {
-            var s = src[i];
-            graphs.push({
-                data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
-                label: s[0]
-            });
+            var meta = self.myMethodResults()[i-1];
+            if (meta.visible()) {
+                var s = src[i];            
+                if (typeof(s[1][0]) == "number") {
+                    var d = {
+                        data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
+                        label: meta.label()
+                    }
+                    if (kinds[meta.kind] == undefined)
+                        kinds[meta.kind] = [];
+                    kinds[meta.kind].push(d);
+                } else {
+                    for (var ii=0; ii < s[1][0].length; ii++) {
+                        var d = {
+                            data: map(s[1], function(x,j) { return [src[0][1][j], x[ii]]; }),
+                            label: meta.label()+'['+ii+']'
+                        }
+                        if (kinds[meta.kind] == undefined)
+                            kinds[meta.kind] = [];
+                        kinds[meta.kind].push(d);
+                    }
+                }
+            }
         }
+        var graphs = [];
+        for (var k in kinds) {
+            graphs.push(kinds[k]);
+        }
+
         return graphs;
     })
 
@@ -377,7 +428,9 @@ function ModelView() {
         for (var i=0; i<elem.length; i++) {
             var e = elem[i];
             if (e.nodeType==1) {
-                Flotr.draw(e, [data], {
+                e.style.width = self.graphSizeX()+'px';
+                e.style.height = self.graphSizeY()+'px';
+                Flotr.draw(e, data, {
                     legend : {
                         position : 'se',            // Position the legend 'south-east'.
                         backgroundColor : '#D2E8FF' // A light blue background color.

@@ -6,10 +6,13 @@
 #include <boost/filesystem.hpp>
 #include <premia/generator/api/all.h>
 #include <premia/generator/utils/null_stream.h>
+#include <premia/generator/karrigell/result_kinds.h>
 
 namespace premia {
 namespace pygen  {
 namespace python {
+
+	using karrigell::ResultKindsInitialized;
 
 	namespace fs = boost::filesystem;
 
@@ -126,11 +129,14 @@ namespace python {
 		/// returns path to a file where a description of all pricings will be generated
 		fs::path pricingsPy() const { return output_dir / "pricings.py"; }
 
+		ResultKindsInitialized const & resultKinds() const { return result_kinds_; }
+
 	private:
 		fs::path const data_dir; //!< path to Premia data directory 
 		fs::path const output_dir;	//!< root directory for the library being generated
 		fs::path const dll_dir; // !< directory containing premia binding library
 		fs::path const template_dir;
 		int const verbosity;
+		ResultKindsInitialized const result_kinds_;
 	};
 }}}
