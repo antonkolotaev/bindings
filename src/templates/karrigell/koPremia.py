@@ -10,19 +10,11 @@ print """
    <script type="text/javascript" src="jquery-1.8.2.min.js"></script>
    <script type="text/javascript" src="jquery.json-2.3.min.js"></script>
    <script type="text/javascript" src="knockout-2.1.0.js"></script>
+   <script type="text/javascript" src="flotr2.min.js"></script>
 </head>
 """
 
 Include("param_table.html")
 Include("current.html")
-
-print """
-
-
-<table>
-    <tbody data-bind="template: { name: 'row-template', foreach: params_flattened }">
-    </tbody>
-</table>
-"""
 
 print js_include("script.js")

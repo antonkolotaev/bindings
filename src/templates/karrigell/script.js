@@ -73,12 +73,13 @@ function ScalarField(label, value) {
     self.serialized = function() {
         return [self.value.serialized()];
     }
+
 }
 
 function map(elements, f) {
     var res = [];
-    for (i=0; i<elements.length; i++)
-        res.push(f(elements[i]));
+    for (var i=0; i<elements.length; i++)
+        res.push(f(elements[i], i));
     return res;
 }
 
@@ -101,6 +102,7 @@ function VectorField(label, values) {
     self.serialized = function() {
         return [map(self.values, function (value) { return value.serialized(); })];
     }
+
 }
 
 function FilenameField(label, value) {
@@ -203,32 +205,6 @@ function EnumField(label, value, options) {
     }
 }
 
-function Clayton_Params() {
-    return [new ScalarField("alpha", 0.1), new ScalarField("beta", -0.3)];
-}
-
-function Student_Params() {
-    return [new ScalarField("gamma", 0.21)];
-}
-
-function Alpha_Params() {
-    return [new ScalarField("delta", 0.21)];
-}
-
-function Bs1D_Params() {
-    return [
-        new VectorCompactField("Compact", [100, 100, 200]),
-        new VectorField("Vector", [0, 0.2, 0.3, 0.5]),
-        new EnumField("CopulaType", "Clayton", [ 
-            ["Student", Student_Params()],
-            ["Clayton", Clayton_Params()],
-            ["Alpha", Alpha_Params()]
-        ]),
-        new ScalarField("Volatility", 0.2),
-        new ScalarField("Spot", 100.0)
-    ];
-}
-
 var enum_params = new CachedMap(function (e) { 
     var response = get('enum_params?e='+e);
     var res = [];
@@ -261,12 +237,6 @@ function loadParams(raw) {
 
 function ModelView() {
     var self = this; 
-
-    self.params = Bs1D_Params();
-
-    self.params_flattened = ko.computed(function() {
-        return flatten(self.params);
-    });
 
     //------------------------------------------------------- Asset
 
@@ -367,12 +337,53 @@ function ModelView() {
             ]);
     });
 
-    self.scalarResultRaw = ko.observable([]);
+    self.iterationRang = ko.computed(function() {
+        return iterables().length;
+    })
+
+    self.resultRaw = ko.observable([]);
     self.resultQuery = ko.observable("");
 
     self.scalarResult = ko.computed(function() {
-        return self.resultQuery() == self.query() ? self.scalarResultRaw() : [];
+        return (self.iterationRang() == 0 && self.resultQuery() == self.query() 
+            ? self.resultRaw() 
+            : []);
     });
+
+    self.iterationResult1d = ko.computed(function() {
+        return (self.iterationRang() == 1 && self.resultQuery() == self.query() 
+            ? self.resultRaw() 
+            : []); 
+    })  
+
+    self.iteration1dGraphsData = ko.computed(function() {
+        var graphs = [];
+        var src = self.iterationResult1d();
+        for (var i = 1; i<src.length; i++) {
+            var s = src[i];
+            graphs.push({
+                data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
+                label: s[0]
+            });
+        }
+        return graphs;
+    })
+
+    self.renderGraph1d = function (elem, data) {
+        //console.log("elem="+elem+",data="+data.label+", type="+map(elem, function (e) {return e.nodeType; }));
+        for (var i=0; i<elem.length; i++) {
+            var e = elem[i];
+            if (e.nodeType==1) {
+                Flotr.draw(e, [data], {
+                    legend : {
+                        position : 'se',            // Position the legend 'south-east'.
+                        backgroundColor : '#D2E8FF' // A light blue background color.
+                    },
+                    HtmlText : false
+                });
+            }
+        }
+    } 
 }
 
 mv = new ModelView();
@@ -381,85 +392,11 @@ ko.applyBindings(mv);
 
 $('#Compute').click(function() { 
     var my_query = mv.query();
-    mv.scalarResultRaw([]);
+    mv.resultRaw([]);
     mv.resultQuery(my_query);
     $.getJSON('api.ks/compute?'+my_query, function (data) {
         console.log(data);
         if (my_query == mv.query())
-            mv.scalarResultRaw(data);
+            mv.resultRaw(data);
     }); 
 });
-
-/*
-// Class to represent a row in the seat reservations grid
-function SeatReservation(parent, name, initialMeal) {
-    var self = this;
-    self.name = name;
-    self.parent = parent;
-    self.meal = ko.observable(initialMeal);
-    self.iterable = ko.observable(false);
-    self.iterable_ex = ko.computed({
-        read: self.iterable,
-        write : function (value) {
-            self.parent.pushIterable(self, value);
-        },
-        owner : self
-    });
-    
-    self.formattedPrice = ko.computed(function() {
-        var price = self.meal().price;
-        p = self.iterable() ? "*" : "-";
-        return p + (price ? "$" + price.toFixed(2) : "None");
-    });     
-}
-
-// Overall viewmodel for this screen, along with initial state
-function ReservationsViewModel() {
-    var self = this;
-
-    // Non-editable catalog data - would come from the server
-    self.availableMeals = [
-        { mealName: "Standard (sandwich)", price: 0 },
-        { mealName: "Premium (lobster)", price: 34.9545 },
-        { mealName: "Ultimate (whole zebra)", price: 290 }
-    ];    
-
-    self.selected = [];
-
-    self.pushIterable = function(element, checked) {
-        if (checked == false) {
-            element.iterable(false);
-            self.selected.remove(element);
-        } else {
-            self.selected.push(element);
-            while (self.selected.length > 2) {
-                self.selected.shift().iterable(false);
-            }
-            element.iterable(true);
-        }
-    };
-
-    // Editable data
-    self.seats = ko.observableArray([
-        new SeatReservation(self, "Steve", self.availableMeals[1]),
-        new SeatReservation(self, "Bert", self.availableMeals[0])
-    ]);
-    
-    self.totalSurcharge = ko.computed(function() {
-        var total = 0;
-        for (var i = 0; i < self.seats().length; i++)
-            total += self.seats()[i].meal().price;
-        return total;
-    });    
-    
-    
-    self.addSeat = function() {
-        self.seats.push(new SeatReservation(self, "", self.availableMeals[0]));
-    }
-    
-    
-    self.removeSeat = function(seat) { self.seats.remove(seat) }
-}
-
-ko.applyBindings(new ReservationsViewModel());
-*/

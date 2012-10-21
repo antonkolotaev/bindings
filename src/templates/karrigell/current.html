@@ -75,4 +75,14 @@
     </td>
   </tr>
 </table>
+<style type="text/css">
+    .graph1d {
+      width : 600px;
+      height: 384px;
+      margin: 8px auto;
+    }
+</style>
 <span data-bind="text: query"></span>
+<div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
+  <div class="graph1d"></div>
+</div>
