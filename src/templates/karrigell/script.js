@@ -350,6 +350,9 @@ function ModelView() {
             : []);
     });
 
+    self.graphSizeX = ko.observable(640);
+    self.graphSizeY = ko.observable(384);
+
     self.iterationResult1d = ko.computed(function() {
         return (self.iterationRang() == 1 && self.resultQuery() == self.query() 
             ? self.resultRaw() 
