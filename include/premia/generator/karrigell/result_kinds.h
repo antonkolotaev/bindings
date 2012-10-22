@@ -81,6 +81,7 @@ namespace karrigell {
             list_of("Inf_Delta1")
                    ("Inf_Delta2")
                    ("Delta")
+                   ("Deltas")
                    ("Delta_")
                    ("Delta1")
                    ("Delta2")
@@ -160,6 +161,7 @@ namespace karrigell {
          )
          (true, 
             list_of("Strikes")
+                   ("Fair_strike_for_variance_swap")
          )
          (true,
             list_of("Strikes_Weights")

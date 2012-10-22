@@ -58,64 +58,73 @@ namespace python {
 	/// generates wrapper for a pricing method
 	PyCtx const & operator << (PyCtx const & ctx, PricingMethod const & method)
 	{
-		Formatter f(ctx.filename(method));
-		f  ("CLASS", method.name)
-		   ("MODEL_NAME", method.pricing.model->name)
-		   ("FAMILY_ID", method.pricing.family->name)
-		   ("ASSET_ID", id(method.pricing.asset))
-		   ("PRICING_ID", id(method.pricing))
-		   ("METHOD_ID", id(method))
-			("MEMBERS_LEN", method.members.size())
-			<< (seq, 
-			"from ..model import %MODEL_NAME%", 
-			"from ....opt.%FAMILY_ID%.%FAMILY_ID% import *",
-			"from ....common import *", ""
-			"class %CLASS%(object):", +(seq, 
-				"def __init__(self):", 
-					+call(boost::bind(print::Initializers, _1, boost::ref(method.members))), "", 
-				foreach_x(method.members, boost::bind(print::PropertyEx, _1, _2, boost::cref(method.members))), "", 
-				"def __repr__(self): return getRepr(self, 'Pricing Method')", "" 
- 				"def makeCurrent(self):", +(seq,
-					"from premia import interop",
- 					"interop.setCurrentAsset(%ASSET_ID%)",
- 					"interop.setCurrentMethod(%PRICING_ID%, %METHOD_ID%)",
-					foreach_x(method.members, print::copy_param),
- 					"interop.stopWriteParameters()"
- 					), "",
- 				"def compute(self, opt, mod):", +(seq,
-					"from premia import interop",
- 					"mod.makeCurrent()", 
- 					"opt.makeCurrent()",
- 					"self.makeCurrent()",
-					"interop.compute_3()",
-					"return [", 
-						+call(boost::bind(printResults, _1, boost::cref(method.results))),
-					"]"), "",
+		try {
+			Formatter f(ctx.filename(method));
+			f  ("CLASS", method.name)
+			   ("MODEL_NAME", method.pricing.model->name)
+			   ("FAMILY_ID", method.pricing.family->name)
+			   ("ASSET_ID", id(method.pricing.asset))
+			   ("PRICING_ID", id(method.pricing))
+			   ("METHOD_ID", id(method))
+				("MEMBERS_LEN", method.members.size())
+				<< (seq, 
+				"from ..model import %MODEL_NAME%", 
+				"from ....opt.%FAMILY_ID%.%FAMILY_ID% import *",
+				"from ....common import *", ""
+				"class %CLASS%(object):", +(seq, 
+					"def __init__(self):", 
+						+call(boost::bind(print::Initializers, _1, boost::ref(method.members))), "", 
+					foreach_x(method.members, boost::bind(print::PropertyEx, _1, _2, boost::cref(method.members))), "", 
+					"def __repr__(self): return getRepr(self, 'Pricing Method')", "" 
+	 				"def makeCurrent(self):", +(seq,
+						"from premia import interop",
+	 					"interop.setCurrentAsset(%ASSET_ID%)",
+	 					"interop.setCurrentMethod(%PRICING_ID%, %METHOD_ID%)",
+						foreach_x(method.members, print::copy_param),
+	 					"interop.stopWriteParameters()"
+	 					), "",
+	 				"def compute(self, opt, mod):", +(seq,
+						"from premia import interop",
+	 					"mod.makeCurrent()", 
+	 					"opt.makeCurrent()",
+	 					"self.makeCurrent()",
+						"interop.compute_3()",
+						"return [", 
+							+call(boost::bind(printResults, _1, boost::cref(method.results))),
+						"]"), "",
 
-				"@staticmethod",
-				"def results(): ", +(seq, 
-					"return [", +foreach_x(method.results, boost::bind(print::OutParamName, boost::cref(ctx), _1, _2)), "]"), "",
-				"@staticmethod",
-				"def parameters(): ", +(seq, 
-					"return [", +foreach_x(method.members, print::member), "]"), "",
-				"@staticmethod",
- 				"def create(args, iterables):", +(seq,
- 					"self = %CLASS%()",
- 					"assert(len(args) == %MEMBERS_LEN%)",
-					"it = args.__iter__()",
-					foreach_x(method.members, print::assign_param),
-					"return self"
- 					), "",
-				"@staticmethod",
-				"def meta(): ", +(seq, 
-					"return [", +foreach_x(method.members, print::meta), "]"),
-				"@staticmethod",
-				"def model(): return %MODEL_NAME%", ""
-				"@staticmethod",
-				"def options():", +(seq, 
-					"return [", +foreach_x(method.compatible_options, print::Compatible), "]"), "",
-				"def __call__(self, option, model): return self.compute(option, model)"
-			));
+					"@staticmethod",
+					"def results(): ", +(seq, 
+						"return [", +foreach_x(method.results, boost::bind(print::OutParamName, boost::cref(ctx), _1, _2)), "]"), "",
+					"@staticmethod",
+					"def parameters(): ", +(seq, 
+						"return [", +foreach_x(method.members, print::member), "]"), "",
+					"@staticmethod",
+	 				"def create(args, iterables):", +(seq,
+	 					"self = %CLASS%()",
+	 					"assert(len(args) == %MEMBERS_LEN%)",
+						"it = args.__iter__()",
+						foreach_x(method.members, print::assign_param),
+						"return self"
+	 					), "",
+					"@staticmethod",
+					"def meta(): ", +(seq, 
+						"return [", +foreach_x(method.members, print::meta), "]"),
+					"@staticmethod",
+					"def model(): return %MODEL_NAME%", ""
+					"@staticmethod",
+					"def options():", +(seq, 
+						"return [", +foreach_x(method.compatible_options, print::Compatible), "]"), "",
+					"def __call__(self, option, model): return self.compute(option, model)"
+				));
+		}
+		catch (...) {
+			ctx.out(1) << "When processing " 
+				<< method.pricing.model->name << "." 
+				<< method.pricing.family->name << "." 
+				<< method.name;
+			throw;
+		}
 
 		return ctx;
 	}
