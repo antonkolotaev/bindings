@@ -110,7 +110,11 @@
 <div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
   <div class="graph1d"></div>
 </div>
-<TABLE>
+<span data-bind="text: iterationRang"></span>
+<div data-bind="template: { foreach: iteration2dGraphsData, afterRender: renderGraph2d }">
+  <div style="width: 740px; height: 484px;"></div>
+</div>
+<!-- <TABLE>
 <TR>
 <TD>
 <DIV style="width: 740px; height: 484px;" id="surfacePlotDiv0Price"></DIV></TD>
@@ -174,3 +178,4 @@
 
    setUp();
    </SCRIPT>
+ -->

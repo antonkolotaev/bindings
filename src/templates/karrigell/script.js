@@ -253,6 +253,16 @@ function loadParams(raw) {
     });
 }
 
+function array_to_2d(src, len_1, len_2) {
+    var res = []; 
+    if (src.length != len_1*len_2)
+        console.log("len_1="+len_1+"; len_2="+len_2+"; len(src)="+src.length);
+    for (var i=0; i<len_1; i++) {
+        res.push(src.splice(0, len_2));
+    }
+    return res;
+}
+
 function ModelView() {
     var self = this; 
 
@@ -440,6 +450,113 @@ function ModelView() {
             }
         }
     } 
+
+    self.iterationResult2d = ko.computed(function() {
+        return (self.iterationRang() == 2 && self.resultQuery() == self.query() 
+            ? self.resultRaw() 
+            : []); 
+    })  
+
+    self.iteration2dGraphsData = ko.computed(function() {
+        var graphs = [];
+        var src = self.iterationResult2d();
+        for (var i = 2; i<src.length; i++) {
+            var len_1 = src[0][1].length;
+            var len_2 = src[1][1].length;
+            var meta = self.myMethodResults()[i-2];
+            if (meta.visible()) {
+                var s = src[i];            
+                if (typeof(s[1][0]) == "number") {
+                    var d = {
+                        data: array_to_2d(s[1], len_1, len_2),
+                        label: meta.label()
+                    }
+                    graphs.push(d);
+                } else {
+                    for (var ii=0; ii < s[1][0].length; ii++) {
+                        var d = {
+                            data: array_to_2d(map(s[1], function(x,j) { return x[ii]; }), len_1, len_2),
+                            label: meta.label()+'['+ii+']'
+                        }
+                        graphs.push(d);
+                    }
+                }
+            }
+        }
+        return graphs;
+    })
+
+    self.renderGraph2d = function (elem, source) {
+        //console.log("elem="+elem+",data="+data.label+", type="+map(elem, function (e) {return e.nodeType; }));
+        for (var i=0; i<elem.length; i++) {
+            var e = elem[i];
+            if (e.nodeType==1) {
+                e.style.width = (self.graphSizeX()+200)+'px';
+                e.style.height = (self.graphSizeY()+200)+'px';
+                
+                var surfacePlot;
+                var keys_1 = self.iterationResult2d()[0][1];
+                var keys_2 = self.iterationResult2d()[1][1];
+                var numRows = keys_1.length;
+                var numCols = keys_2.length;
+
+                // console.log("keys_1="+keys_1);
+                // console.log("keys_2="+keys_2);
+
+                var values = source.data;
+                // for (var i=0; i<values.length; i++)
+                //     console.log("values["+i+"]="+values[i]);
+
+                var data = {nRows: numRows, nCols: numCols, formattedValues: values};
+
+                surfacePlot = new SurfacePlot(e);
+
+                // Don't fill polygons in IE. It's too slow.
+                var fillPly = true;
+
+                // Define a colour gradient.
+                var colour1 = {red:0, green:0, blue:255};
+                var colour2 = {red:0, green:255, blue:255};
+                var colour3 = {red:0, green:255, blue:0};
+                var colour4 = {red:255, green:255, blue:0};
+                var colour5 = {red:255, green:0, blue:0};
+                var colours = [colour1, colour2, colour3, colour4, colour5];
+
+                // Axis labels.
+                var xAxisHeader   = self.iterationResult2d()[0][0];
+                var yAxisHeader   = self.iterationResult2d()[1][0];
+                var zAxisHeader   = source.label;
+                // console.log("xAxisHeader="+xAxisHeader);
+                // console.log("yAxisHeader="+yAxisHeader);
+                // console.log("zAxisHeader="+zAxisHeader);
+
+                sizeX = self.graphSizeX();
+                sizeY = self.graphSizeY();
+
+                var renderDataPoints = false;
+                var background = '#ffffff';
+                var axisForeColour = '#000000';
+                var hideFloorPolygons = true;
+                var chartOrigin = {x: sizeX/2, y:sizeY/2};
+
+                // Options for the basic canvas pliot.
+                var basicPlotOptions = {fillPolygons: fillPly, tooltips: [], renderPoints: renderDataPoints }
+
+                // Options for the webGL plot.
+                var xLabels = keys_1;
+                var yLabels = keys_2;
+                var glOptions = {xLabels: xLabels, yLabels: yLabels ,autoCalcZScale: true};
+
+                // Options common to both types of plot.
+                var options = {xPos: 0, yPos: 0, width: sizeX, height: sizeY, colourGradient: colours,
+                 xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader,
+                 backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
+
+                surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+            }
+        }
+    } 
+
 }
 
 mv = new ModelView();
