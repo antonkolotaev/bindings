@@ -1222,7 +1222,7 @@ def todata1d(array):
 def todata2d(array, rowlen):
    s = '['
    for i in range(rowlen, len(array), rowlen):
-      s += todata1d(array[i-rowlen:i-1]) + ","
+      s += todata1d(array[i-rowlen:i]) + ","
    if 'i' in dir():
       s += todata1d(array[i:])
    s += ']'

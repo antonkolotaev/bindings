@@ -13,7 +13,7 @@ print """
    <script type="text/javascript" src="flotr2.min.js"></script>
 </head>
 """
-
+Include("shaders.py")
 Include("param_table.html")
 Include("current.html")
 

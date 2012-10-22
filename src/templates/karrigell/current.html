@@ -110,3 +110,67 @@
 <div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
   <div class="graph1d"></div>
 </div>
+<TABLE>
+<TR>
+<TD>
+<DIV style="width: 740px; height: 484px;" id="surfacePlotDiv0Price"></DIV></TD>
+</TR>
+</TABLE>
+<SCRIPT type="text/javascript">
+   function setUp()
+   {
+      var surfacePlot;
+      var keys_1 = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9];
+      var keys_2 = [100.0,96.6666666667,93.3333333333,90.0,86.6666666667,83.3333333333,80.0,76.6666666667,73.3333333333,70.0];
+      var numRows = keys_1.length;
+      var numCols = keys_2.length;
+
+      var values = [[12.9927464777,10.6976361956,8.61331087178,6.75974550413,5.15148017747,3.79575625525,2.69061529781,1.82421130253,1.17502100595],[12.0831270446,9.8286065557,7.79957514853,6.01609908738,4.49143485912,3.22971429341,2.2243628993,1.45775907493,0.902250803844],[11.1484510172,8.93823298496,6.97061638968,5.26548006503,3.83402081466,2.67608170602,1.77904740414,1.11816866787,0.658773510483],[10.184434489,8.02309281821,6.12463524612,4.5082954116,3.18197525222,2.13953354175,1.36035678919,0.810929295767,0.448755848797],[9.18514869353,7.0785074083,5.25936574983,3.74548886185,2.53951872507,1.62674076085,0.975856757702,0.54270193139,0.276547928407],[8.14199150698,6.09780413271,4.37196381549,2.97914649679,1.91346756431,1.14753782654,0.6357081402,0.321322054745,0.146100218952],[7.04165610004,5.07091172376,3.45891967285,2.21389106083,1.31548683418,0.716929534097,0.353476055923,0.15521381293,0.0596184281086],[5.86156382107,3.98135900127,2.5163942087,1.46057897321,0.767040748497,0.358443712329,0.146275750935,0.0510298891636,0.0148536542654],[4.55733759606,2.79900405826,1.54338736471,0.747924120841,0.311111227352,0.108223407316,0.0305820293694,0.00679552143797,0.00114451746173],[3.01347498737,1.4572957911,0.566871957201,0.168970833702,0.0366586625513,0.00547882976831,0.000531500573933,3.13496389858e-05,1.04505218487e-06,1.81196718151e-08]];
+      var data = {nRows: numRows, nCols: numCols, formattedValues: values};
+
+      h_idx = '0Price'
+      surfacePlot = new SurfacePlot(document.getElementById("surfacePlotDiv"+h_idx));
+
+      // Don't fill polygons in IE. It's too slow.
+      var fillPly = true;
+
+      // Define a colour gradient.
+      var colour1 = {red:0, green:0, blue:255};
+      var colour2 = {red:0, green:255, blue:255};
+      var colour3 = {red:0, green:255, blue:0};
+      var colour4 = {red:255, green:255, blue:0};
+      var colour5 = {red:255, green:0, blue:0};
+      var colours = [colour1, colour2, colour3, colour4, colour5];
+
+      // Axis labels.
+      var xAxisHeader   = "Current Date";
+      var yAxisHeader   = "Spot";
+      var zAxisHeader   = "Price";
+
+      sizeX = 740;
+      sizeY = 484;
+
+      var renderDataPoints = false;
+      var background = '#ffffff';
+      var axisForeColour = '#000000';
+      var hideFloorPolygons = true;
+      var chartOrigin = {x: sizeX/2, y:sizeY/2};
+
+      // Options for the basic canvas pliot.
+      var basicPlotOptions = {fillPolygons: fillPly, /*tooltips: tooltipStrings,*/ renderPoints: renderDataPoints }
+
+      // Options for the webGL plot.
+      var xLabels = keys_1;
+      var yLabels = keys_2;
+      var glOptions = {xLabels: xLabels, yLabels: yLabels ,autoCalcZScale: true};
+
+      // Options common to both types of plot.
+      var options = {xPos: 0, yPos: 0, width: sizeX, height: sizeY, colourGradient: colours,
+         xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader,
+         backColour: background, axisTextColour: axisForeColour, hideFlatMinPolygons: hideFloorPolygons, origin: chartOrigin};
+
+      surfacePlot.draw(data, options, basicPlotOptions, glOptions);
+   }
+
+   setUp();
+   </SCRIPT>
