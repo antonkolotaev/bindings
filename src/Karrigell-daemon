@@ -7,7 +7,7 @@
 
 KARRIGELL_DIR=
 LOGFILE="/var/log/karrigell.log"
-PIDFILE="/var/run/Karrigell.pid"
+PIDFILE="/var/run/karrigell.pid"
 PYTHON=
 
 
@@ -30,8 +30,8 @@ case "$1" in
         ;;
 
     status)
-        if test -f "$PIDFILE" && ps -p $(cat "$PDIFILE"); then
-            echo "Karrigel is running with PID $(cat $PIDIFLE)"
+        if test -f "$PIDFILE" && ps -p $(cat "$PIDFILE"); then
+            echo "Karrigel is running with PID $(cat $PIDFILE)"
         fi
         ;;
 esac
