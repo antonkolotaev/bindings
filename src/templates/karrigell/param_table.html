@@ -1,6 +1,6 @@
 <script type="text/html" id="iterations">
   <!-- ko if: hasIteration -->
-    <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+    <tr data-bind="css: { even: $parents[$parents.length - 2].index%2==0 }">
       <td></td>
       <td>
         <table class="iteration">
@@ -23,7 +23,7 @@
 </script>
 
 <script type="text/html" id="scalar-row-template">
-  <tr data-bind="css: { even: $index()%2==0 }">
+  <tr data-bind="css: { even: index%2==0 }">
     <td class="keys" data-bind="attr: { rowspan: value.hasIteration() ? 2 : 1 }">
       <span data-bind="text: label"></span>      
     </td>
@@ -58,7 +58,7 @@
 
 <script type="text/html" id="vector-row-template">
   <!-- ko foreach: values -->
-    <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+    <tr data-bind="css: { even: $parent.index%2==0 }">
       <!-- ko ifnot: $index -->
         <td class="keys" data-bind="text: $parent.label, attr: { rowspan: $parent.spansize() }"></td>
       <!-- /ko -->
@@ -82,7 +82,7 @@
 </script>
 
 <script type="text/html" id="vectorcompact-row-template">
-    <tr data-bind="css: { even: $index()%2==0 }">
+    <tr data-bind="css: { even: index%2==0 }">
       <td class="keys" data-bind="text: label, attr: { rowspan: spansize() }"></td>
       <td></td>
       <td>
@@ -91,7 +91,7 @@
       <td class="constraints" data-bind="attr: { rowspan: spansize() }">&#8477;</td>
     </tr>
     <!-- ko foreach: elements -->
-      <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+      <tr data-bind="css: { even: $parent.index%2==0 }">
         <td>
           <input type="checkbox" data-bind="checked: $parent.at($index()).hasIteration"></input>
         </td>

@@ -116,7 +116,7 @@ function NaN2error(f) {
 
 function ScalarValue(value, converter=_parseFloat) {
     var self = this;
-    var converter = NaN2error(converter);
+    var nanconverter = NaN2error(converter);
     self.value = ko.observable(value);
     self.valueInvalid = ko.computed(function(){
         return isNaN(converter(self.value()));
@@ -129,10 +129,10 @@ function ScalarValue(value, converter=_parseFloat) {
         return isNaN(converter(self.iterateTo()));
     })
 
-    var iterateToChecker = NaN2error(combine(greater(1, true),_parseInt));
+    var iterateToChecker = combine(greater(1, true),_parseInt);
 
     self.iterationCountInvalid = ko.computed(function(){
-        return (iterateToChecker(self.iterationsCount())) == "_error_";
+        return isNaN(iterateToChecker(self.iterationsCount()));
     })
 
 
@@ -150,12 +150,12 @@ function ScalarValue(value, converter=_parseFloat) {
     })
 
     self.serialized = function() {
-        var x = converter(self.value());
+        var x = nanconverter(self.value());
         return (self.hasIteration() 
             ? ['iterate', 
                 x, 
-                converter(self.iterateTo()), 
-                iterateToChecker(self.iterationsCount())
+                nanconverter(self.iterateTo()), 
+                NaN2error(iterateToChecker)(self.iterationsCount())
             ] : x);
     }
 }
@@ -303,9 +303,12 @@ function lookup(arr, what) {
 }
 
 function flatten(arr){
-    return arr.reduce(function(acc, val){
+    var res = arr.reduce(function(acc, val){
         return acc.concat(val.getFields());
     },[]);
+    for (var i=0; i<res.length; i++)
+        res[i].index = i;
+    return res;
 }
 
 function serialized(arr){
