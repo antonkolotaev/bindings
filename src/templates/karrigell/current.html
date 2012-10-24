@@ -6,11 +6,13 @@
           <th>Asset type:</th>
           <th></th>
           <th><select data-bind="options: assets, value: myAsset"></select></th>
+          <th></th>
         </tr>
         <tr>
           <th>Model:</th>
           <th></th>
           <th><select data-bind="options: myModels, value: myModelProxy"></select></th>
+          <th></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myModelParams }">
         </tbody>
@@ -23,11 +25,13 @@
           <th>Family:</th>
           <th></th>
           <th><select data-bind="options: myFamilies, value: myFamily"></select></th>
+          <th></th>
         </tr>
         <tr>
           <th>Option:</th>
           <th></th>
           <th><select data-bind="options: myOptions, value: myOption"></select></th>
+          <th></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myOptionParams }">
         </tbody>
@@ -40,45 +44,49 @@
           <th>Pricing method:</th>
           <th></th>
           <th><select data-bind="options: myMethods, value: myMethod"></select></th>
+          <th></th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams }">
         </tbody>
         <tr data-bind="if: scalarResult().length>0">
-          <th>Result:</th><th></th><th></th>
+          <th>Result:</th>
+          <th></th>
+          <th></th>
+          <th></th>
         </tr>
         <!-- ko foreach: scalarResult() -->
           <!-- ko if: typeof($data[1])=="number" -->
             <tr data-bind="css: { even: $index()%2==0 }">
-              <td class="keys" data-bind="text: $data[0]"></td>
-              <td></td>
-              <td class="values" data-bind="text: $data[1]"></td>
+              <td colspan="2" class="keys" data-bind="text: $data[0]"></td>
+              <td colspan="2" class="values" data-bind="text: $data[1]"></td>
             </tr>
           <!-- /ko -->
           <!-- ko notif: typeof($data[1])=="number" -->
             <!-- ko foreach: $data[1] -->
               <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
                 <!-- ko ifnot: $index -->
-                  <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
+                  <td colspan="2" class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
                 <!-- /ko -->
-                <td></td>
-              <td class="values" data-bind="text: $data"></td>
+              <td colspan="2" class="values" data-bind="text: $data"></td>
               </tr>
             <!-- /ko -->
           <!-- /ko -->
         <!-- /ko -->
         <!-- ko if: iterationRang()  -->
           <tr>
-            <th colspan="3">Graph visualisation options</th>
+            <th colspan="4">Graph visualisation options</th>
           </tr>
           <tr class="even">
             <td>Graph size X</td>
             <td></td>
             <td><input data-bind="value: graphSizeX"></input></td>
+            <td></td>
           </tr>
           <tr class="odd">
             <td>Graph size Y</td>
             <td></td>
             <td><input data-bind="value: graphSizeY"></input></td>
+            <td></td>
           </tr>
           <!-- ko foreach: myMethodResults -->
             <tr data-bind="css: { even: $index()%2==0 }">
@@ -89,6 +97,7 @@
               <td>
                 <input data-bind="value: label"></input>
               </td>
+              <td></td>
             </tr>
           <!-- /ko -->
         <!-- /ko -->
@@ -96,6 +105,7 @@
           <td></td>
           <td></td>
           <td><button id="Compute">Compute</button></td>
+          <td></td>
         </tr>
       </table>
     </td>

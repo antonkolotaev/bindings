@@ -84,7 +84,25 @@ function ScalarValue(value) {
     }
 }
 
-function ScalarField(label, value) {
+function renderConstraint(constraint) {
+    var R = '&#8477;';
+    var Z = '&#8484;';
+    var and = '&#8745;';
+    var inf = '&infin;';
+
+    var type = constraint[0] == 'Z' ? Z : R;
+
+    if (constraint.length == 3) {
+        if (constraint[1].length==0 && constraint[2].length==0)
+            return type;
+        var lo = (constraint[1].length == 2 ? (constraint[1][0] == 'I' ? '[' : '(')+constraint[1][1] : ("(-"+inf));
+        var hi = (constraint[2].length == 2 ? constraint[2][1]+(constraint[2][0] == 'I' ? ']' : ')') : ("+"+inf+")"));
+        return type + and + lo + "," + hi;
+    }
+    return type;
+}
+
+function ScalarField(label, value, constraint) {
     var self = this;
     self.label = label;
     self.value = new ScalarValue(value);
@@ -97,6 +115,8 @@ function ScalarField(label, value) {
     self.serialized = function() {
         return [self.value.serialized()];
     }
+
+    self.constraint = renderConstraint(constraint);
 
 }
 
@@ -245,7 +265,7 @@ var method_results = ResultCachedMap(function (args) { return 'method_results?m=
 function loadParams(raw) {
     return $.map(raw, function (e) {
         return (
-            (e[1] == 0) ? new ScalarField(e[0], e[2]) :
+            (e[1] == 0) ? new ScalarField(e[0], e[2], e[3]) :
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
             (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
             (e[1] == 3) ? new FilenameField(e[0], e[2]) :

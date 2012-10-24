@@ -29,6 +29,8 @@
     <td>
         <input data-bind="value: value.value"></input>
     </td>
+    <td class="constraints" data-bind="attr: { rowspan: value.hasIteration() ? 2 : 1 }, html: constraint">
+    </td>
   </tr>
   <!-- ko with: value -->
     <!-- ko template: { name : 'iterations' } -->
@@ -46,6 +48,7 @@
     <td>
         <select data-bind="options: options, value: value"></select>
     </td>
+    <td></td>
   </tr>
 </script>
 
@@ -63,6 +66,9 @@
           <input data-bind="value: value"></input>
         </td>
       <!-- /ko -->    
+      <!-- ko ifnot: $index -->
+        <td class="constraints" data-bind="attr: { rowspan: $parent.spansize() }">&#8477;</td>
+      <!-- /ko -->
     </tr>
     <!-- ko with: $parent.values[$index()] -->
       <!-- ko template: { name : 'iterations' } -->
@@ -78,6 +84,7 @@
       <td>
         <select data-bind="options: options, value: isvector"></select>
       </td>
+      <td class="constraints" data-bind="attr: { rowspan: spansize() }">&#8477;</td>
     </tr>
     <!-- ko foreach: elements -->
       <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
@@ -87,6 +94,7 @@
         <td>
           <input data-bind="value: $parent.at($index()).value"></input>
         </td>
+        <td></td>
       </tr>
       <!-- ko with: $parent.at($index()) -->
         <!-- ko template: { name : 'iterations' } -->

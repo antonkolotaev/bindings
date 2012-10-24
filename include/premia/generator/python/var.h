@@ -48,6 +48,42 @@ namespace python {
 			}
 		}
 
+		template <class Scalar> const char* symbol() { return "Z"; }
+		template <> const char* symbol<double>() { return "R"; }
+
+		template <class Scalar>
+			const char * tometa(Range<Scalar> const * c)
+		{
+			// since number of different ranges is small, let's memoize their representations
+			typedef std::map<Range<Scalar> const *, std::string> Cache;
+
+			static Cache	cache;
+
+			// looking in the cache
+			typename Cache::const_iterator it = cache.find(c);
+
+			if (it != cache.end())
+				return it->second.c_str();
+			else	// if not in the cache
+			{			
+				std::string lhs, rhs; 
+
+				// format the lower bound of the range if exists
+				if (c && c->has_low())
+					lhs = (boost::format("%1%, %2%") % (c->low_inclusive ? "'I'" : "'S'") % c->low).str();
+
+				// format the upper bound of the range if exists
+				if (c && c->has_hi())
+					rhs = (boost::format("%1%, %2%") % (c->hi_inclusive ? "'I'" : "'S'") % c->hi).str();
+
+				std::string res = (boost::format("['%1%', [%2%], [%3%]]") % symbol<Scalar>() % lhs % rhs).str();
+
+				cache[c] = res;
+
+				return cache[c].c_str();
+			}
+		}
+
 		/// \brief prints Python assertion(s) for the given Premia VAR type
 		struct property_value_assert : var_visitor<property_value_assert>
 		{
@@ -270,21 +306,10 @@ namespace python {
 			meta_writer(Formatter & out, VAR const *src) : out(out), src(src) {}
 
 			/// assert for INT based types
-			void operator () (Numeric<int> const & i) 
+			template <class Scalar>
+				void operator () (Numeric<Scalar> const & x) 
 			{
-				out("VAL", i.value) << "['%PROP_NAME%', 0, %VAL%],";
-			}
-
-			/// assert for LONG based types
-			void operator () (Numeric<long> const & i) 
-			{
-				out("VAL", i.value) << "['%PROP_NAME%', 0, %VAL%],";
-			}
-
-			/// assert for DOUBLE based types
-			void operator () (Numeric<double> const & i) 
-			{
-				out("VAL", i.value) << "['%PROP_NAME%', 0, %VAL%],";
+				out("VAL", x.value)("CONSTRAINT", tometa(x.constraint)) << "['%PROP_NAME%', 0, %VAL%, %CONSTRAINT%],";
 			}
 
 			/// assert for FILENAME
