@@ -58,12 +58,83 @@ function ResultCachedMap(query_fun) {
 
 var iterables = ko.observableArray([]);
 
-function ScalarValue(value) {
+if (!String.prototype.trim) {
+    String.prototype.trim=function(){return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');};
+}
+
+function isInteger (s) {
+    var isInteger_re     = /^\s*(\+|-)?\d+\s*$/;
+    return String(s).search (isInteger_re) != -1
+}
+
+function isFloat (s) {
+    var isDecimal_re     = /^\s*(\+|-)?((\d+(\.\d+)?)|(\.\d+))\s*$/;
+    return String(s).search (isDecimal_re) != -1
+}
+
+function _parseInt(x) {
+    if (typeof(x) == "string" && !isInteger(x.trim()))
+        return NaN;
+    return parseInt(x,10);
+}
+
+function _parseFloat(x) {
+    if (typeof(x) == "string" && !isFloat(x.trim()))
+        return NaN;
+    return parseFloat(x);
+}
+
+function less(y, strict) {
+    return strict ? (function (x) {
+        return x < y ? x : NaN;
+    }) : (function (x) {
+        return x <= y ? x : NaN;
+    });
+}
+
+function greater(y, strict) {
+    return strict ? (function (x) {
+        return x > y ? x : NaN;
+    }) : (function (x) {
+        return x >= y ? x : NaN;
+    });
+} 
+
+function combine(f,g) {
+    return function (x) {
+        return f(g(x));
+    }
+}
+
+function NaN2error(f) {
+    return function (x) {
+        var r = f(x);
+        return !isNaN(r) ? r : "_error_";
+    }
+}
+
+
+function ScalarValue(value, converter=_parseFloat) {
     var self = this;
+    var converter = NaN2error(converter);
     self.value = ko.observable(value);
+    self.valueInvalid = ko.computed(function(){
+        return isNaN(converter(self.value()));
+    })
 
     self.iterateTo = ko.observable(value);
     self.iterationsCount = ko.observable(10);
+
+    self.iterateToInvalid = ko.computed(function(){
+        return isNaN(converter(self.iterateTo()));
+    })
+
+    var iterateToChecker = NaN2error(combine(greater(1, true),_parseInt));
+
+    self.iterationCountInvalid = ko.computed(function(){
+        return (iterateToChecker(self.iterationsCount())) == "_error_";
+    })
+
 
     self.hasIteration = ko.computed({
         read: function () { return iterables().indexOf(self) != -1; },
@@ -79,8 +150,13 @@ function ScalarValue(value) {
     })
 
     self.serialized = function() {
-        var x = parseFloat(self.value());
-        return self.hasIteration() ? ['iterate', x, parseFloat(self.iterateTo()), parseFloat(self.iterationsCount())] : x;
+        var x = converter(self.value());
+        return (self.hasIteration() 
+            ? ['iterate', 
+                x, 
+                converter(self.iterateTo()), 
+                iterateToChecker(self.iterationsCount())
+            ] : x);
     }
 }
 
@@ -102,10 +178,23 @@ function renderConstraint(constraint) {
     return type;
 }
 
+function makeConverter(constraint) {
+
+    var conv = constraint[0] == 'Z' ? _parseInt : _parseFloat;
+
+    if (constraint.length == 3) {
+        if (constraint[1].length == 2) 
+            conv = combine(greater(constraint[1][1], constraint[1][0] == 'S'), conv);
+        if (constraint[2].length == 2) 
+            conv = combine(less(constraint[2][1], constraint[2][0] == 'S'), conv);
+    }
+    return conv;
+}
+
 function ScalarField(label, value, constraint) {
     var self = this;
     self.label = label;
-    self.value = new ScalarValue(value);
+    self.value = new ScalarValue(value, makeConverter(constraint));
     self.renderer = 'scalar-row-template';
 
     self.getFields = function() {
@@ -397,6 +486,12 @@ function ModelView() {
         pos = q.indexOf(s, pos+1);
         if (pos == -1) return 1;
         return 2;
+    })
+
+    self.paramsAreOk = ko.computed(function() {
+        var q = self.query();
+        var s = '"_error_"';
+        return q.indexOf(s, 0) == -1;        
     })
 
     self.resultRaw = ko.observable([]);

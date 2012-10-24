@@ -57,6 +57,10 @@ tr {
    color: white;
 }
 
+.error input {
+   background-color: #ffcccc;
+}
+
 .odd {
    background-color: white;
 }

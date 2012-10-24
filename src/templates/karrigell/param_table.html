@@ -6,11 +6,15 @@
         <table class="iteration">
           <tr>
             <td class="keys">Iterate to:</td>
-            <td class="values"><input data-bind="value: iterateTo"></input></td>
+            <td class="values" data-bind="css: { error: iterateToInvalid }">
+              <input data-bind="value: iterateTo"></input>
+            </td>
           </tr>
           <tr>
             <td class="keys">#Iterations:</td>
-            <td class="values"><input data-bind="value: iterationsCount"></input></td>
+            <td class="values" data-bind="css: { error: iterationCountInvalid }">
+              <input data-bind="value: iterationsCount"></input>
+            </td>
           </tr>
         </table>
       </td>
@@ -26,7 +30,7 @@
     <td>
       <input type="checkbox" data-bind="checked: value.hasIteration">
     </td>
-    <td>
+    <td data-bind="css: { error: value.valueInvalid }">
         <input data-bind="value: value.value"></input>
     </td>
     <td class="constraints" data-bind="attr: { rowspan: value.hasIteration() ? 2 : 1 }, html: constraint">
@@ -62,7 +66,7 @@
         <td>
           <input type="checkbox" data-bind="checked: hasIteration"></input>
         </td>
-        <td>
+        <td  data-bind="css: { error: valueInvalid }">
           <input data-bind="value: value"></input>
         </td>
       <!-- /ko -->    
@@ -91,7 +95,7 @@
         <td>
           <input type="checkbox" data-bind="checked: $parent.at($index()).hasIteration"></input>
         </td>
-        <td>
+        <td  data-bind="css: { error: $parent.at($index()).valueInvalid }">
           <input data-bind="value: $parent.at($index()).value"></input>
         </td>
         <td></td>
