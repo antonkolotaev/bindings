@@ -309,7 +309,10 @@ namespace python {
 			template <class Scalar>
 				void operator () (Numeric<Scalar> const & x) 
 			{
-				out("VAL", x.value)("CONSTRAINT", tometa(x.constraint)) << "['%PROP_NAME%', 0, %VAL%, %CONSTRAINT%],";
+				out("VAL", x.value)
+					("CONSTRAINT", tometa(x.constraint)) 
+					<< 
+					"['%PROP_NAME%', 0, %VAL%, %CONSTRAINT%, %ITERABLE%],";
 			}
 
 			/// assert for FILENAME
@@ -349,7 +352,7 @@ namespace python {
 		/// prints meta information about the property 
 		inline void meta(Formatter &out, NamedVar const & vr)
 		{
-			meta_writer(out("PROP_NAME", vr.src->Vname), vr.src).apply(vr.value);
+			meta_writer(out("PROP_NAME", vr.src->Vname)("ITERABLE", vr.iterable), vr.src).apply(vr.value);
 		}
 
 		/// \brief returns a python statement copying a parameter from a Python class to Premia runtime

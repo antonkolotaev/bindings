@@ -114,13 +114,15 @@ function NaN2error(f) {
 }
 
 
-function ScalarValue(value, converter=_parseFloat) {
+function ScalarValue(value, converter=_parseFloat, iterable=true) {
     var self = this;
     var nanconverter = NaN2error(converter);
     self.value = ko.observable(value);
     self.valueInvalid = ko.computed(function(){
         return isNaN(converter(self.value()));
     })
+
+    self.iterable = iterable;
 
     self.iterateTo = ko.observable(value);
     self.iterationsCount = ko.observable(10);
@@ -191,10 +193,10 @@ function makeConverter(constraint) {
     return conv;
 }
 
-function ScalarField(label, value, constraint) {
+function ScalarField(label, value, constraint, iterable) {
     var self = this;
     self.label = label;
-    self.value = new ScalarValue(value, makeConverter(constraint));
+    self.value = new ScalarValue(value, makeConverter(constraint), iterable);
     self.renderer = 'scalar-row-template';
 
     self.getFields = function() {
@@ -357,7 +359,7 @@ var method_results = ResultCachedMap(function (args) { return 'method_results?m=
 function loadParams(raw) {
     return $.map(raw, function (e) {
         return (
-            (e[1] == 0) ? new ScalarField(e[0], e[2], e[3]) :
+            (e[1] == 0) ? new ScalarField(e[0], e[2], e[3], e[4]) :
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
             (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
             (e[1] == 3) ? new FilenameField(e[0], e[2]) :

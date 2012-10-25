@@ -27,7 +27,7 @@
     <td class="keys" data-bind="attr: { rowspan: value.hasIteration() ? 2 : 1 }">
       <span data-bind="text: label"></span>      
     </td>
-    <td>
+    <td data-bind="if: value.iterable">
       <input type="checkbox" data-bind="checked: value.hasIteration">
     </td>
     <td data-bind="css: { error: value.valueInvalid }">
