@@ -319,9 +319,14 @@ function serialized(arr){
     },[]);
 }
 
-function EnumField(label, value, options) {
+function EnumField(label, value, options_loaded) {
     // console.log(options)
     var self = this;
+
+    var options = [];
+    for (i = 0; i < options_loaded.length; i++)
+        options.push([options_loaded[i][0], loadParams(options_loaded[i][1])]);
+
     self.label = label;
     self.value = ko.observable(value);
     self.options = iterkeys(options);
@@ -336,13 +341,7 @@ function EnumField(label, value, options) {
     }
 }
 
-var enum_params = new CachedMap(function (e) { 
-    var response = get('enum_params?e='+e);
-    var res = [];
-    for (i = 0; i < response.length; i++)
-        res.push([response[i][0], loadParams(response[i][1])]);
-    return res;
-});
+var enum_params = new CachedMap(function (e) { return get('enum_params?e='+e); });
 
 var assets = get('assets');
 
@@ -363,7 +362,7 @@ function loadParams(raw) {
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
             (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
             (e[1] == 3) ? new FilenameField(e[0], e[2]) :
-            new EnumField(e[0], e[2], enum_params.at(e[1])));
+            new EnumField(e[0], e[2], e[1]));
     });
 }
 

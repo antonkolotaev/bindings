@@ -69,8 +69,7 @@ def _lookupEnum(e):
    return eval('premia.enum.'+e+'.'+e)
 
 def enum_params(e):
-   obj = _lookupEnum(e).meta()
-   _return([(k, v.meta()) for (k,v) in obj]) 
+   _return(_lookupEnum(e).meta())
 
 def _parse(kwargs):
    request = kwargs.iterkeys().__iter__().next()
@@ -207,4 +206,21 @@ def compute(*args, **kwargs):
             []
 
    _return(result)
+
+# def adjust(*args, **kwargs):
+
+#    [asset, model, model_params], [family, option, option_params], [method, method_params], [path, value] = _parse(kwargs)
+
+#    def append_iterables(*args):
+#       pass
+
+#    indata = {'model' : _lookupModel(model).create(model_params, append_iterables),
+#              'option' : _lookupOption(family, option).create(option_params, append_iterables),
+#              'method' : _lookupMethod(model, family, method).create(method_params, append_iterables))}
+
+#    obj = indata[path[0]]
+#    setattr(obj, path[1], value)
+
+
+
 

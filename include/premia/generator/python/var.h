@@ -312,7 +312,7 @@ namespace python {
 				out("VAL", x.value)
 					("CONSTRAINT", tometa(x.constraint)) 
 					<< 
-					"['%PROP_NAME%', 0, %VAL%, %CONSTRAINT%, %ITERABLE%],";
+					"['%PROP_NAME%', 0, %VAL%, %CONSTRAINT%, %ITERABLE%, '%SETTER%'],";
 			}
 
 			/// assert for FILENAME
@@ -341,7 +341,7 @@ namespace python {
 			{
     			out("KEY", e.type->label)
     				("VAL", e.type->members.find(e.value)->second.quoted_original_label)
-    				<< "['%PROP_NAME%', '%KEY%', '%VAL%'],";
+    				<< "['%PROP_NAME%', self.%FLD_NAME%.meta(), '%VAL%'],";
 			}
 		private:
 			Formatter & out;
@@ -352,7 +352,13 @@ namespace python {
 		/// prints meta information about the property 
 		inline void meta(Formatter &out, NamedVar const & vr)
 		{
-			meta_writer(out("PROP_NAME", vr.src->Vname)("ITERABLE", vr.iterable), vr.src).apply(vr.value);
+			meta_writer(
+				out("PROP_NAME", vr.src->Vname)
+					("FLD_NAME", vr.name)
+					("ITERABLE", vr.iterable)
+					("SETTER", vr.has_setter ? vr.name : ""), 
+				vr.src
+				).apply(vr.value);
 		}
 
 		/// \brief returns a python statement copying a parameter from a Python class to Premia runtime

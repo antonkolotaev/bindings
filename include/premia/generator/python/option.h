@@ -41,8 +41,7 @@ namespace python {
 					"@staticmethod",
 					"def parameters(): ", +(seq, 
 						"return [", +foreach_x(opt.vars, print::member), "]"),
-					"@staticmethod",
-					"def meta(): ", +(seq, 
+					"def meta(self): ", +(seq, 
 						"return [", +foreach_x(opt.vars, print::meta), "]")
 					))
 			;

@@ -87,8 +87,7 @@ namespace python {
 					"@staticmethod",
 					"def parameters(): ", +(seq, 
 						"return [", +foreach_x(m.members, print::member), "]"),
-					"@staticmethod",
-					"def meta(): ", +(seq, 
+					"def meta(self): ", +(seq, 
 						"return [", +foreach_x(m.members, print::meta), "]")
 				));
 

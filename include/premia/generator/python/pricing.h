@@ -107,8 +107,7 @@ namespace python {
 						foreach_x(method.members, print::assign_param),
 						"return self"
 	 					), "",
-					"@staticmethod",
-					"def meta(): ", +(seq, 
+					"def meta(self): ", +(seq, 
 						"return [", +foreach_x(method.members, print::meta), "]"),
 					"@staticmethod",
 					"def model(): return %MODEL_NAME%", ""
