@@ -64,12 +64,12 @@ def myImport(m):
    exec 'import ' + m
    return eval(m)
 
-def _lookupEnum(e):
-   exec 'import premia.enum.'+e
-   return eval('premia.enum.'+e+'.'+e)
+# def _lookupEnum(e):
+#    exec 'import premia.enum.'+e
+#    return eval('premia.enum.'+e+'.'+e)
 
-def enum_params(e):
-   _return(_lookupEnum(e).meta())
+# def enum_params(e):
+#    _return(_lookupEnum(e).meta())
 
 def _parse(kwargs):
    request = kwargs.iterkeys().__iter__().next()

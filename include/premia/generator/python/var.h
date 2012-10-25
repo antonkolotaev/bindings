@@ -312,13 +312,13 @@ namespace python {
 				out("VAL", x.value)
 					("CONSTRAINT", tometa(x.constraint)) 
 					<< 
-					"['%PROP_NAME%', 0, %VAL%, %CONSTRAINT%, %ITERABLE%, '%SETTER%'],";
+					"['%PROP_NAME%', 0, self.%FLD_NAME%, %CONSTRAINT%, %ITERABLE%, '%SETTER%'],";
 			}
 
 			/// assert for FILENAME
 			void operator () (std::string const & i)  
 			{
-				out("VAL", i) << "['%PROP_NAME%', 3, r'%VAL%'],";
+				out("VAL", i) << "['%PROP_NAME%', 3, self.%FLD_NAME%],";
 			}
 
 			/// assert for PNLVECT and PNLVECTCOMPACT
@@ -333,7 +333,7 @@ namespace python {
 		      out("VAL", acc.str())
 		      	("KEY", (src && src->Vtype==PNLVECTCOMPACT) ? 2 : 1) 
 		      	<< 
-			   		"['%PROP_NAME%', %KEY%, %VAL%],";
+			   		"['%PROP_NAME%', %KEY%, self.%FLD_NAME%],";
 			}
 
 			/// assert for ENUM
@@ -341,7 +341,7 @@ namespace python {
 			{
     			out("KEY", e.type->label)
     				("VAL", e.type->members.find(e.value)->second.quoted_original_label)
-    				<< "['%PROP_NAME%', self.%FLD_NAME%.meta(), '%VAL%'],";
+    				<< "['%PROP_NAME%', self.%FLD_NAME%.meta(), self.%FLD_NAME%._labels[self.%FLD_NAME%._value.key()], self.%FLD_NAME%._value.meta()],";
 			}
 		private:
 			Formatter & out;

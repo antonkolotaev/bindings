@@ -151,7 +151,7 @@ function ScalarValue(value, converter=_parseFloat, iterable=true) {
         }
     })
 
-    self.serialized = function() {
+    self.serialized = ko.computed(function() {
         var x = nanconverter(self.value());
         return (self.hasIteration() 
             ? ['iterate', 
@@ -159,7 +159,7 @@ function ScalarValue(value, converter=_parseFloat, iterable=true) {
                 nanconverter(self.iterateTo()), 
                 NaN2error(iterateToChecker)(self.iterationsCount())
             ] : x);
-    }
+    });
 }
 
 function renderConstraint(constraint) {
@@ -218,18 +218,18 @@ function VectorField(label, values) {
 
     self.values = $.map(values, function (value, i) { return new ScalarValue(value); });
 
-    self.spansize = function () {
+    self.spansize = ko.computed(function () {
         return self.values.reduce(function(acc, val){
             return acc + (val.hasIteration() ? 2 : 1);
         },0);
-    }
+    });
     self.getFields = function() {
         return [self];
     }
 
-    self.serialized = function() {
+    self.serialized = ko.computed(function() {
         return [map(self.values, function (value) { return value.serialized(); })];
-    }
+    });
 
 }
 
@@ -257,11 +257,11 @@ function VectorCompactField(label, values) {
     self.renderer = 'vectorcompact-row-template';
     self.options = ["Constant", "Array"];
     self.isvector = ko.observable(isvector ? "Array" : "Constant");
-    self.spansize = function () {
+    self.spansize = ko.computed(function () {
         return 1 + self.elements().reduce(function(acc, val){
             return acc + (val.hasIteration() ? 2 : 1);
         },0);
-    }
+    });
     self.vector = $.map(values, function (value) {
         return new ScalarValue(value);
     });
@@ -279,13 +279,13 @@ function VectorCompactField(label, values) {
         return [self];
     }
 
-    self.serialized = function() {
+    self.serialized = ko.computed(function() {
         if (self.isvector() == "Array")
             return [map(self.vector, function (value) { return value.serialized(); })];
         else {
             return [[self.scalar.serialized()]];
         }
-    }
+    });
 }
 
 
@@ -319,29 +319,30 @@ function serialized(arr){
     },[]);
 }
 
-function EnumField(label, value, options_loaded) {
+function EnumField(label, value, options_loaded, params) {
     // console.log(options)
     var self = this;
 
     var options = [];
-    for (i = 0; i < options_loaded.length; i++)
-        options.push([options_loaded[i][0], loadParams(options_loaded[i][1])]);
+    for (i = 0; i < options_loaded.length; i++) {
+        var choice_label = options_loaded[i][0];
+        var choice_params = choice_label==value ? params : options_loaded[i][1];
+        options.push([choice_label, loadParams(choice_params)]);
+    }
 
     self.label = label;
     self.value = ko.observable(value);
     self.options = iterkeys(options);
     self.renderer = 'enum-row-template';
 
-    self.getFields = function() {
+    self.getFields = ko.computed(function() {
         return [self].concat(flatten(lookup(options, self.value())));
-    }
+    });
 
-    self.serialized = function() {
+    self.serialized = ko.computed(function() {
         return [[self.value(), serialized(lookup(options, self.value()))]];
-    }
+    });
 }
-
-var enum_params = new CachedMap(function (e) { return get('enum_params?e='+e); });
 
 var assets = get('assets');
 
@@ -362,7 +363,7 @@ function loadParams(raw) {
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
             (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
             (e[1] == 3) ? new FilenameField(e[0], e[2]) :
-            new EnumField(e[0], e[2], e[1]));
+            new EnumField(e[0], e[2], e[1], e[3]));
     });
 }
 
@@ -580,11 +581,13 @@ function ModelView() {
         var graphs = [];
         var src = self.iterationResult2d();
         for (var i = 2; i<src.length; i++) {
+            console.log("src="+src);         
             var len_1 = src[0][1].length;
             var len_2 = src[1][1].length;
             var meta = self.myMethodResults()[i-2];
             if (meta.visible()) {
-                var s = src[i];            
+                var s = src[i];   
+                console.log("s="+s);         
                 if (typeof(s[1][0]) == "number") {
                     var d = {
                         data: array_to_2d(s[1], len_1, len_2),
