@@ -22,10 +22,13 @@ function CachedMap(getter) {
    self.at = function (key) {
         if (self._storage[key] == undefined){
             //console.log(key + ' not found -> fetching');
-            self._storage[key] = getter(key);
+            self._storage[key] = ko.observable(getter(key));
         } //else console.log(key + 'found');
         return self._storage[key];
    };  
+   self.set = function (key, value) {
+        self._storage[key](value);
+   }
 }
 
 function KsCachedMap(query_fun) {
@@ -34,9 +37,9 @@ function KsCachedMap(query_fun) {
     });
 }
 
-function ParamCachedMap(query_fun) {
+function ParamCachedMap(parent, entity, query_fun) {
     return new CachedMap(function (key) {
-            return loadParams(get(query_fun(key)));
+            return loadParams(get(query_fun(key)), parent, [entity]);
         });
 }
 
@@ -114,10 +117,19 @@ function NaN2error(f) {
 }
 
 
-function ScalarValue(value, converter=_parseFloat, iterable=true) {
+function ScalarValue(value, converter=_parseFloat, iterable=true, reloader=null) {
     var self = this;
     var nanconverter = NaN2error(converter);
-    self.value = ko.observable(value);
+    self.valueRaw = ko.observable(value);
+    self.value = ko.computed({
+        read: function () { return self.valueRaw(); },
+        write: function (x) { 
+            if (reloader) 
+                reloader(nanconverter(x));
+            else
+                self.valueRaw(x); 
+        }
+    })
     self.valueInvalid = ko.computed(function(){
         return isNaN(converter(self.value()));
     })
@@ -193,10 +205,16 @@ function makeConverter(constraint) {
     return conv;
 }
 
-function ScalarField(label, value, constraint, iterable) {
+function ScalarField(label, value, constraint, iterable, root=null, prefix=[], setter="") {
     var self = this;
     self.label = label;
-    self.value = new ScalarValue(value, makeConverter(constraint), iterable);
+    var reloader = setter=="" ? null : function (x) {
+        var c = prefix.slice(0);
+        c.push(setter);
+        root.reload(c, x);
+    };
+    self.hasTrivialSetter = setter.length == 0;
+    self.value = new ScalarValue(value, makeConverter(constraint), iterable, reloader);
     self.renderer = 'scalar-row-template';
 
     self.getFields = function() {
@@ -257,11 +275,6 @@ function VectorCompactField(label, values) {
     self.renderer = 'vectorcompact-row-template';
     self.options = ["Constant", "Array"];
     self.isvector = ko.observable(isvector ? "Array" : "Constant");
-    self.spansize = ko.computed(function () {
-        return 1 + self.elements().reduce(function(acc, val){
-            return acc + (val.hasIteration() ? 2 : 1);
-        },0);
-    });
     self.vector = $.map(values, function (value) {
         return new ScalarValue(value);
     });
@@ -269,6 +282,11 @@ function VectorCompactField(label, values) {
 
     self.elements = ko.computed(function() {
         return self.isvector() == "Array" ? self.vector : [self.scalar];
+    });
+    self.spansize = ko.computed(function () {
+        return 1 + self.elements().reduce(function(acc, val){
+            return acc + (val.hasIteration() ? 2 : 1);
+        },0);
     });
 
     self.at = function(i) {
@@ -319,7 +337,7 @@ function serialized(arr){
     },[]);
 }
 
-function EnumField(label, value, options_loaded, params) {
+function EnumField(label, value, options_loaded, params, parent, entity) {
     // console.log(options)
     var self = this;
 
@@ -327,7 +345,7 @@ function EnumField(label, value, options_loaded, params) {
     for (i = 0; i < options_loaded.length; i++) {
         var choice_label = options_loaded[i][0];
         var choice_params = choice_label==value ? params : options_loaded[i][1];
-        options.push([choice_label, loadParams(choice_params)]);
+        options.push([choice_label, loadParams(choice_params, parent, entity.concat(label))]); // todo: pass true field name
     }
 
     self.label = label;
@@ -344,26 +362,14 @@ function EnumField(label, value, options_loaded, params) {
     });
 }
 
-var assets = get('assets');
-
-var models = KsCachedMap(function(asset) {return 'models?a='+asset; });;
-var families = KsCachedMap(function(model) {return 'families?m='+model; });;
-var options = KsCachedMap(function(args){ return 'options?m='+args[0]+"&f="+args[1];});;
-var methods = KsCachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args[1]+"&o="+args[2];});
-
-var model_params = ParamCachedMap(function (model) { return 'model_params?m='+model; });
-var option_params = ParamCachedMap(function (args) { return 'option_params?f='+args[0]+"&o="+args[1]; });
-var method_params = ParamCachedMap(function (args) { return 'method_params?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
-var method_results = ResultCachedMap(function (args) { return 'method_results?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
-
-function loadParams(raw) {
+function loadParams(raw, parent, entity) {
     return $.map(raw, function (e) {
         return (
-            (e[1] == 0) ? new ScalarField(e[0], e[2], e[3], e[4]) :
+            (e[1] == 0) ? new ScalarField(e[0], e[2], e[3], e[4], parent, entity, e[5]) :
             (e[1] == 1) ? new VectorField(e[0], e[2]) :
             (e[1] == 2) ? new VectorCompactField(e[0], e[2]) :
             (e[1] == 3) ? new FilenameField(e[0], e[2]) :
-            new EnumField(e[0], e[2], e[1], e[3]));
+            new EnumField(e[0], e[2], e[1], e[3], parent, entity));
     });
 }
 
@@ -379,10 +385,22 @@ function array_to_2d(src, len_1, len_2) {
 
 function ModelView() {
     var self = this; 
+    
+    self.assets = get('assets');
+
+    self.models = KsCachedMap(function(asset) {return 'models?a='+asset; });;
+    self.families = KsCachedMap(function(model) {return 'families?m='+model; });;
+    self.options = KsCachedMap(function(args){ return 'options?m='+args[0]+"&f="+args[1];});;
+    self.methods = KsCachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args[1]+"&o="+args[2];});
+
+    self.model_params = ParamCachedMap(self, 'model', function (model) { return 'model_params?m='+model; });
+    self.option_params = ParamCachedMap(self, 'option', function (args) { return 'option_params?f='+args[0]+"&o="+args[1]; });
+    self.method_params = ParamCachedMap(self, 'method', function (args) { return 'method_params?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
+    self.method_results = ResultCachedMap(function (args) { return 'method_results?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
 
     //------------------------------------------------------- Asset
 
-    self.myAsset = ko.observable(assets[0]);
+    self.myAsset = ko.observable(self.assets[0]);
     self.myAssetProxy = ko.computed({
         read: function () { return self.myAsset() },
         write: function (value) { 
@@ -393,7 +411,7 @@ function ModelView() {
     //-------------------------------------------------------- Model
 
     self.myModels = ko.computed(function(){
-        return models.at(self.myAsset());
+        return self.models.at(self.myAsset())();
     });
     
     self.myModel = ko.observable(self.myModels()[0]);
@@ -405,8 +423,9 @@ function ModelView() {
         }
     });
 
-    self.myModelParamsNF = ko.computed(function () {
-        return model_params.at(self.myModel());
+    self.myModelParamsNF = ko.computed({
+        read: function () { return self.model_params.at(self.myModel())(); },
+        write: function (x) { self.model_params.set(self.myModel(), x); }
     });
 
     self.myModelParams = ko.computed(function () {
@@ -416,7 +435,7 @@ function ModelView() {
     //---------------------------------------------------------- Family
 
     self.myFamilies = ko.computed(function(){
-        return families.at(self.myModel());
+        return self.families.at(self.myModel())();
     });
 
     self.myFamily = ko.observable(self.myFamilies()[0]);
@@ -430,7 +449,7 @@ function ModelView() {
     //------------------------------------------------------------ Option
 
     self.myOptions = ko.computed(function(){
-        return options.at([self.myModel(), self.myFamily()]);
+        return self.options.at([self.myModel(), self.myFamily()])();
     });
     self.myOption = ko.observable(self.myOptions()[0]);
     self.myOptionProxy = ko.computed({
@@ -440,8 +459,12 @@ function ModelView() {
         }
     });
     
-    self.myOptionParamsNF = ko.computed(function () {
-        return option_params.at([self.myFamily(), self.myOption()]);
+    // self.myOptionParamsNF = ko.computed(function () {
+    //     return self.option_params.at([self.myFamily(), self.myOption()])();
+    // });
+    self.myOptionParamsNF = ko.computed({
+        read: function () { return self.option_params.at([self.myFamily(), self.myOption()])(); },
+        write: function (x) { self.option_params.set([self.myFamily(), self.myOption()], x); }
     });
     self.myOptionParams = ko.computed(function () {
         return flatten(self.myOptionParamsNF());
@@ -450,7 +473,7 @@ function ModelView() {
     //--------------------------------------------------------------- Method
 
     self.myMethods = ko.computed(function(){
-        return methods.at([self.myModel(), self.myFamily(), self.myOption()]);
+        return self.methods.at([self.myModel(), self.myFamily(), self.myOption()])();
     });
     self.myMethod = ko.observable(self.myMethods()[0]);    
     self.myMethodProxy = ko.computed({
@@ -462,26 +485,44 @@ function ModelView() {
     });
 
     self.myMethodResults = ko.computed(function () {
-        return method_results.at([self.myModel(), self.myFamily(), self.myMethod()]);
+        return self.method_results.at([self.myModel(), self.myFamily(), self.myMethod()])();
     });
 
     self.myMethodParamsNF = ko.computed(function () {
-        return method_params.at([self.myModel(), self.myFamily(), self.myMethod()]);
+        return self.method_params.at([self.myModel(), self.myFamily(), self.myMethod()])();
+    });
+    self.myMethodParamsNF = ko.computed({
+        read: function () { return self.method_params.at([self.myModel(), self.myFamily(), self.myMethod()])(); },
+        write: function (x) { self.method_params.set([self.myModel(), self.myFamily(), self.myMethod()], x); }
     });
 
     self.myMethodParams = ko.computed(function () {
         return flatten(self.myMethodParamsNF());
     });
-
     //------------------------------------------------------------------- Result
+    self.currentState = ko.computed(function(){
+        return [
+            [self.myAsset(), self.myModel(), serialized(self.myModelParamsNF())],
+            [self.myFamily(), self.myOption(), serialized(self.myOptionParamsNF())],
+            [self.myMethod(), serialized(self.myMethodParamsNF())]
+        ];        
+    })
 
     self.query = ko.computed(function () {
-        return $.toJSON([
-                [self.myAsset(), self.myModel(), serialized(self.myModelParamsNF())],
-                [self.myFamily(), self.myOption(), serialized(self.myOptionParamsNF())],
-                [self.myMethod(), serialized(self.myMethodParamsNF())]
-            ]);
+        return $.toJSON(self.currentState());
     });
+
+    self.reload = function(path, value) {
+        var query = $.toJSON([self.currentState(), [path, value]]);
+        var response = get("adjust?"+query);
+        console.log(response);
+        var model = loadParams(response[0], self, ['model']);
+        var option = loadParams(response[1], self, ['option']);
+        var method = loadParams(response[2], self, ['method']);
+        self.myModelParamsNF(model);
+        self.myOptionParamsNF(option);
+        self.myMethodParamsNF(method);
+    }
 
     self.iterationRang = ko.computed(function() {
         var q = self.query();

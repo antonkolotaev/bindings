@@ -7,13 +7,13 @@
           <tr>
             <td class="keys">Iterate to:</td>
             <td class="values" data-bind="css: { error: iterateToInvalid }">
-              <input data-bind="value: iterateTo"></input>
+              <input data-bind='value: iterateTo, valueUpdate: "afterkeydown"'></input>
             </td>
           </tr>
           <tr>
             <td class="keys">#Iterations:</td>
             <td class="values" data-bind="css: { error: iterationCountInvalid }">
-              <input data-bind="value: iterationsCount"></input>
+              <input data-bind='value: iterationsCount, valueUpdate: "afterkeydown"'></input>
             </td>
           </tr>
         </table>
@@ -31,7 +31,12 @@
       <input type="checkbox" data-bind="checked: value.hasIteration">
     </td>
     <td data-bind="css: { error: value.valueInvalid }">
-        <input data-bind="value: value.value"></input>
+      <!-- ko if: hasTrivialSetter==true -->
+        <input data-bind='value: value.value, valueUpdate: "afterkeydown"'></input>
+      <!-- /ko -->
+      <!-- ko if: hasTrivialSetter==false -->
+        <input data-bind='value: value.value'></input>
+      <!-- /ko -->
     </td>
     <td class="constraints" data-bind="attr: { rowspan: value.hasIteration() ? 2 : 1 }, html: constraint">
     </td>
@@ -67,7 +72,7 @@
           <input type="checkbox" data-bind="checked: hasIteration"></input>
         </td>
         <td  data-bind="css: { error: valueInvalid }">
-          <input data-bind="value: value"></input>
+          <input data-bind='value: value, valueUpdate: "afterkeydown"'></input>
         </td>
       <!-- /ko -->    
       <!-- ko ifnot: $index -->
@@ -96,7 +101,7 @@
           <input type="checkbox" data-bind="checked: $parent.at($index()).hasIteration"></input>
         </td>
         <td  data-bind="css: { error: $parent.at($index()).valueInvalid }">
-          <input data-bind="value: $parent.at($index()).value"></input>
+          <input data-bind='value: $parent.at($index()).value, valueUpdate: "afterkeydown"'></input>
         </td>
         <td></td>
       </tr>
