@@ -114,6 +114,63 @@
 </table>
 </script>
 
+<script type="text/html" id="history">
+<!-- ko foreach: history -->
+<table class="history">
+  <tr>
+    <td>
+      <table class="model">
+        <tr>
+          <th>Asset type:</th>
+          <th data-bind="text: myAsset"></th>
+          <th></th>
+        </tr>
+        <tr>
+          <th>Model:</th>
+          <th data-bind="text: myModel"></th>
+          <th></th>
+        </tr>
+         <tbody data-bind="template: { name: 'row-history-template', foreach: myModelParams }">
+        </tbody>
+      </table>
+    </td>
+
+    <td>
+      <table class="option">
+        <tr>
+          <th>Family:</th>
+          <th data-bind="text: myFamily"></th>
+          <th></th>
+        </tr>
+        <tr>
+          <th>Option:</th>
+          <th data-bind="text: myOption"></th>
+          <th></th>
+        </tr>
+        <tbody data-bind="template: { name: 'row-history-template', foreach: myOptionParams }">
+        </tbody>
+      </table>
+    </td>
+
+    <td>
+      <table class="pricing_method">
+        <tr>
+          <th>Pricing method:</th>
+          <th data-bind="text: myMethod"></th>
+          <th></th>
+        </tr>
+        <tbody data-bind="template: { name: 'row-history-template', foreach: myMethodParams }">
+        </tbody>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- /ko -->
+</script>
+
+<div data-bind="template: { name: 'history' }">
+</div>
+
 <div data-bind="template: { name: 'current' }">
 </div>
 

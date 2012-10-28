@@ -172,6 +172,12 @@ function ScalarValue(value, converter=_parseFloat, iterable=true, reloader=null)
                 NaN2error(iterateToChecker)(self.iterationsCount())
             ] : x);
     });
+
+    self.asHistory = ko.computed(function () {
+        return (self.hasIteration() 
+            ? "{" + self.value() + ":" + self.iterateTo() + "/" + self.iterationsCount() + "}" 
+            : self.value());
+    });
 }
 
 function renderConstraint(constraint) {
@@ -207,6 +213,7 @@ function makeConverter(constraint) {
 
 function ScalarField(label, value, constraint, iterable, root=null, prefix=[], setter="") {
     var self = this;
+    self.type = 0;
     self.label = label;
     var reloader = setter=="" ? null : function (x) {
         var c = prefix.slice(0);
@@ -225,6 +232,10 @@ function ScalarField(label, value, constraint, iterable, root=null, prefix=[], s
         return [self.value.serialized()];
     }
 
+    self.asHistory = function() {
+        return [[self.label, self.value.asHistory()]];
+    }
+
     self.constraint = renderConstraint(constraint);
 
 }
@@ -232,6 +243,7 @@ function ScalarField(label, value, constraint, iterable, root=null, prefix=[], s
 function VectorField(label, values) {
     var self = this;
     self.label = label;
+    self.type = 1;
     self.renderer = 'vector-row-template';
 
     self.values = $.map(values, function (value, i) { return new ScalarValue(value); });
@@ -249,15 +261,20 @@ function VectorField(label, values) {
         return [map(self.values, function (value) { return value.serialized(); })];
     });
 
+    self.asHistory = ko.computed(function() {
+        return [[self.label, "["+map(self.values, function (value) { return value.asHistory(); })+"]"]];
+    });
 }
 
 function FilenameField(label, value) {
     var self = this;
+    self.type = 3;
     self.label = label;
     self.value = value;
     self.renderer = 'filename-row-template';
     self.getFields = function () { return []; }
     self.serialized = function () { return [self.value]; }
+    self.asHistory = function() { return []; }
 }
 
 function allequal(arr) {
@@ -271,6 +288,7 @@ function allequal(arr) {
 function VectorCompactField(label, values) {
     var self = this;
     var isvector = allequal(values) == false;
+    self.type = 2;
     self.label = label;
     self.renderer = 'vectorcompact-row-template';
     self.options = ["Constant", "Array"];
@@ -304,6 +322,10 @@ function VectorCompactField(label, values) {
             return [[self.scalar.serialized()]];
         }
     });
+    self.asHistory = ko.computed(function() {
+        var prefix = self.isvector() == "Array" ? "" : self.vector.length+"*";
+        return [[self.label, prefix+"["+map(self.elements(), function (value) { return value.asHistory(); }) + "]"]];
+    });
 }
 
 
@@ -336,6 +358,11 @@ function serialized(arr){
         return acc.concat(val.serialized());
     },[]);
 }
+function asHistory(arr){
+    return arr.reduce(function(acc, val){
+        return acc.concat(val.asHistory());
+    },[]);
+}
 
 function EnumField(label, value, options_loaded, params, parent, entity) {
     // console.log(options)
@@ -348,17 +375,31 @@ function EnumField(label, value, options_loaded, params, parent, entity) {
         options.push([choice_label, loadParams(choice_params, parent, entity.concat(label))]); // todo: pass true field name
     }
 
+    self.type = options_loaded;
     self.label = label;
     self.value = ko.observable(value);
     self.options = iterkeys(options);
     self.renderer = 'enum-row-template';
 
+    self.myParams = ko.computed(function() {
+        return lookup(options, self.value());
+    })
+
     self.getFields = ko.computed(function() {
-        return [self].concat(flatten(lookup(options, self.value())));
+        return [self].concat(flatten(self.myParams()));
     });
 
     self.serialized = ko.computed(function() {
-        return [[self.value(), serialized(lookup(options, self.value()))]];
+        return [[self.value(), serialized(self.myParams())]];
+    });
+
+    self.asHistory = ko.computed(function() {
+        var res = [[self.label, self.value()]];
+        for (var i=0; i<self.myParams().length; i++) {
+            var e = self.myParams()[i];
+            res.concat(e.asHistory());
+        }
+        return res;
     });
 }
 
@@ -381,6 +422,20 @@ function array_to_2d(src, len_1, len_2) {
         res.push(src.splice(0, len_2));
     }
     return res;
+}
+
+function HistoryElement(root, query, result) {
+    var self = this;
+    self.query = query;
+    self.result = result;
+    self.myAsset = root.myAsset();
+    self.myModel = root.myModel();
+    self.myFamily = root.myFamily();
+    self.myOption = root.myOption();
+    self.myMethod = root.myMethod();
+    self.myModelParams = asHistory(root.myModelParams());
+    self.myOptionParams = asHistory(root.myOptionParams());
+    self.myMethodParams = asHistory(root.myMethodParams());
 }
 
 function ModelView() {
@@ -542,6 +597,8 @@ function ModelView() {
         var s = '"_error_"';
         return q.indexOf(s, 0) == -1;        
     })
+
+    self.history = ko.observableArray();
 
     self.resultRaw = ko.observable([]);
     self.resultQuery = ko.observable("");
@@ -743,7 +800,10 @@ $('#Compute').click(function() {
     mv.resultQuery(my_query);
     $.getJSON('api.ks/compute?'+my_query, function (data) {
         console.log(data);
-        if (my_query == mv.query())
+        if (my_query == mv.query()) {
             mv.resultRaw(data);
+            mv.history.push(HistoryElement(mv, my_query, data));
+            window.scrollTo(0, document.body.scrollHeight);
+        }
     }); 
 });
