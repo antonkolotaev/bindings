@@ -524,14 +524,17 @@ function ModelView() {
         self.myMethodParamsNF(method);
     }
 
-    self.iterationRang = ko.computed(function() {
-        var q = self.query();
+    self.iterationRangOf = function(q) {
         var s = '"iterate"';
         var pos = q.indexOf(s, 0);
         if (pos == -1) return 0;
         pos = q.indexOf(s, pos+1);
         if (pos == -1) return 1;
         return 2;
+    }
+
+    self.iterationRang = ko.computed(function() { 
+        return self.iterationRangOf(self.query());
     })
 
     self.paramsAreOk = ko.computed(function() {
@@ -543,8 +546,12 @@ function ModelView() {
     self.resultRaw = ko.observable([]);
     self.resultQuery = ko.observable("");
 
+    self.resultIterationRang = ko.computed(function(){
+        return self.iterationRangOf(self.resultQuery());
+    })
+
     self.scalarResult = ko.computed(function() {
-        return (self.iterationRang() == 0 && self.resultQuery() == self.query() 
+        return (self.resultIterationRang() == 0 && self.resultQuery() == self.query() 
             ? map(self.resultRaw(), function (val, i) { return [self.myMethodResults()[i].label, val[1]]; })
             : []);
     });
@@ -553,10 +560,12 @@ function ModelView() {
     self.graphSizeY = ko.observable(384);
 
     self.iterationResult1d = ko.computed(function() {
-        return (self.iterationRang() == 1 && self.resultQuery() == self.query() 
-            ? self.resultRaw() 
-            : []); 
+        return (self.resultIterationRang() == 1 ? self.resultRaw() : []); 
     })  
+
+    self.showGraph1d = ko.computed(function() {
+        return self.resultIterationRang() == 1 && self.resultQuery() == self.query();
+    })
 
     self.iteration1dGraphsData = ko.computed(function() {
         var kinds = {};
@@ -613,10 +622,12 @@ function ModelView() {
     } 
 
     self.iterationResult2d = ko.computed(function() {
-        return (self.iterationRang() == 2 && self.resultQuery() == self.query() 
-            ? self.resultRaw() 
-            : []); 
+        return (self.resultIterationRang() == 2 ? self.resultRaw() : []); 
     })  
+
+    self.showGraph2d = ko.computed(function() {
+        return self.resultIterationRang() == 2 && self.resultQuery() == self.query();
+    })
 
     self.iteration2dGraphsData = ko.computed(function() {
         var graphs = [];
