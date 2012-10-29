@@ -161,10 +161,44 @@
         </tr>
         <tbody data-bind="template: { name: 'row-history-template', foreach: myMethodParams }">
         </tbody>
+        <tr data-bind="if: scalarResult.length>0">
+          <th>Result:</th>
+          <th></th>
+          <th></th>
+        </tr>
+        <!-- ko foreach: scalarResult -->
+          <!-- ko if: typeof($data[1])=="number" -->
+            <tr data-bind="css: { even: $index()%2==0 }">
+              <td             class="keys" data-bind="text: $data[0]"></td>
+              <td colspan="2" class="values" data-bind="text: $data[1]"></td>
+            </tr>
+          <!-- /ko -->
+          <!-- ko notif: typeof($data[1])=="number" -->
+            <!-- ko foreach: $data[1] -->
+              <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+                <!-- ko ifnot: $index -->
+                  <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
+                <!-- /ko -->
+              <td colspan="2" class="values" data-bind="text: $data"></td>
+              </tr>
+            <!-- /ko -->
+          <!-- /ko -->
+        <!-- /ko -->
       </table>
     </td>
   </tr>
 </table>
+<!-- ko if: iterationRang==1  -->
+  <div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
+    <div class="graph1d"></div>
+  </div>
+<!-- /ko -->
+<!-- ko if: iterationRang==2  -->
+  <div data-bind="template: { foreach: iteration2dGraphsData, afterRender: renderGraph2d }">
+    <div class="graph1d"></div>
+  </div>
+<!-- /ko -->
+
 <!-- /ko -->
 </script>
 
@@ -188,6 +222,6 @@
 <span data-bind="text: iterationRang"></span>
 <!-- ko if: showGraph2d  -->
   <div data-bind="template: { foreach: iteration2dGraphsData, afterRender: renderGraph2d }">
-    <div style="width: 740px; height: 484px;"></div>
+    <div class="graph1d"></div>
   </div>
 <!-- /ko -->

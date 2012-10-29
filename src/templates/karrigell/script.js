@@ -424,10 +424,18 @@ function array_to_2d(src, len_1, len_2) {
     return res;
 }
 
+function iterationRangOf(q) {
+    var s = '"iterate"';
+    var pos = q.indexOf(s, 0);
+    if (pos == -1) return 0;
+    pos = q.indexOf(s, pos+1);
+    if (pos == -1) return 1;
+    return 2;
+}
+
+
 function HistoryElement(root, query, result) {
     var self = this;
-    self.query = query;
-    self.result = result;
     self.myAsset = root.myAsset();
     self.myModel = root.myModel();
     self.myFamily = root.myFamily();
@@ -436,6 +444,20 @@ function HistoryElement(root, query, result) {
     self.myModelParams = asHistory(root.myModelParams());
     self.myOptionParams = asHistory(root.myOptionParams());
     self.myMethodParams = asHistory(root.myMethodParams());
+
+
+    self.result = result;
+    self.query = query;
+
+    self.iterationRang = iterationRangOf(self.query);
+
+    self.scalarResult = map(root.scalarResult(), function (e) { return [e[0](), e[1]]; });
+
+    self.iteration1dGraphsData = eval($.toJSON(root.iteration1dGraphsData()));
+    self.renderGraph1d = root.renderGraph1d;
+
+    self.iteration2dGraphsData = eval($.toJSON(root.iteration2dGraphsData()));
+    self.renderGraph2d = root.renderGraph2d;
 }
 
 function ModelView() {
@@ -579,17 +601,8 @@ function ModelView() {
         self.myMethodParamsNF(method);
     }
 
-    self.iterationRangOf = function(q) {
-        var s = '"iterate"';
-        var pos = q.indexOf(s, 0);
-        if (pos == -1) return 0;
-        pos = q.indexOf(s, pos+1);
-        if (pos == -1) return 1;
-        return 2;
-    }
-
     self.iterationRang = ko.computed(function() { 
-        return self.iterationRangOf(self.query());
+        return iterationRangOf(self.query());
     })
 
     self.paramsAreOk = ko.computed(function() {
@@ -604,7 +617,7 @@ function ModelView() {
     self.resultQuery = ko.observable("");
 
     self.resultIterationRang = ko.computed(function(){
-        return self.iterationRangOf(self.resultQuery());
+        return iterationRangOf(self.resultQuery());
     })
 
     self.scalarResult = ko.computed(function() {
@@ -722,8 +735,11 @@ function ModelView() {
         for (var i=0; i<elem.length; i++) {
             var e = elem[i];
             if (e.nodeType==1) {
-                e.style.width = (self.graphSizeX()+200)+'px';
-                e.style.height = (self.graphSizeY()+200)+'px';
+                var sizeX = parseInt(self.graphSizeX()) + 200;
+                var sizeY = parseInt(self.graphSizeY()) + 200;
+
+                e.style.width = sizeX+'px';
+                e.style.height = sizeY+'px';
                 
                 var surfacePlot;
                 var keys_1 = self.iterationResult2d()[0][1];
@@ -760,9 +776,6 @@ function ModelView() {
                 // console.log("xAxisHeader="+xAxisHeader);
                 // console.log("yAxisHeader="+yAxisHeader);
                 // console.log("zAxisHeader="+zAxisHeader);
-
-                sizeX = self.graphSizeX();
-                sizeY = self.graphSizeY();
 
                 var renderDataPoints = false;
                 var background = '#ffffff';
