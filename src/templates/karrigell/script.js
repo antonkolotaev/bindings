@@ -434,7 +434,7 @@ function iterationRangOf(q) {
 }
 
 
-function HistoryElement(root, query, result) {
+function HistoryElement(root) {
     var self = this;
     self.myAsset = root.myAsset();
     self.myModel = root.myModel();
@@ -446,8 +446,8 @@ function HistoryElement(root, query, result) {
     self.myMethodParams = asHistory(root.myMethodParams());
 
 
-    self.result = result;
-    self.query = query;
+    self.result = root.resultRaw();
+    self.query = root.resultQuery();
 
     self.iterationRang = iterationRangOf(self.query);
 
@@ -627,13 +627,24 @@ function ModelView() {
         return self.query() == self.resultQuery() && self.resultRaw().length==0;
     });
 
+    var historyPusher = ko.computed(function () {
+        if (self.query() != self.resultQuery()) {
+            if (self.resultRaw().length) {
+                self.history.unshift(new HistoryElement(self));            
+                self.resultRaw([]);
+                self.resultQuery("");
+            }
+        }
+        return 0;
+    })
+
 
     self.resultIterationRang = ko.computed(function(){
         return iterationRangOf(self.resultQuery());
     })
 
     self.scalarResult = ko.computed(function() {
-        return (self.resultIterationRang() == 0 && self.resultQuery() == self.query() 
+        return (self.resultIterationRang() == 0
             ? map(self.resultRaw(), function (val, i) { return [self.myMethodResults()[i].label, val[1]]; })
             : []);
     });
@@ -646,7 +657,7 @@ function ModelView() {
     })  
 
     self.showGraph1d = ko.computed(function() {
-        return self.resultIterationRang() == 1 && self.resultQuery() == self.query();
+        return self.resultIterationRang() == 1;
     })
 
     self.ownIteration1dKinds = ko.computed(function() {
@@ -713,7 +724,7 @@ function ModelView() {
     })  
 
     self.showGraph2d = ko.computed(function() {
-        return self.resultIterationRang() == 2 && self.resultQuery() == self.query();
+        return self.resultIterationRang() == 2;
     })
 
     self.iteration2dGraphsData = ko.computed(function() {
@@ -832,7 +843,6 @@ $('#Compute').click(function() {
         console.log(data);
         if (my_query == mv.query()) {
             mv.resultRaw(data);
-            mv.history.unshift(new HistoryElement(mv, my_query, data));            
         }
     }); 
 });
