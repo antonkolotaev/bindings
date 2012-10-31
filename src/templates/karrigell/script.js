@@ -453,10 +453,17 @@ function HistoryElement(root, query, result) {
 
     self.scalarResult = map(root.scalarResult(), function (e) { return [e[0](), e[1]]; });
 
-    self.iteration1dGraphsData = eval($.toJSON(root.iteration1dGraphsData()));
+    self.iteration1dKinds = ko.computed(function() { return root.ownIteration1dKinds(); });
+
+    self.iteration1dGraphsData = [];
+    var kinds = self.iteration1dKinds();
+    for (var k in kinds) {
+        self.iteration1dGraphsData.push(kinds[k]);
+    }
+
     self.renderGraph1d = root.renderGraph1d;
 
-    self.iteration2dGraphsData = eval($.toJSON(root.iteration2dGraphsData()));
+    self.iteration2dGraphsData = root.iteration2dGraphsData();
     self.renderGraph2d = root.renderGraph2d;
 }
 
@@ -637,7 +644,7 @@ function ModelView() {
         return self.resultIterationRang() == 1 && self.resultQuery() == self.query();
     })
 
-    self.iteration1dGraphsData = ko.computed(function() {
+    self.ownIteration1dKinds = ko.computed(function() {
         var kinds = {};
         var src = self.iterationResult1d();
         for (var i = 1; i<src.length; i++) {
@@ -665,6 +672,11 @@ function ModelView() {
                 }
             }
         }
+        return kinds;
+    });
+
+    self.iteration1dGraphsData = ko.computed(function() {
+        var kinds = self.ownIteration1dKinds();
         var graphs = [];
         for (var k in kinds) {
             graphs.push(kinds[k]);
