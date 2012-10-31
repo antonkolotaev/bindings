@@ -623,6 +623,11 @@ function ModelView() {
     self.resultRaw = ko.observable([]);
     self.resultQuery = ko.observable("");
 
+    self.computing = ko.computed(function () { 
+        return self.query() == self.resultQuery() && self.resultRaw().length==0;
+    });
+
+
     self.resultIterationRang = ko.computed(function(){
         return iterationRangOf(self.resultQuery());
     })
@@ -827,8 +832,7 @@ $('#Compute').click(function() {
         console.log(data);
         if (my_query == mv.query()) {
             mv.resultRaw(data);
-            mv.history.push(HistoryElement(mv, my_query, data));
-            window.scrollTo(0, document.body.scrollHeight);
+            mv.history.unshift(new HistoryElement(mv, my_query, data));            
         }
     }); 
 });

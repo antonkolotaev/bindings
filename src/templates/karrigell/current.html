@@ -105,7 +105,7 @@
         <tr>
           <td></td>
           <td></td>
-          <td><button id="Compute" data-bind="enable: paramsAreOk">Compute</button></td>
+          <td><button id="Compute" data-bind="enable: paramsAreOk, text: (computing() ? 'Computing...' : 'Compute')"></button></td>
           <td></td>
         </tr>
       </table>
@@ -129,7 +129,9 @@
     <div class="graph1d"></div>
   </div>
 <!-- /ko -->
+</script>
 
+<script type="text/html" id="footer">
 <table border="0" cellpadding="0" cellspacing="0" width="754px" align="center" class="footer">
 
   <tbody>
@@ -250,9 +252,11 @@ of Marne la Vall&eacute;e.</a><br>
 <!-- /ko -->
 </script>
 
-<div data-bind="template: { name: 'history' }">
-</div>
-
 <div data-bind="template: { name: 'current' }">
 </div>
 
+<div data-bind="template: { name: 'history' }">
+</div>
+
+<div data-bind="template: { name: 'footer' }">
+</div>
