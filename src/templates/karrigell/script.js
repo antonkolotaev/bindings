@@ -433,6 +433,14 @@ function iterationRangOf(q) {
     return 2;
 }
 
+function firstChild(e) {
+    for (var j=0; j<e.childNodes.length; j++) {
+        if (e.childNodes[j].nodeType == 1) {
+            return e.childNodes[j];
+        }
+    }    
+    return undefined;
+}
 
 function HistoryElement(root) {
     var self = this;
@@ -445,7 +453,6 @@ function HistoryElement(root) {
     self.myOptionParams = asHistory(root.myOptionParams());
     self.myMethodParams = asHistory(root.myMethodParams());
 
-
     self.result = root.resultRaw();
     self.query = root.resultQuery();
 
@@ -453,12 +460,18 @@ function HistoryElement(root) {
 
     self.scalarResult = map(root.scalarResult(), function (e) { return [e[0](), e[1]]; });
 
-    self.iteration1dKinds = ko.computed(function() { return root.ownIteration1dKinds(); });
+    self.iteration1dLabel = root.iteration1dLabel(); 
+    self.iteration1dKinds = root.iteration1dKinds();
 
     self.iteration1dGraphsData = [];
-    var kinds = self.iteration1dKinds();
+    var kinds = self.iteration1dKinds;
     for (var k in kinds) {
-        self.iteration1dGraphsData.push(kinds[k]);
+        var kind = kinds[k];
+        for (var i=0; i<kind.length; i++) {
+            kind[i].selected = ko.observable(false);
+        }
+        self.iteration1dGraphsData.push(kind);
+
     }
 
     self.renderGraph1d = root.renderGraph1d;
@@ -651,6 +664,8 @@ function ModelView() {
 
     self.graphSizeX = ko.observable(640);
     self.graphSizeY = ko.observable(384);
+    self.inheritByDefault = ko.observable(true);
+    self.suffix = ko.observable("");
 
     self.iterationResult1d = ko.computed(function() {
         return (self.resultIterationRang() == 1 ? self.resultRaw() : []); 
@@ -658,6 +673,10 @@ function ModelView() {
 
     self.showGraph1d = ko.computed(function() {
         return self.resultIterationRang() == 1;
+    })
+
+    self.iteration1dLabel = ko.computed(function() {
+        return self.iterationResult1d().length ? self.iterationResult1d()[0][0] : undefined;
     })
 
     self.ownIteration1dKinds = ko.computed(function() {
@@ -670,7 +689,7 @@ function ModelView() {
                 if (typeof(s[1][0]) == "number") {
                     var d = {
                         data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
-                        label: meta.label()
+                        label: meta.label() + self.suffix()
                     }
                     if (kinds[meta.kind] == undefined)
                         kinds[meta.kind] = [];
@@ -679,7 +698,7 @@ function ModelView() {
                     for (var ii=0; ii < s[1][0].length; ii++) {
                         var d = {
                             data: map(s[1], function(x,j) { return [src[0][1][j], x[ii]]; }),
-                            label: meta.label()+'['+ii+']'
+                            label: meta.label()+'['+ii+']'+ self.suffix()
                         }
                         if (kinds[meta.kind] == undefined)
                             kinds[meta.kind] = [];
@@ -691,8 +710,30 @@ function ModelView() {
         return kinds;
     });
 
+    self.iteration1dKinds = ko.computed(function () {
+        var history = self.history();
+        var kinds = $.parseJSON($.toJSON(self.ownIteration1dKinds()));
+        for (var h_idx=0; h_idx<history.length; h_idx++ ) {
+            var h = history[h_idx];
+            if (h.iteration1dLabel == self.iteration1dLabel()) {
+                var hKinds = h.iteration1dKinds; 
+                for (var k_idx in hKinds) {
+                    if (kinds[k_idx]==undefined) 
+                        kinds[k_idx] = [];
+                    var hKind = hKinds[k_idx];
+                    for (var i=0; i<hKind.length; i++) {
+                        if (hKind[i].selected()) {
+                            kinds[k_idx].push(hKind[i]);        
+                        }
+                    }
+                }           
+            } 
+        }
+        return kinds;
+    })
+
     self.iteration1dGraphsData = ko.computed(function() {
-        var kinds = self.ownIteration1dKinds();
+        var kinds = self.iteration1dKinds();
         var graphs = [];
         for (var k in kinds) {
             graphs.push(kinds[k]);
@@ -706,9 +747,10 @@ function ModelView() {
         for (var i=0; i<elem.length; i++) {
             var e = elem[i];
             if (e.nodeType==1) {
-                e.style.width = self.graphSizeX()+'px';
-                e.style.height = self.graphSizeY()+'px';
-                Flotr.draw(e, data, {
+                var ee = firstChild(firstChild(firstChild(firstChild(e))));
+                ee.style.width = self.graphSizeX()+'px';
+                ee.style.height = self.graphSizeY()+'px';
+                Flotr.draw(ee, data, {
                     legend : {
                         position : 'se',            // Position the legend 'south-east'.
                         backgroundColor : '#D2E8FF' // A light blue background color.

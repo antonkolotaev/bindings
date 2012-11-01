@@ -89,6 +89,18 @@
             <td><input data-bind="value: graphSizeY"></input></td>
             <td></td>
           </tr>
+          <tr class="even">
+            <td>Inherit last by default</td>
+            <td></td>
+            <td><input type="checkbox" data-bind="checked: inheritByDefault"></input></td>
+            <td></td>
+          </tr>
+          <tr class="odd">
+            <td>Suffix</td>
+            <td></td>
+            <td><input data-bind="value: suffix"></input></td>
+            <td></td>
+          </tr>
           <!-- ko foreach: myMethodResults -->
             <tr data-bind="css: { even: $index()%2==0 }">
               <td></td>
@@ -120,7 +132,14 @@
 <span data-bind="text: query"></span>
 <!-- ko if: showGraph1d  -->
   <div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
-    <div class="graph1d"></div>
+    <table class="graph1d">
+      <tr>
+        <td>
+          <div data-bind="attr: { id: $index }">
+          </div>
+        </td>
+      </tr>
+    </table>
   </div>
 <!-- /ko -->
 <span data-bind="text: iterationRang"></span>
@@ -240,7 +259,24 @@ of Marne la Vall&eacute;e.</a><br>
 </table>
 <!-- ko if: iterationRang==1  -->
   <div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
-    <div class="graph1d"></div>
+    <table class="graph1d">
+      <tr>
+        <td>
+          <div data-bind="attr: { id: $index }">
+          </div>
+        </td>
+        <td class="inherit">
+          <table data-bind="foreach: $data">
+            <tr data-bind="css: { even: $index()%2==0 }">
+              <td data-bind="text: label"></td>
+              <td>
+                <input type="checkbox" data-bind="value: selected"></input>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </div>
 <!-- /ko -->
 <!-- ko if: iterationRang==2  -->

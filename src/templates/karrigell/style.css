@@ -95,6 +95,13 @@ th {
    background-color:#EAF2D3;
 }
 
+.inherit {
+   vertical-align: middle;
+}
+
+.inherit .even {
+   background-color:#EAF2D3;  
+}
 .option {
    border:1px solid #FF9900;
 }
