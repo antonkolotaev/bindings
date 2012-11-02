@@ -900,3 +900,7 @@ $('#Compute').click(function() {
         }
     }); 
 });
+
+$('#ClearHistory').click(function() {
+    mv.history.removeAll();
+});
