@@ -49,7 +49,7 @@
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams }">
         </tbody>
-        <tr data-bind="if: scalarResult().length>0">
+        <tr data-bind="if: scalarResult()!=undefined">
           <th>Result:</th>
           <th></th>
           <th></th>
@@ -230,26 +230,28 @@ of Marne la Vall&eacute;e.</a><br>
         </tr>
         <tbody data-bind="template: { name: 'row-history-template', foreach: myMethodParams }">
         </tbody>
-        <tr data-bind="if: scalarResult.length>0">
+        <tr data-bind="if: iterationRang==0">
           <th>Result:</th>
           <th></th>
           <th></th>
         </tr>
-        <!-- ko foreach: scalarResult -->
-          <!-- ko if: typeof($data[1])=="number" -->
-            <tr data-bind="css: { even: $index()%2==0 }">
-              <td             class="keys" data-bind="text: $data[0]"></td>
-              <td colspan="2" class="values" data-bind="text: $data[1]"></td>
-            </tr>
-          <!-- /ko -->
-          <!-- ko notif: typeof($data[1])=="number" -->
-            <!-- ko foreach: $data[1] -->
-              <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
-                <!-- ko ifnot: $index -->
-                  <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
-                <!-- /ko -->
-              <td colspan="2" class="values" data-bind="text: $data"></td>
+        <!-- ko if: iterationRang==0 -->
+          <!-- ko foreach: scalarResult -->
+            <!-- ko if: typeof($data[1])=="number" -->
+              <tr data-bind="css: { even: $index()%2==0 }">
+                <td             class="keys" data-bind="text: $data[0]"></td>
+                <td colspan="2" class="values" data-bind="text: $data[1]"></td>
               </tr>
+            <!-- /ko -->
+            <!-- ko notif: typeof($data[1])=="number" -->
+              <!-- ko foreach: $data[1] -->
+                <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+                  <!-- ko ifnot: $index -->
+                    <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
+                  <!-- /ko -->
+                <td colspan="2" class="values" data-bind="text: $data"></td>
+                </tr>
+              <!-- /ko -->
             <!-- /ko -->
           <!-- /ko -->
         <!-- /ko -->

@@ -453,31 +453,30 @@ function HistoryElement(root) {
     self.myOptionParams = asHistory(root.myOptionParams());
     self.myMethodParams = asHistory(root.myMethodParams());
 
-    self.result = root.resultRaw();
     self.query = root.resultQuery();
 
     self.iterationRang = iterationRangOf(self.query);
 
-    self.scalarResult = map(root.scalarResult(), function (e) { return [e[0](), e[1]]; });
+    if (self.iterationRang == 0) {
+        self.scalarResult = map(root.scalarResult(), function (e) { return [e[0](), e[1]]; });
+    } else if (self.iterationRang == 1) {
+        self.iteration1dLabel = root.iteration1dLabel; 
+        self.iteration1dKinds = $.parseJSON($.toJSON(root.iteration1dKinds())); // TODO: don't copy data series
 
-    self.iteration1dLabel = root.iteration1dLabel(); 
-    self.iteration1dKinds = root.iteration1dKinds();
-
-    self.iteration1dGraphsData = [];
-    var kinds = self.iteration1dKinds;
-    for (var k in kinds) {
-        var kind = kinds[k];
-        for (var i=0; i<kind.length; i++) {
-            kind[i].selected = ko.observable(false);
+        self.iteration1dGraphsData = [];
+        var kinds = self.iteration1dKinds;
+        for (var k in kinds) {
+            var kind = kinds[k];
+            for (var i=0; i<kind.length; i++) {
+                kind[i].selected = ko.observable(false);
+            }
+            self.iteration1dGraphsData.push(kind);
         }
-        self.iteration1dGraphsData.push(kind);
-
+        self.renderGraph1d = root.renderGraph1d;
+    } else if (self.iterationRang == 2) {
+        self.iteration2dGraphsData = root.iteration2dGraphsData();
+        self.renderGraph2d = root.renderGraph2d;
     }
-
-    self.renderGraph1d = root.renderGraph1d;
-
-    self.iteration2dGraphsData = root.iteration2dGraphsData();
-    self.renderGraph2d = root.renderGraph2d;
 }
 
 function ModelView() {
@@ -625,6 +624,13 @@ function ModelView() {
         return iterationRangOf(self.query());
     })
 
+    self.resultQuery = ko.observable("");
+
+    self.resultIterationRang = ko.computed(function(){
+        return iterationRangOf(self.resultQuery());
+    })
+
+
     self.paramsAreOk = ko.computed(function() {
         var q = self.query();
         var s = '"_error_"';
@@ -633,110 +639,30 @@ function ModelView() {
 
     self.history = ko.observableArray();
 
-    self.resultRaw = ko.observable([]);
-    self.resultQuery = ko.observable("");
-
-    self.computing = ko.computed(function () { 
-        return self.query() == self.resultQuery() && self.resultRaw().length==0;
-    });
-
-    var historyPusher = ko.computed(function () {
-        if (self.query() != self.resultQuery()) {
-            if (self.resultRaw().length) {
-                self.history.unshift(new HistoryElement(self));            
-                self.resultRaw([]);
-                self.resultQuery("");
-            }
-        }
-        return 0;
-    })
-
-
-    self.resultIterationRang = ko.computed(function(){
-        return iterationRangOf(self.resultQuery());
-    })
-
-    self.scalarResult = ko.computed(function() {
-        return (self.resultIterationRang() == 0
-            ? map(self.resultRaw(), function (val, i) { return [self.myMethodResults()[i].label, val[1]]; })
-            : []);
-    });
+    self.scalarResult = ko.observable(undefined);
 
     self.graphSizeX = ko.observable(640);
     self.graphSizeY = ko.observable(384);
     self.inheritByDefault = ko.observable(true);
     self.suffix = ko.observable("");
 
-    self.iterationResult1d = ko.computed(function() {
-        return (self.resultIterationRang() == 1 ? self.resultRaw() : []); 
-    })  
+    //-------------------------------------------------------  Iteration 1D
 
     self.showGraph1d = ko.computed(function() {
-        return self.resultIterationRang() == 1;
+        return self.resultIterationRang() == 1 && self.iteration1dKinds() != undefined;
     })
 
-    self.iteration1dLabel = ko.computed(function() {
-        return self.iterationResult1d().length ? self.iterationResult1d()[0][0] : undefined;
-    })
+    self.iteration1dLabel = undefined;
 
-    self.ownIteration1dKinds = ko.computed(function() {
-        var kinds = {};
-        var src = self.iterationResult1d();
-        for (var i = 1; i<src.length; i++) {
-            var meta = self.myMethodResults()[i-1];
-            if (meta.visible()) {
-                var s = src[i];            
-                if (typeof(s[1][0]) == "number") {
-                    var d = {
-                        data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
-                        label: meta.label() + self.suffix()
-                    }
-                    if (kinds[meta.kind] == undefined)
-                        kinds[meta.kind] = [];
-                    kinds[meta.kind].push(d);
-                } else {
-                    for (var ii=0; ii < s[1][0].length; ii++) {
-                        var d = {
-                            data: map(s[1], function(x,j) { return [src[0][1][j], x[ii]]; }),
-                            label: meta.label()+'['+ii+']'+ self.suffix()
-                        }
-                        if (kinds[meta.kind] == undefined)
-                            kinds[meta.kind] = [];
-                        kinds[meta.kind].push(d);
-                    }
-                }
-            }
-        }
-        return kinds;
-    });
-
-    self.iteration1dKinds = ko.computed(function () {
-        var history = self.history();
-        var kinds = $.parseJSON($.toJSON(self.ownIteration1dKinds()));
-        for (var h_idx=0; h_idx<history.length; h_idx++ ) {
-            var h = history[h_idx];
-            if (h.iteration1dLabel == self.iteration1dLabel()) {
-                var hKinds = h.iteration1dKinds; 
-                for (var k_idx in hKinds) {
-                    if (kinds[k_idx]==undefined) 
-                        kinds[k_idx] = [];
-                    var hKind = hKinds[k_idx];
-                    for (var i=0; i<hKind.length; i++) {
-                        if (hKind[i].selected()) {
-                            kinds[k_idx].push(hKind[i]);        
-                        }
-                    }
-                }           
-            } 
-        }
-        return kinds;
-    })
+    self.iteration1dKinds = ko.observable(undefined);
 
     self.iteration1dGraphsData = ko.computed(function() {
-        var kinds = self.iteration1dKinds();
+        var kinds = self.iteration1dKinds();        
         var graphs = [];
-        for (var k in kinds) {
-            graphs.push(kinds[k]);
+        if (kinds != undefined) {
+            for (var k in kinds) {
+                graphs.push(kinds[k]);
+            }
         }
 
         return graphs;
@@ -761,44 +687,14 @@ function ModelView() {
         }
     } 
 
-    self.iterationResult2d = ko.computed(function() {
-        return (self.resultIterationRang() == 2 ? self.resultRaw() : []); 
-    })  
+    //-------------------------------------------------------- Iteration 2D
 
     self.showGraph2d = ko.computed(function() {
         return self.resultIterationRang() == 2;
     })
 
-    self.iteration2dGraphsData = ko.computed(function() {
-        var graphs = [];
-        var src = self.iterationResult2d();
-        for (var i = 2; i<src.length; i++) {
-            console.log("src="+src);         
-            var len_1 = src[0][1].length;
-            var len_2 = src[1][1].length;
-            var meta = self.myMethodResults()[i-2];
-            if (meta.visible()) {
-                var s = src[i];   
-                console.log("s="+s);         
-                if (typeof(s[1][0]) == "number") {
-                    var d = {
-                        data: array_to_2d(s[1], len_1, len_2),
-                        label: meta.label()
-                    }
-                    graphs.push(d);
-                } else {
-                    for (var ii=0; ii < s[1][0].length; ii++) {
-                        var d = {
-                            data: array_to_2d(map(s[1], function(x,j) { return x[ii]; }), len_1, len_2),
-                            label: meta.label()+'['+ii+']'
-                        }
-                        graphs.push(d);
-                    }
-                }
-            }
-        }
-        return graphs;
-    })
+    self.iteration2dGraphsData = ko.observable(undefined);
+    self.iteration2dLabels = undefined;
 
     self.renderGraph2d = function (elem, source) {
         //console.log("elem="+elem+",data="+data.label+", type="+map(elem, function (e) {return e.nodeType; }));
@@ -812,8 +708,8 @@ function ModelView() {
                 e.style.height = sizeY+'px';
                 
                 var surfacePlot;
-                var keys_1 = self.iterationResult2d()[0][1];
-                var keys_2 = self.iterationResult2d()[1][1];
+                var keys_1 = self.iteration2dLabels[0][1];
+                var keys_2 = self.iteration2dLabels[1][1];
                 var numRows = keys_1.length;
                 var numCols = keys_2.length;
 
@@ -840,8 +736,8 @@ function ModelView() {
                 var colours = [colour1, colour2, colour3, colour4, colour5];
 
                 // Axis labels.
-                var xAxisHeader   = self.iterationResult2d()[0][0];
-                var yAxisHeader   = self.iterationResult2d()[1][0];
+                var xAxisHeader   = self.iteration2dLabels[0][0];
+                var yAxisHeader   = self.iteration2dLabels[1][0];
                 var zAxisHeader   = source.label;
                 // console.log("xAxisHeader="+xAxisHeader);
                 // console.log("yAxisHeader="+yAxisHeader);
@@ -871,6 +767,115 @@ function ModelView() {
         }
     } 
 
+    self.hasResult = ko.computed(function() {
+        return self.scalarResult() || self.iteration1dKinds() || self.iteration2dGraphsData();
+    });
+
+    self.computing = ko.computed(function () { 
+        return self.query() == self.resultQuery() && !self.hasResult();
+    });
+
+    var historyPusher = ko.computed(function () {
+        if (self.query() != self.resultQuery()) {
+            if (self.hasResult()) {
+                self.history.unshift(new HistoryElement(self));            
+                self.clearResult();
+                self.resultQuery("");
+            }
+        }
+        return 0;
+    })
+
+    self.clearResult = function() {
+        self.scalarResult(undefined);
+        self.iteration1dLabel = undefined;
+        self.iteration1dKinds(undefined);
+        self.iteration2dGraphsData(undefined);
+        self.iteration2dLabels = undefined;
+    }
+
+    self.updateResult = function(result) {
+        if (self.resultIterationRang() == 0) {
+            self.scalarResult(map(result, function (val, i) { return [self.myMethodResults()[i].label, val[1]]; })); 
+        } else if (self.resultIterationRang() == 1) {
+            var kinds = {};
+            var src = result;
+            self.iteration1dLabel = result[0][0];
+            for (var i = 1; i<src.length; i++) {
+                var meta = self.myMethodResults()[i-1];
+                if (meta.visible()) {
+                    var s = src[i];            
+                    if (typeof(s[1][0]) == "number") {
+                        var d = {
+                            data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
+                            label: meta.label() + self.suffix()
+                        }
+                        if (kinds[meta.kind] == undefined)
+                            kinds[meta.kind] = [];
+                        kinds[meta.kind].push(d);
+                    } else {
+                        for (var ii=0; ii < s[1][0].length; ii++) {
+                            var d = {
+                                data: map(s[1], function(x,j) { return [src[0][1][j], x[ii]]; }),
+                                label: meta.label()+'['+ii+']'+ self.suffix()
+                            }
+                            if (kinds[meta.kind] == undefined)
+                                kinds[meta.kind] = [];
+                            kinds[meta.kind].push(d);
+                        }
+                    }
+                }
+            }
+            var history = self.history();            
+            for (var h_idx=0; h_idx<history.length; h_idx++ ) {
+                var h = history[h_idx];
+                if (h.iteration1dLabel == self.iteration1dLabel) {
+                    var hKinds = h.iteration1dKinds; 
+                    for (var k_idx in hKinds) {
+                        if (kinds[k_idx]==undefined) 
+                            kinds[k_idx] = [];
+                        var hKind = hKinds[k_idx];
+                        for (var i=0; i<hKind.length; i++) {
+                            if (hKind[i].selected()) {
+                                kinds[k_idx].push(hKind[i]);        
+                            }
+                        }
+                    }           
+                } 
+            }
+            self.iteration1dKinds(kinds);
+        } else if (self.resultIterationRang() == 2) {
+            var graphs = [];
+            var src = result;
+            self.iteration2dLabels = [result[0], result[1]];
+            for (var i = 2; i<src.length; i++) {
+                console.log("src="+src);         
+                var len_1 = src[0][1].length;
+                var len_2 = src[1][1].length;
+                var meta = self.myMethodResults()[i-2];
+                if (meta.visible()) {
+                    var s = src[i];   
+                    console.log("s="+s);         
+                    if (typeof(s[1][0]) == "number") {
+                        var d = {
+                            data: array_to_2d(s[1], len_1, len_2),
+                            label: meta.label()
+                        }
+                        graphs.push(d);
+                    } else {
+                        for (var ii=0; ii < s[1][0].length; ii++) {
+                            var d = {
+                                data: array_to_2d(map(s[1], function(x,j) { return x[ii]; }), len_1, len_2),
+                                label: meta.label()+'['+ii+']'
+                            }
+                            graphs.push(d);
+                        }
+                    }
+                }
+            }
+            self.iteration2dGraphsData(graphs);
+        }
+    }    
 }
 
 mv = new ModelView();
@@ -879,12 +884,12 @@ ko.applyBindings(mv);
 
 $('#Compute').click(function() { 
     var my_query = mv.query();
-    mv.resultRaw([]);
+    mv.clearResult();
     mv.resultQuery(my_query);
     $.getJSON('api.ks/compute?'+my_query, function (data) {
         console.log(data);
         if (my_query == mv.query()) {
-            mv.resultRaw(data);
+            mv.updateResult(data);
         }
     }); 
 });
