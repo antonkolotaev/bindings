@@ -461,15 +461,12 @@ function HistoryElement(root) {
         self.scalarResult = map(root.scalarResult(), function (e) { return [e[0](), e[1]]; });
     } else if (self.iterationRang == 1) {
         self.iteration1dLabel = root.iteration1dLabel; 
-        self.iteration1dKinds = $.parseJSON($.toJSON(root.iteration1dKinds())); // TODO: don't copy data series
+        self.iteration1dKinds = root.iteration1dKinds();
 
         self.iteration1dGraphsData = [];
         var kinds = self.iteration1dKinds;
         for (var k in kinds) {
             var kind = kinds[k];
-            for (var i=0; i<kind.length; i++) {
-                kind[i].selected = ko.observable(false);
-            }
             self.iteration1dGraphsData.push(kind);
         }
         self.renderGraph1d = root.renderGraph1d;
@@ -808,7 +805,8 @@ function ModelView() {
                     if (typeof(s[1][0]) == "number") {
                         var d = {
                             data: map(s[1], function(x,j) { return [src[0][1][j], x]; }),
-                            label: meta.label() + self.suffix()
+                            label: meta.label() + self.suffix(),
+                            inherit: ko.observable(self.inheritByDefault())
                         }
                         if (kinds[meta.kind] == undefined)
                             kinds[meta.kind] = [];
@@ -817,7 +815,8 @@ function ModelView() {
                         for (var ii=0; ii < s[1][0].length; ii++) {
                             var d = {
                                 data: map(s[1], function(x,j) { return [src[0][1][j], x[ii]]; }),
-                                label: meta.label()+'['+ii+']'+ self.suffix()
+                                label: meta.label()+'['+ii+']'+ self.suffix(),
+                                inherit: ko.observable(self.inheritByDefault())
                             }
                             if (kinds[meta.kind] == undefined)
                                 kinds[meta.kind] = [];
@@ -836,8 +835,16 @@ function ModelView() {
                             kinds[k_idx] = [];
                         var hKind = hKinds[k_idx];
                         for (var i=0; i<hKind.length; i++) {
-                            if (hKind[i].selected()) {
-                                kinds[k_idx].push(hKind[i]);        
+                            if (hKind[i].inherit()) {
+                                var duplicata = false;
+                                for (var z=0; z<kinds[k_idx].length; z++) {
+                                    if (kinds[k_idx][z] == hKind[i]) {
+                                        duplicata = true;
+                                        break;
+                                    }
+                                }
+                                if (!duplicata)
+                                    kinds[k_idx].push(hKind[i]);        
                             }
                         }
                     }           

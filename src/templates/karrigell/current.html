@@ -138,6 +138,16 @@
           <div data-bind="attr: { id: $index }">
           </div>
         </td>
+        <td class="inherit">
+          <table data-bind="foreach: $data">
+            <tr data-bind="css: { even: $index()%2==0 }">
+              <td data-bind="text: label"></td>
+              <td>
+                <input type="checkbox" data-bind="checked: inherit"></input>
+              </td>
+            </tr>
+          </table>
+        </td>
       </tr>
     </table>
   </div>
@@ -272,7 +282,7 @@ of Marne la Vall&eacute;e.</a><br>
             <tr data-bind="css: { even: $index()%2==0 }">
               <td data-bind="text: label"></td>
               <td>
-                <input type="checkbox" data-bind="value: selected"></input>
+                <input type="checkbox" data-bind="checked: inherit"></input>
               </td>
             </tr>
           </table>
