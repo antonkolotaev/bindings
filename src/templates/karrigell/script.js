@@ -747,7 +747,7 @@ function ModelView() {
                 var chartOrigin = {x: sizeX/2, y:sizeY/2};
 
                 // Options for the basic canvas pliot.
-                var basicPlotOptions = {fillPolygons: fillPly, tooltips: [], renderPoints: renderDataPoints }
+                var basicPlotOptions = {fillPolygons: fillPly, tooltips: source.tooltips, renderPoints: renderDataPoints }
 
                 // Options for the webGL plot.
                 var xLabels = keys_1;
@@ -865,6 +865,7 @@ function ModelView() {
                     console.log("s="+s);         
                     if (typeof(s[1][0]) == "number") {
                         var d = {
+                            tooltips: map(s[1], function(x) { return ""+x; }),
                             data: array_to_2d(s[1], len_1, len_2),
                             label: meta.label()
                         }
@@ -872,6 +873,7 @@ function ModelView() {
                     } else {
                         for (var ii=0; ii < s[1][0].length; ii++) {
                             var d = {
+                                tooltips: map(s[1], function(x,j) { return ""+x[ii]; }),
                                 data: array_to_2d(map(s[1], function(x,j) { return x[ii]; }), len_1, len_2),
                                 label: meta.label()+'['+ii+']'
                             }
