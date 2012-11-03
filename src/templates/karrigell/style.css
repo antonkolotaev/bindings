@@ -6,6 +6,10 @@ input {
    width: 100%;
 }
 
+input[type="checkbox"] {
+   margin-right: 15px;
+}
+
 select {
    width: 100%; 
 }

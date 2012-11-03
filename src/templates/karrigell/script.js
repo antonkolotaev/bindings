@@ -117,7 +117,10 @@ function NaN2error(f) {
 }
 
 
-function ScalarValue(value, converter=_parseFloat, iterable=true, reloader=null) {
+function ScalarValue(value, converter, iterable, reloader) {
+    var converter = converter || _parseFloat;
+    var iterable = iterable || true;
+    var reloader = reloader || null;
     var self = this;
     var nanconverter = NaN2error(converter);
     self.valueRaw = ko.observable(value);
@@ -211,7 +214,10 @@ function makeConverter(constraint) {
     return conv;
 }
 
-function ScalarField(label, value, constraint, iterable, root=null, prefix=[], setter="") {
+function ScalarField(label, value, constraint, iterable, root, prefix, setter) {
+    var root = root || null;
+    var prefix = prefix || [];
+    var setter = setter || "";
     var self = this;
     self.type = 0;
     self.label = label;
