@@ -643,6 +643,7 @@ function ModelView() {
     self.history = ko.observableArray();
 
     self.scalarResult = ko.observable(undefined);
+    self.errorResult = ko.observable(undefined);
 
     self.graphSizeX = ko.observable(640);
     self.graphSizeY = ko.observable(384);
@@ -771,7 +772,7 @@ function ModelView() {
     } 
 
     self.hasResult = ko.computed(function() {
-        return self.scalarResult() || self.iteration1dKinds() || self.iteration2dGraphsData();
+        return self.errorResult() || self.scalarResult() || self.iteration1dKinds() || self.iteration2dGraphsData();
     });
 
     self.computing = ko.computed(function () { 
@@ -781,7 +782,9 @@ function ModelView() {
     var historyPusher = ko.computed(function () {
         if (self.query() != self.resultQuery()) {
             if (self.hasResult()) {
-                self.history.unshift(new HistoryElement(self));            
+                if (!self.errorResult()) {
+                    self.history.unshift(new HistoryElement(self));            
+                }
                 self.clearResult();
                 self.resultQuery("");
             }
@@ -791,6 +794,7 @@ function ModelView() {
 
     self.clearResult = function() {
         self.scalarResult(undefined);
+        self.errorResult(undefined);
         self.iteration1dLabel = undefined;
         self.iteration1dKinds(undefined);
         self.iteration2dGraphsData(undefined);
@@ -798,7 +802,9 @@ function ModelView() {
     }
 
     self.updateResult = function(result) {
-        if (self.resultIterationRang() == 0) {
+        if (result[0][0] == "Exception") {
+            self.errorResult(result[0][1][0]);
+        } else if (self.resultIterationRang() == 0) {
             self.scalarResult(map(result, function (val, i) { return [self.myMethodResults()[i].label, val[1]]; })); 
         } else if (self.resultIterationRang() == 1) {
             var kinds = {};

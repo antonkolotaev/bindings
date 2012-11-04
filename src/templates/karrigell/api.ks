@@ -97,7 +97,8 @@ def wrap_exc(F, q, *args):
    try:
       F(q, *args)
    except Exception, exc:
-      res = [("Exception", str(exc)+traceback.format_tb())]
+      exc_type, exc_value, exc_traceback = sys.exc_info()
+      res = [("Exception", [str(exc)]+traceback.format_tb(exc_traceback))]
       q.put(res)
       return 
 
@@ -117,6 +118,8 @@ def _fetch_iterations(iterations):
       begin = time()
       for i in range(iterations):
          q = queue.get(timeout=begin + _timeout - time())
+         if q[0][0] == "Exception":
+            raise Exception, q[0][1][0]
          if len(data) == 0:
             for k,v in q:
                data.append((k, [v]))
@@ -129,7 +132,7 @@ def _fetch_iterations(iterations):
       return data
    return inner
 
-def _spawn_process(G, indata, fetcher):
+def _spawn_process(G, keys, indata, fetcher):
    try: 
       queue = Queue()
       process = Process(target = wrap_exc, args = (G, queue, indata))
@@ -142,12 +145,12 @@ def _spawn_process(G, indata, fetcher):
          raise Exception("Method has worked more than " + str(_timeout) + "s. Please try another parameter combination")
                   
       process.join(timeout=_timeout)
-      return data
+      return keys+data
    except Exception, exc:
-      return [("Exception", str(exc)+''.join(traceback.format_tb(sys.exc_info()[2])))]
+      return [("Exception", [str(exc)]+traceback.format_tb(sys.exc_info()[2]))]
 
 def _compute_scalar(indata):
-   return _spawn_process(_compute_impl, indata, _fetch_scalar)
+   return _spawn_process(_compute_impl, [], indata, _fetch_scalar)
 
 def _compute_iteration_1d(indata, iteration):
 
@@ -160,7 +163,7 @@ def _compute_iteration_1d(indata, iteration):
       (iteration.name, iteration.keys)
    ]
 
-   return keys + _spawn_process(G, indata, _fetch_iterations(iteration.stepsNo))
+   return _spawn_process(G, keys, indata, _fetch_iterations(iteration.stepsNo))
 
 def _compute_iteration_2d(indata, iteration_1, iteration_2):
 
@@ -176,7 +179,7 @@ def _compute_iteration_2d(indata, iteration_1, iteration_2):
       (iteration_2.name, iteration_2.keys)
    ]
    
-   return keys + _spawn_process(G, indata, _fetch_iterations(iteration_1.stepsNo * iteration_2.stepsNo))
+   return _spawn_process(G, keys, indata, _fetch_iterations(iteration_1.stepsNo * iteration_2.stepsNo))
 
 def compute(*args, **kwargs):
    [asset, model, model_params], [family, option, option_params], [method, method_params] = _parse(kwargs)
