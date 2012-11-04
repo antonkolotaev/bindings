@@ -99,8 +99,8 @@
           </tr>
           <tr class="odd">
             <td>Suffix</td>
-            <td></td>
-            <td><input data-bind="value: suffix"></input></td>
+            <td><input type="checkBox" data-bind="checked: trackSuffix"></input></td>
+            <td><input data-bind="value: suffix, valueUpdate: 'afterkeydown'"></input></td>
             <td></td>
           </tr>
           <!-- ko foreach: myMethodResults -->

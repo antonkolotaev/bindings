@@ -116,8 +116,10 @@ function NaN2error(f) {
     }
 }
 
+var lastLabel = ko.observable(undefined);
+var lastValue = ko.observable(undefined);
 
-function ScalarValue(value, converter, iterable, reloader) {
+function ScalarValue(value, label, converter, iterable, reloader) {
     var converter = converter || _parseFloat;
     var iterable = iterable || true;
     var reloader = reloader || null;
@@ -129,8 +131,11 @@ function ScalarValue(value, converter, iterable, reloader) {
         write: function (x) { 
             if (reloader) 
                 reloader(nanconverter(x));
-            else
+            else {
                 self.valueRaw(x); 
+                lastLabel(label);
+                lastValue(x);
+            }
         }
     })
     self.valueInvalid = ko.computed(function(){
@@ -168,10 +173,11 @@ function ScalarValue(value, converter, iterable, reloader) {
 
     self.serialized = ko.computed(function() {
         var x = nanconverter(self.value());
-        return (self.hasIteration() 
+        var to = nanconverter(self.iterateTo()); 
+        return (self.hasIteration() && x != to
             ? ['iterate', 
                 x, 
-                nanconverter(self.iterateTo()), 
+                to, 
                 NaN2error(iterateToChecker)(self.iterationsCount())
             ] : x);
     });
@@ -227,7 +233,7 @@ function ScalarField(label, value, constraint, iterable, root, prefix, setter) {
         root.reload(c, x);
     };
     self.hasTrivialSetter = setter.length == 0;
-    self.value = new ScalarValue(value, makeConverter(constraint), iterable, reloader);
+    self.value = new ScalarValue(value, label, makeConverter(constraint), iterable, reloader);
     self.renderer = 'scalar-row-template';
 
     self.getFields = function() {
@@ -252,7 +258,7 @@ function VectorField(label, values) {
     self.type = 1;
     self.renderer = 'vector-row-template';
 
-    self.values = $.map(values, function (value, i) { return new ScalarValue(value); });
+    self.values = $.map(values, function (value, i) { return new ScalarValue(value, label+'['+i+']'); });
 
     self.spansize = ko.computed(function () {
         return self.values.reduce(function(acc, val){
@@ -299,8 +305,8 @@ function VectorCompactField(label, values) {
     self.renderer = 'vectorcompact-row-template';
     self.options = ["Constant", "Array"];
     self.isvector = ko.observable(isvector ? "Array" : "Constant");
-    self.vector = $.map(values, function (value) {
-        return new ScalarValue(value);
+    self.vector = $.map(values, function (value, i) {
+        return new ScalarValue(value, label+'['+i+']');
     });
     self.scalar = self.vector[0];
 
@@ -648,7 +654,20 @@ function ModelView() {
     self.graphSizeX = ko.observable(640);
     self.graphSizeY = ko.observable(384);
     self.inheritByDefault = ko.observable(true);
-    self.suffix = ko.observable("");
+    self.trackSuffix = ko.observable(true);
+    self.userSuffix = "";
+    self.suffix = ko.computed({
+        read: function () {
+                return (self.trackSuffix() 
+                            ? (lastLabel() && lastValue() 
+                                    ? '(' + lastLabel() + '=' + lastValue() + ')' : '') 
+                            : self.userSuffix);
+        }, 
+        write: function (x) {
+            self.userSuffix = x;
+            self.trackSuffix(false);
+        }
+    });
 
     //-------------------------------------------------------  Iteration 1D
 
