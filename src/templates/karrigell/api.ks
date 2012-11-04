@@ -18,6 +18,9 @@ def _lookupAsset(a):
 def _lookupModel(m):
    return eval('premia.models.'+m)
    
+def _lookupFamily(f):
+   return eval('premia.options.'+f)
+   
 def _lookupOption(f, o):
    return eval('premia.options.'+f+'.'+o)
    
@@ -36,13 +39,15 @@ def families(m):
 
 def options(m, f):
    m_id = _lookupModel(m).ID()
-   opts = eval('pricings.' + m_id + '.' + m_id + '_' + f + '.methods_for_options()').keys()
-   _return(map(lambda o: o.__name__, opts))
+   opts = _lookupFamily(f).all()
+   pricing = eval('pricings.' + m_id + '.' + m_id + '_' + f + '.methods_for_options()')
+   _return([o.__name__ for o in opts if o in pricing])
    
 def methods(m, f, o):
    m_id = _lookupModel(m).ID()
    opt = _lookupOption(f, o)
-   methods = [x.__name__ for x in eval('pricings.' + m_id + '.' + m_id + '_' + f + '.all()') if opt in x.options()]
+   pricing = eval('pricings.' + m_id + '.' + m_id + '_' + f + '.methods_for_options()')
+   methods = [x.__name__ for x in pricing[opt]]
    _return(methods)
 
 def _params(obj):

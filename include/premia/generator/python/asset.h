@@ -12,11 +12,19 @@ namespace python {
 
 	inline void printAsset (Formatter & out, Asset const & a)
 	{
+		typedef std::map<int, api::Model const*> Sorted;
+		Sorted sorted;
+		BOOST_FOREACH(api::Model const * m, a.models)
+			sorted[id(*m)] = m;
+		std::vector<api::Model const*> models;
+		BOOST_FOREACH(Sorted::const_reference p, sorted)
+			models.push_back(p.second);
+
 		out("ASSET_NAME", a.source->name) << (seq, 
 			"class %ASSET_NAME%(object):", +(seq, 
 				"@staticmethod",
 				"def models(): ", +(seq, 
-					"return [", +foreach_x(a.models, printAssetModel), "]"), ""
+					"return [", +foreach_x(models, printAssetModel), "]"), ""
 			));
 	}
 
