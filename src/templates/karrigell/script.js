@@ -498,6 +498,11 @@ function ModelView() {
     self.options = KsCachedMap(function(args){ return 'options?m='+args[0]+"&f="+args[1];});;
     self.methods = KsCachedMap(function(args){ return 'methods?m='+args[0]+"&f="+args[1]+"&o="+args[2];});
 
+    self.model_html = KsCachedMap(function(m) {return 'model_html?m='+m; });;
+    self.family_html = KsCachedMap(function(args) {return 'family_html?f='+args[0]+"&o="+args[1]; });;
+    self.option_html = KsCachedMap(function(args){ return 'option_html?f='+args[0]+"&o="+args[1];});;
+    self.method_html = KsCachedMap(function(args){ return 'method_html?m='+args[0]+"&f="+args[1]+"&meth="+args[2];});
+
     self.model_params = ParamCachedMap(self, 'model', function (model) { return 'model_params?m='+model; });
     self.option_params = ParamCachedMap(self, 'option', function (args) { return 'option_params?f='+args[0]+"&o="+args[1]; });
     self.method_params = ParamCachedMap(self, 'method', function (args) { return 'method_params?m='+args[0]+"&f="+args[1]+"&meth="+args[2]; });
@@ -526,6 +531,10 @@ function ModelView() {
         write: function (value) { 
             self.myModel(value); 
         }
+    });
+
+    self.myModelHtml = ko.computed(function() {
+        return self.model_html.at(self.myModel());
     });
 
     self.myModelParamsNF = ko.computed({
@@ -563,7 +572,13 @@ function ModelView() {
             self.myOption(value); 
         }
     });
-    
+    self.myOptionHtml = ko.computed(function() {
+        return self.option_html.at([self.myFamily(), self.myOption()]);
+    });
+
+    self.myFamilyHtml = ko.computed(function() {
+        return self.family_html.at([self.myFamily(), self.myOption()]);
+    });
     // self.myOptionParamsNF = ko.computed(function () {
     //     return self.option_params.at([self.myFamily(), self.myOption()])();
     // });
@@ -587,6 +602,10 @@ function ModelView() {
             //self.resultIsRelevant(false);
             self.myMethod(value); 
         }
+    });
+
+    self.myMethodHtml = ko.computed(function() {
+        return self.method_html.at([self.myModel(), self.myFamily(), self.myMethod()]);
     });
 
     self.myMethodResults = ko.computed(function () {
@@ -651,6 +670,7 @@ function ModelView() {
     self.scalarResult = ko.observable(undefined);
     self.errorResult = ko.observable(undefined);
 
+    self.debug = ko.observable(false);
     self.graphSizeX = ko.observable(640);
     self.graphSizeY = ko.observable(384);
     self.inheritByDefault = ko.observable(true);

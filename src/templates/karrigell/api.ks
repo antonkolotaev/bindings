@@ -64,6 +64,29 @@ def myImport(m):
    exec 'import ' + m
    return eval(m)
 
+def _ksModelModule(m_id): 
+   return myImport('kspremia.mod.' + m_id + '.model')
+
+def _ksOptionModule(f, o): 
+      return myImport('kspremia.opt.'+f+'.'+o)    
+
+def _ksMethodModule(m_id,f,meth): 
+   return myImport('kspremia.mod.'+m_id+'.'+m_id+'_'+f+'.'+meth)
+
+def model_html(m):
+   m_id = _lookupModel(m).ID()
+   _return(_ksModelModule(m_id).html())
+
+def option_html(f,o):
+   _return(_ksOptionModule(f,o).html())
+
+def family_html(f,o):
+   _return(_ksOptionModule(f,o).familyHtml())
+
+def method_html(m,f,meth):
+   m_id = _lookupModel(m).ID()
+   _return(_ksMethodModule(m_id, f, meth).html())
+
 def _parse(kwargs):
    request = kwargs.iterkeys().__iter__().next()
    return json.loads(request)

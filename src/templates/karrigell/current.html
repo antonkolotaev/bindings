@@ -14,8 +14,14 @@
         <tr>
           <th>Model:</th>
           <th></th>
-          <th><select data-bind="options: myModels, value: myModelProxy"></select></th>
-          <th></th>
+          <th>
+            <select data-bind="options: myModels, value: myModelProxy"></select>
+          </th>
+          <th>
+            <A data-bind="if: myModelHtml()(), attr: { href: '../'+myModelHtml()() }" target="_blank">
+              <IMG src="html-icon.png" border="0" height="24">
+            </A>
+          </th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myModelParams }">
         </tbody>
@@ -28,13 +34,21 @@
           <th>Family:</th>
           <th></th>
           <th><select data-bind="options: myFamilies, value: myFamily"></select></th>
-          <th></th>
+          <th>
+            <A data-bind="if: myFamilyHtml()(), attr: { href: '../'+myFamilyHtml()() }" target="_blank">
+              <IMG src="html-icon.png" border="0" height="24">
+            </A>
+          </th>
         </tr>
         <tr>
           <th>Option:</th>
           <th></th>
           <th><select data-bind="options: myOptions, value: myOption"></select></th>
-          <th></th>
+          <th>
+            <A data-bind="if: myOptionHtml()(), attr: { href: '../'+myOptionHtml()() }" target="_blank">
+              <IMG src="html-icon.png" border="0" height="24">
+            </A>
+          </th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myOptionParams }">
         </tbody>
@@ -47,7 +61,11 @@
           <th>Pricing method:</th>
           <th></th>
           <th><select data-bind="options: myMethods, value: myMethod"></select></th>
-          <th></th>
+          <th>
+            <A data-bind="if: myMethodHtml()(), attr: { href: '../'+myMethodHtml()() }" target="_blank">
+              <IMG src="html-icon.png" border="0" height="24">
+            </A>
+          </th>
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams }">
         </tbody>
@@ -131,7 +149,7 @@
       margin: 8px auto;
     }
 </style>
-<span data-bind="text: query"></span>
+<span data-bind="visible: debug, text: query"></span>
 <!-- ko if: showGraph1d  -->
   <div data-bind="template: { foreach: iteration1dGraphsData, afterRender: renderGraph1d }">
     <table class="graph1d">
@@ -154,7 +172,6 @@
     </table>
   </div>
 <!-- /ko -->
-<span data-bind="text: iterationRang"></span>
 <!-- ko if: showGraph2d  -->
   <div data-bind="template: { foreach: iteration2dGraphsData, afterRender: renderGraph2d }">
     <div class="graph1d"></div>
@@ -193,6 +210,7 @@ of Marne la Vall&eacute;e.</a><br>
     </tr>
   </tbody>
 </table>
+<input type="checkbox" data-bind="checked: debug">Debug info</input>
 </script>
 
 <script type="text/html" id="history">
