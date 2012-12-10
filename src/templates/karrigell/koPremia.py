@@ -17,4 +17,12 @@ Include("shaders.py")
 Include("param_table.html")
 Include("current.html")
 
+if len(REQUEST):
+   request = REQUEST.iterkeys().__iter__().next()
+   print SCRIPT("var s = '"+ request + "';", type=r"text/javascript")
+   print SCRIPT("var request = $.parseJSON(s);", type=r"text/javascript") 
+else:
+   print SCRIPT("var request = undefined;", type=r"text/javascript") 
+
+
 print js_include("script.js")

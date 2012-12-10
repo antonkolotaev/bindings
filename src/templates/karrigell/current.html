@@ -33,7 +33,7 @@
         <tr>
           <th>Family:</th>
           <th></th>
-          <th><select data-bind="options: myFamilies, value: myFamily"></select></th>
+          <th><select data-bind="options: myFamilies, value: myFamilyProxy"></select></th>
           <th>
             <A data-bind="if: myFamilyHtml()(), attr: { href: '../'+myFamilyHtml()() }" target="_blank">
               <IMG src="html-icon.png" border="0" height="24">
@@ -186,7 +186,8 @@
     <tr>
       <td align="center">
       <div style="margin: 20px;" align="center"> <br>
-      <a href="https://www.rocq.inria.fr/mathfi/Premia/index.html"><img src="LogoPremia%20Petit%204e.jpg" alt="" title=""></a> <br>
+      <a href="https://www.rocq.inria.fr/mathfi/Premia/index.html"><img src="premia_logo.png" align="left" alt="" title=""></a> <br>
+      <a href="https://www.rocq.inria.fr/mathfi/Premia/index.html"><img src="premia_slogan.png" alt="" title=""></a> <br>
  <a href="http://premia.fr" target="_blank">Premia</a> is developed by the <a href="http://www.inria.fr/equipes/mathfi" target="_blank">Math-Risk</a> 
 team which gathers research scientists from <a href="http://www.inria.fr/">INRIA</a> (the French
 national institute for research in computer science and control), <a href="http://cermics.enpc.fr/">Ecole des Ponts
@@ -261,6 +262,11 @@ of Marne la Vall&eacute;e.</a><br>
         </tr>
         <tbody data-bind="template: { name: 'row-history-template', foreach: myMethodParams }">
         </tbody>
+        <!-- <tr>
+          <td colspan="3">
+            <a target="_blank" data-bind="attr: { href: 'koPremia?'+query }">Make current</a>
+          </td> 
+        </tr> -->
         <tr data-bind="if: iterationRang==0">
           <th>Result:</th>
           <th></th>
