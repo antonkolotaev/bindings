@@ -76,6 +76,8 @@ namespace karrigell {
                    ("Sup_Price")
                    ("Lower_Price")
                    ("Price_")
+                   ("At_the_Money_Price")
+                   ("At_the_Strike_Price")
          )
          (true,
             list_of("Inf_Delta1")
