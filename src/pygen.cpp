@@ -45,65 +45,103 @@ using premia::pygen::formatter_dsl::Formatter;
 
 namespace po = boost::program_options;
 
+struct FsPath 
+{
+    FsPath(fs::path const & s = fs::path())
+        : p(s)
+    {}
+
+    friend std::istream & operator >> (std::istream &in, FsPath &x)
+    {
+        std::string s;
+        in >> s;
+        x.p = fs::path(s);
+        return in;
+    }
+
+    friend std::ostream& operator << (std::ostream &out, FsPath const& x)
+    {
+        out << x.p;
+        return out;
+    }
+
+    fs::path const & operator *() const 
+    {
+        return p;
+    };
+
+    fs::path const * operator ->() const 
+    {
+        return &p;
+    };
+
+private:
+    fs::path p;
+};
+
 int main(int argc, char *argv[])
 {
     using namespace premia::pygen;
-    
-    path_t current_path = fs::current_path();
-    path_t root         = current_path.parent_path().parent_path();
-    path_t dll_dir;
-    path_t template_dir;
-    path_t data_dir;
-    path_t output_path;
-    
-    int verbosity;
 
-    po::options_description desc("Allowed options");
-    desc.add_options()
-        ("help", "produce help message")
-        ("output-dir", po::value(&output_path)->default_value(root / "bindings" / "python" / "premia"), "output directory")
-        ("dll-dir",    po::value(&dll_dir)->default_value(current_path), "directory containing python binding library")
-        ("data-dir",   po::value(&data_dir)->default_value(root / "data"), "directory containing premia data files")
-        ("template-dir", po::value(&template_dir)->default_value(current_path / "templates"), "directory containing templates for pygen")
-        ("verbosity,v", po::value(&verbosity)->default_value(1), "verbosity level (0 - no output, 1 - basic, 2 - detailed)")
-    ;
+	try {
     
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm); 
+		FsPath current_path = fs::current_path();
+		FsPath root         = current_path->parent_path().parent_path();
+		FsPath dll_dir;
+		FsPath template_dir;
+		FsPath data_dir;
+		FsPath output_path;
     
-    // making them absolute
-    data_dir = !data_dir.root_directory().empty() ? data_dir : fs::current_path() / data_dir;
+		int verbosity;
 
-    python::PyCtx ctx(data_dir, dll_dir, template_dir, output_path, verbosity);
+		po::options_description desc("Allowed options");
+		desc.add_options()
+			("help", "produce help message")
+			("output-dir", po::value(&output_path)->default_value(*root / "bindings" / "python" / "premia"), "output directory")
+			("dll-dir",    po::value(&dll_dir)->default_value(*current_path), "directory containing python binding library")
+			("data-dir",   po::value(&data_dir)->default_value(*root / "data"), "directory containing premia data files")
+			("template-dir", po::value(&template_dir)->default_value(*current_path / "templates"), "directory containing templates for pygen")
+			("verbosity,v", po::value(&verbosity)->default_value(1), "verbosity level (0 - no output, 1 - basic, 2 - detailed)")
+		;
     
-    ctx.out(1)
-            << "premia-root: "  << root         << std::endl
-            << "output-dir: "   << output_path  << std::endl
-            << "dll-dir: "      << dll_dir      << std::endl
-            << "data-dir: "     << data_dir     << std::endl
-            << "template-dir: " << template_dir << std::endl;
-
-    if (vm.count("help")) {
-        std::cout << desc << "\n";
-        return 1;
-    }    
-
-    fs::create_directories(output_path);
+		po::variables_map vm;
+		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::notify(vm); 
     
-    python::createDir(output_path);
+		// making them absolute
+		data_dir = !data_dir->root_directory().empty() ? *data_dir : fs::current_path() / *data_dir;
 
-    InitVar();
+		python::PyCtx ctx(*data_dir, *dll_dir, *template_dir, *output_path, verbosity);
+    
+		ctx.out(1)
+				<< "premia-root: "  << root         << std::endl
+				<< "output-dir: "   << output_path  << std::endl
+				<< "dll-dir: "      << dll_dir      << std::endl
+				<< "data-dir: "     << data_dir     << std::endl
+				<< "template-dir: " << template_dir << std::endl;
 
-    strcpy(premia_data_dir, data_dir.string().c_str());
+		if (vm.count("help")) {
+			std::cout << desc << "\n";
+			return 1;
+		}    
+
+		fs::create_directories(*output_path);
+    
+		python::createDir(*output_path);
+
+		InitVar();
+
+		strcpy(premia_data_dir, data_dir->string().c_str());
 	
-    ctx.out(1) << "Initializing...";
+		ctx.out(1) << "Initializing...";
 
-    PremiaCtx p;
+		PremiaCtx p;
 
-    ctx.out(1) << "ok!" << std::endl;
+		ctx.out(1) << "ok!" << std::endl;
     
-    ctx << python::CommonPy() << p.models << p.families << p.pricings << p.enums << p.assets;
-   
-    return 0;
+		ctx << python::CommonPy() << p.models << p.families << p.pricings << p.enums << p.assets;
+	} catch (std::exception const &e) {
+		std::cout << "exception caught: " << e.what() << std::endl;
+	}   
+	return 0;
 }
