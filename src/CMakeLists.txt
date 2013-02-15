@@ -28,3 +28,10 @@ add_dependencies(pygen pypremia)
 
 add_custom_command(TARGET pygen POST_BUILD       
     COMMAND $<TARGET_FILE:pygen> --output-dir="${CMAKE_BINARY_DIR}/bindings/python/premia" --dll-dir="${CMAKE_BINARY_DIR}/bindings/python/premia" --data-dir="${CMAKE_SOURCE_DIR}/data" --template-dir="${CMAKE_CURRENT_SOURCE_DIR}/templates")
+
+add_executable(ksgen ksgen.cpp)
+target_link_libraries(ksgen boost_filesystem boost_program_options boost_system pnl premia)
+add_dependencies(ksgen pygen)
+
+#add_custom_command(TARGET ksgen POST_BUILD       
+#    COMMAND $<TARGET_FILE:ksgen> --output-dir="/home/anton/Karrigell-3.1.1" --pypremia-dir="${CMAKE_BINARY_DIR}/bindings/python" --data-dir="${CMAKE_SOURCE_DIR}/data" --template-dir="${CMAKE_CURRENT_SOURCE_DIR}/templates/karrigell")

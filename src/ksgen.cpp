@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
     po::notify(vm);   
     
     fs::path package_path = output_path / "karrigell" / "package" / "kspremia";
+    fs::create_directories(package_path);
     output_path = output_path / "www";
 
     karrigell::Ctx ctx(output_path, package_path, pdf_base, verbosity);
