@@ -5,23 +5,25 @@ include_directories(
 	${PROJECT_SOURCE_DIR}/Src/libpnl/src/include
 )
 add_executable(check_help check_help.cpp)
-target_link_libraries(check_help boost_filesystem boost_program_options pnl premia)
+target_link_libraries(check_help boost_filesystem boost_program_options boost_system pnl premia)
 
 find_package(PythonLibs)
 include_directories(${PYTHON_INCLUDE_DIRS})
 add_library(pypremia SHARED pypremia.cpp)
 target_link_libraries(pypremia pnl premia boost_python ${PYTHON_LIBRARIES})
 set_target_properties(pypremia PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bindings/python/premia)
-set_target_properties(pypremia PROPERTIES SUFFIX ".pyd")
+if (MSVC)
+	set_target_properties(pypremia PROPERTIES SUFFIX ".pyd")
+	set(pypremia_suffix ".pyd")
+endif()
 set_target_properties(pypremia PROPERTIES PREFIX "lib")
-set(pypremia_suffix ".pyd")
 add_custom_command(TARGET pypremia POST_BUILD       
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         $<TARGET_FILE:pypremia>    
-        "${CMAKE_BINARY_DIR}/bindings/python/premia")
+        "${CMAKE_BINARY_DIR}/bindings/python/premia/$<TARGET_FILE_NAME:pypremia>")
 
 add_executable(pygen pygen.cpp)
-target_link_libraries(pygen boost_filesystem boost_program_options pnl premia)
+target_link_libraries(pygen boost_filesystem boost_program_options boost_system pnl premia)
 add_dependencies(pygen pypremia)
 
 add_custom_command(TARGET pygen POST_BUILD       

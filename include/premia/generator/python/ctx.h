@@ -20,7 +20,8 @@ namespace python {
 	/// \param p path to the directory, its parent directory should exist
 	inline void createDir(fs::path const & p)
 	{
-		fs::create_directory(p);
+		if (!fs::exists(p))  
+			fs::create_directory(p);
 		fs::ofstream(p / "__init__.py");
 	}
 

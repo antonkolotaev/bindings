@@ -88,12 +88,14 @@ namespace api    {
 			}
 		}
 
+		typedef boost::ptr_list<Option> Options;
+
 		/// asset the family belongs to
 		Asset const &			asset;
 		/// 'id' of the family (STD, LIM etc.)
 		std::string				name;
 		/// list of the family options
-		boost::ptr_list<Option>	options;
+		Options 				options;
 		/// pointer to the native family
 		::Family**				source;
 	};

@@ -83,16 +83,12 @@ namespace premia {
             check(m);
         }
 
-        BOOST_FOREACH(pygen::Family const &f, ctx.families.families)
-        BOOST_FOREACH(pygen::Option const &opt, f.options)
-        {
-            check(opt);
+        BOOST_FOREACH(pygen::Family const &f, ctx.families.families) {
+            std::for_each(f.options.begin(), f.options.end(), check);
         }
 
-        BOOST_FOREACH(pygen::Pricing const &p, ctx.pricings.pricings)
-        BOOST_FOREACH(pygen::PricingMethod const &met, p.methods)
-        {
-            check(met);
+        BOOST_FOREACH(pygen::Pricing const &p, ctx.pricings.pricings) {
+            std::for_each(p.methods.begin(), p.methods.end(), check);
         }
     }
 

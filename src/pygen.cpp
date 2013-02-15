@@ -125,7 +125,8 @@ int main(int argc, char *argv[])
 			return 1;
 		}    
 
-		fs::create_directories(*output_path);
+		if (!fs::exists(*output_path))
+			fs::create_directories(*output_path);
     
 		python::createDir(*output_path);
 
