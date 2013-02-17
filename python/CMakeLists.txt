@@ -1,6 +1,7 @@
 project(python)
 
 set(OUTPUT_DIR ${OUTPUT_DIR}/python)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/interop.py.cmake 
     ${OUTPUT_DIR}/premia/interop.py)

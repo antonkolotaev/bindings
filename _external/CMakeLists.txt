@@ -1,2 +1,4 @@
-add_subdirectory(boost)
-add_subdirectory(xlw)
+if (MSVC)
+   add_subdirectory(boost)
+   add_subdirectory(xlw)
+endif()
