@@ -1,0 +1,20 @@
+add_library(xlw STATIC
+ArgList.cpp
+CellMatrix.cpp
+DoubleOrNothing.cpp
+MJmatrices.cpp
+MyContainers.cpp
+Win32StreamBuf.cpp
+xlarray.cpp
+XlfAbstractCmdDesc.cpp
+XlfArgDesc.cpp
+XlfArgDescList.cpp
+XlfCmdDesc.cpp
+XlfExcel.cpp
+XlfException.cpp
+XlfFuncDesc.cpp
+XlfOper.cpp
+XlfRef.cpp
+XlFunctionRegistration.cpp
+XlOpenClose.cpp
+)
