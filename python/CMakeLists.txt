@@ -17,21 +17,27 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/get_all_method_results.py
 
 
 find_package(PythonLibs)
+if (NOT PYTHONLIBS_FOUND)
+    message(FATAL_ERROR "No Python library found")
+endif (NOT PYTHONLIBS_FOUND)
 include_directories(${PYTHON_INCLUDE_DIRS})
 add_library(pypremia SHARED pypremia.cpp)
-target_link_libraries(pypremia pnl premia boost_python ${PYTHON_LIBRARIES})
+target_link_libraries(pypremia ${LIBS} ${GEN_LIBS} ${PYTHON_LIBRARIES})
+
+    
+
 if (MSVC)
 	set_target_properties(pypremia PROPERTIES SUFFIX ".pyd")
 	set(pypremia_suffix ".pyd")
 endif()
 set_target_properties(pypremia PROPERTIES PREFIX "lib")
 add_custom_command(TARGET pypremia POST_BUILD       
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different  
+    COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:pypremia>    
         "${OUTPUT_DIR}/premia/$<TARGET_FILE_NAME:pypremia>")
 
 add_executable(pygen pygen.cpp)
-target_link_libraries(pygen ${GEN_LIBS})
+target_link_libraries(pygen ${LIBS} ${GEN_LIBS})
 add_dependencies(pygen pypremia)
 
 add_custom_command(TARGET pygen POST_BUILD       

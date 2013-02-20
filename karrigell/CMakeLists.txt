@@ -1,7 +1,7 @@
 project(karrigell)
 
 add_executable(ksgen ksgen.cpp)
-target_link_libraries(ksgen ${GEN_LIBS})
+target_link_libraries(ksgen ${LIBS} ${GEN_LIBS})
 add_dependencies(ksgen pygen)
 
 #add_custom_command(TARGET ksgen POST_BUILD       
