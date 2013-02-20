@@ -13,6 +13,12 @@ if (NOT MSVC)
         add_definitions( "-DHAS_BOOST" )
     endif()    
 endif()
+find_package(PythonLibs)
+if (PYTHONLIBS_FOUND)
+    message(status "** Python Include ${PYTHON_INCLUDE_DIRS}")
+    message(status "** Python Libraries ${PYTHON_LIBRARIES}")
+    include_directories(${PYTHON_INCLUDE_DIRS})
+endif (PYTHONLIBS_FOUND)
 
 include_directories(
 	${PREMIA_DIRS_TO_INCLUDE}
@@ -26,12 +32,14 @@ else (MSVC)
     set(GEN_LIBS ${GEN_LIBS} ${Boost_LIBRARIES})
 endif(MSVC)
 
-add_subdirectory (_external)
+add_subdirectory(_external)
 
 if (MSVC)
-   add_subdirectory (excel)
+   add_subdirectory(excel)
 endif()
 
-add_subdirectory (python)
-add_subdirectory (karrigell)
-add_subdirectory (check_help)
+if (Boost_FOUND AND PYTHONLIBS_FOUND)
+    add_subdirectory(python)
+    add_subdirectory(karrigell)
+    add_subdirectory(check_help)
+endif(Boost_FOUND AND PYTHONLIBS_FOUND)

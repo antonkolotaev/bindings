@@ -16,12 +16,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/get_all_method_results.py
     ${OUTPUT_DIR}/get_all_method_results.py)
 
 
-find_package(PythonLibs)
-if (PYTHONLIBS_FOUND)
-    message(status "** Python Include ${PYTHON_INCLUDE_DIRS}")
-    message(status "** Python Libraries ${PYTHON_LIBRAIRIES}")
-    include_directories(${PYTHON_INCLUDE_DIRS})
-endif (PYTHONLIBS_FOUND)
 add_library(pypremia SHARED pypremia.cpp)
 target_link_libraries(pypremia ${LIBS} ${GEN_LIBS} ${PYTHON_LIBRARIES})
 
@@ -38,7 +32,7 @@ add_custom_command(TARGET pypremia POST_BUILD
         "${OUTPUT_DIR}/premia/$<TARGET_FILE_NAME:pypremia>")
 
 add_executable(pygen pygen.cpp)
-target_link_libraries(pygen ${LIBS} ${GEN_LIBS})
+target_link_libraries(pygen ${LIBS} ${GEN_LIBS} ${PYTHON_LIBRARIES})
 add_dependencies(pygen pypremia)
 
 add_custom_command(TARGET pygen POST_BUILD       
