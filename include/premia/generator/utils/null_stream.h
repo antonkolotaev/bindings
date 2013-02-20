@@ -10,7 +10,7 @@ namespace pygen  {
     {
         struct null_buf : std::basic_streambuf<char>
         {
-            unsigned xsputn(const char *, unsigned c){
+            std::streamsize xsputn(const char *, std::streamsize c){
                 return c;
             } 
         } buf;
