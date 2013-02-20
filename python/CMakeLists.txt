@@ -17,10 +17,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/get_all_method_results.py
 
 
 find_package(PythonLibs)
-if (NOT PYTHONLIBS_FOUND)
-    message(FATAL_ERROR "No Python library found")
-endif (NOT PYTHONLIBS_FOUND)
-include_directories(${PYTHON_INCLUDE_DIRS})
+if (PYTHONLIBS_FOUND)
+    message(status "** Python Include ${PYTHON_INCLUDE_DIRS}")
+    message(status "** Python Libraries ${PYTHON_LIBRAIRIES}")
+    include_directories(${PYTHON_INCLUDE_DIRS})
+endif (PYTHONLIBS_FOUND)
 add_library(pypremia SHARED pypremia.cpp)
 target_link_libraries(pypremia ${LIBS} ${GEN_LIBS} ${PYTHON_LIBRARIES})
 
