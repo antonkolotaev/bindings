@@ -33,8 +33,8 @@ add_custom_command(TARGET pypremia POST_BUILD
 
 add_executable(pygen pygen.cpp)
 target_link_libraries(pygen ${LIBS} ${GEN_LIBS} ${PYTHON_LIBRARIES})
-add_dependencies(pygen pypremia)
 
-add_custom_command(TARGET pygen POST_BUILD       
-    COMMAND $<TARGET_FILE:pygen> --output-dir="${OUTPUT_DIR}/premia" --dll-dir="${OUTPUT_DIR}/premia" --data-dir="${PREMIA_DATA_DIR}" --template-dir="${CMAKE_CURRENT_SOURCE_DIR}")
+add_custom_target(install_python       
+    COMMAND $<TARGET_FILE:pygen> --output-dir="${OUTPUT_DIR}/premia" --dll-dir="${OUTPUT_DIR}/premia" --data-dir="${PREMIA_DATA_DIR}" --template-dir="${CMAKE_CURRENT_SOURCE_DIR}"
+    DEPENDS pygen pypremia)
 
