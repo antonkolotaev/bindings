@@ -5,6 +5,8 @@ set(xllgen_sources
 ADD_MSVC_PRECOMPILED_HEADER("stdafx.h" "stdafx.cpp" xllgen_sources)
 
 add_executable(xllgen ${xllgen_sources})
+set_target_properties(xllgen PROPERTIES FOLDER "Excel")
+
 
 target_link_libraries(xllgen pnl premia)
 

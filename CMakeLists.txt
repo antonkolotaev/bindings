@@ -32,8 +32,6 @@ else (MSVC)
     set(GEN_LIBS ${GEN_LIBS} ${Boost_LIBRARIES})
 endif(MSVC)
 
-add_subdirectory(_external)
-
 if (MSVC)
    add_subdirectory(excel)
 endif()

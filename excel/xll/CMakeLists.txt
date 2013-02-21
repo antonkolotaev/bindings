@@ -12,6 +12,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/import_xlpremia.h.cmake
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(xll SHARED ${xll_sources})
+set_target_properties(xll PROPERTIES FOLDER "Excel")
 
 set_target_properties(xll PROPERTIES SUFFIX ".xll")
 set_target_properties(xll PROPERTIES OUTPUT_NAME "premia")
