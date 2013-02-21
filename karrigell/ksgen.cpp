@@ -12,6 +12,7 @@
 namespace fs = boost::filesystem;
 typedef fs::path  path_t;
 
+#include <premia/generator/utils/fspath.h>
 #include <premia/generator/utils/symbols.h>
 #include <premia/generator/utils/formatter.h>
 #include <premia/generator/utils/formatter_dsl.h>
@@ -117,43 +118,6 @@ bool only_py(fs::path const & p)
    return ext(p) == ".py";
 }
 
-struct FsPath 
-{
-    FsPath(fs::path const & s = fs::path())
-        : p(s)
-    {}
-
-    FsPath(const char * s)
-        : p(s)
-    {}
-
-    friend std::istream & operator >> (std::istream &in, FsPath &x)
-    {
-        std::string s;
-        in >> s;
-        x.p = fs::path(s);
-        return in;
-    }
-
-    friend std::ostream& operator << (std::ostream &out, FsPath const& x)
-    {
-        out << x.p;
-        return out;
-    }
-
-    fs::path const & operator *() const 
-    {
-        return p;
-    };
-
-    fs::path const * operator ->() const 
-    {
-        return &p;
-    };
-
-private:
-    fs::path p;
-};
 
 int main(int argc, char *argv[])
 {

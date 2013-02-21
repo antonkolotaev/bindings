@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 
 #include <premia/generator/api/all.h>
+#include <premia/generator/utils/fspath.h>
 
 namespace fs = boost::filesystem;
 
@@ -93,40 +94,6 @@ namespace premia {
     }
 
 }
-
-struct FsPath 
-{
-    FsPath(const char *s = "")
-        : p(s)
-    {}
-
-    friend std::istream & operator >> (std::istream &in, FsPath &x)
-    {
-        std::string s;
-        in >> s;
-        x.p = fs::path(s);
-        return in;
-    }
-
-    friend std::ostream& operator << (std::ostream &out, FsPath const& x)
-    {
-        out << x.p;
-        return out;
-    }
-
-    fs::path const & operator *() const 
-    {
-        return p;
-    };
-
-    fs::path const * operator ->() const 
-    {
-        return &p;
-    };
-
-private:
-    fs::path p;
-};
 
 int main(int argc, char* argv[])
 {
