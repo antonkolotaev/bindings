@@ -24,6 +24,8 @@ target_link_libraries(pypremia ${LIBS} ${GEN_LIBS} ${PYTHON_LIBRARIES})
 if (MSVC)
 	set_target_properties(pypremia PROPERTIES SUFFIX ".pyd")
 	set(pypremia_suffix ".pyd")
+elseif (UNIX)
+	set_target_properties(pypremia PROPERTIES SUFFIX ".so")
 endif()
 set_target_properties(pypremia PROPERTIES PREFIX "lib")
 add_custom_command(TARGET pypremia POST_BUILD       
