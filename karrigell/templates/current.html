@@ -33,7 +33,7 @@
         <tr>
           <th>Family:</th>
           <th></th>
-          <th><select data-bind="options: myFamilies, value: myFamilyProxy"></select></th>
+          <th><select data-bind="options: myFamilies()[0], value: myFamilyProxy"></select></th>
           <th>
             <A data-bind="if: myFamilyHtml()(), attr: { href: '../'+myFamilyHtml()() }" target="_blank">
               <IMG src="html-icon.png" border="0" height="24">
@@ -43,7 +43,7 @@
         <tr>
           <th>Option:</th>
           <th></th>
-          <th><select data-bind="options: myOptions, value: myOption"></select></th>
+          <th><select data-bind="options: myOptions()[0], value: myOptionProxy"></select></th>
           <th>
             <A data-bind="if: myOptionHtml()(), attr: { href: '../'+myOptionHtml()() }" target="_blank">
               <IMG src="html-icon.png" border="0" height="24">

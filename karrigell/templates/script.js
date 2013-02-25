@@ -459,7 +459,7 @@ function HistoryElement(root) {
     self.myAsset = root.myAsset();
     self.myModel = root.myModel();
     self.myFamily = root.myFamilyId()[0];
-    self.myOption = root.myOption();
+    self.myOption = root.myOption()[0];
     self.myMethod = root.myMethod();
     self.myModelParams = asHistory(root.myModelParams());
     self.myOptionParams = asHistory(root.myOptionParams());
@@ -549,50 +549,56 @@ function ModelView() {
     //---------------------------------------------------------- Family
 
     self.myFamilies = ko.computed(function(){
-        var m = self.myModel();
-        var r = self.families.at(m)();
-        r.model = m;
-        return r;
+        var res = [self.families.at(self.myModel())(), self.myModel()];
+        //console.log('computing myFamilies: myModel=' + self.myModel() + '; families <- ' + $.toJSON(res));
+        return res;
     });
 
-    self.myFamilyId = ko.observable([self.myFamilies()[0], self.myFamilies().model]);
+    self.myFamilyId = ko.observable([self.myFamilies()[0][0], self.myFamilies()[1]]);
     //self.myFamily = ko.observable(self.myFamilies()[0]);
+
+    self.myFamilies.subscribe(function (families) {
+        self.myFamilyId([families[0][0], families[1]]);
+    })
 
     self.myFamilyProxy = ko.computed({
         read: function () { return self.myFamilyId()[0]; },
         write: function (value) { 
-            console.log("family="+value);
-            console.log("model="+self.myFamilies().model);
-            self.myFamilyId([value, self.myFamilies().model]); 
-            // self.myFamily(value);
+            //console.log("family="+value);
+            //console.log("model="+self.myModel.peek());
+            self.myFamilyId([value, self.myModel.peek()]); 
         }
     });
 
     //------------------------------------------------------------ Option
 
     self.myOptions = ko.computed(function(){
-        return self.options.at([self.myFamilyId()[1], self.myFamilyId()[0]])();
+        var res = [self.options.at([self.myFamilyId()[1], self.myFamilyId()[0]])(), self.myFamilyId()[1]];
+        //console.log('computing myOptions: myModel=' + self.myFamilyId()[1] + '; myFamily = ' + self.myFamilyId()[0] + '; families <- ' + $.toJSON(res));
+        return res;
     });
-    self.myOption = ko.observable(self.myOptions()[0]);
+
+    self.myOption = ko.observable([self.myOptions()[0][0], self.myFamilyId.peek()[1]]);
+
+    self.myOptions.subscribe(function (options) {
+        self.myOption([options[0][0],options[1]]);
+    })
+
     self.myOptionProxy = ko.computed({
-        read: function () { return self.myOption() },
-        write: function (value) { 
-            self.myOption(value); 
-        }
-    });
+        read: function () { return self.myOption()[0]; },
+        write: function (x) { self.myOption([x, self.myFamilyId.peek()[1]]); }
+    })
+
     self.myOptionHtml = ko.computed(function() {
-        return self.option_html.at([self.myFamilyId()[0], self.myOption()]);
+        return self.option_html.at([self.myFamilyId.peek()[0], self.myOption()[0]]);
     });
 
     self.myFamilyHtml = ko.computed(function() {
-        return self.family_html.at([self.myFamilyId()[0], self.myOption()]);
+        return self.family_html.at([self.myFamilyId.peek()[0], self.myOption()[0]]);
     });
-    // self.myOptionParamsNF = ko.computed(function () {
-    //     return self.option_params.at([self.myFamily(), self.myOption()])();
-    // });
     self.myOptionParamsNF = ko.computed({
-        read: function () { return self.option_params.at([self.myFamilyId()[0], self.myOption()])(); },
-        write: function (x) { self.option_params.set([self.myFamilyId()[0], self.myOption()], x); }
+        read: function () { return self.option_params.at([self.myFamilyId.peek()[0], self.myOption()[0]])(); },
+        write: function (x) { self.option_params.set([self.myFamilyId.peek()[0], self.myOption()[0]], x); }
     });
     self.myOptionParams = ko.computed(function () {
         return flatten(self.myOptionParamsNF());
@@ -601,31 +607,24 @@ function ModelView() {
     //--------------------------------------------------------------- Method
 
     self.myMethods = ko.computed(function(){
-        return self.methods.at([self.myFamilyId()[1], self.myFamilyId()[0], self.myOption()])();
-    });
-    self.myMethod = ko.observable(self.myMethods()[0]);    
-    self.myMethodProxy = ko.computed({
-        read: function () { return self.myMethod() },
-        write: function (value) { 
-            //self.resultIsRelevant(false);
-            self.myMethod(value); 
-        }
+        var methods = self.methods.at([self.myModel.peek(), self.myFamilyId.peek()[0], self.myOption()[0]])();
+        //console.log('computing myMethods: myModel=' + self.myOption.peek()[1] +'myOption=' + self.myOption.peek()[0] + '; myFamily = ' + self.myFamilyId.peek()[0] + '; methods <- ' + $.toJSON(methods));
+        return methods;
     });
 
+    self.myMethod = ko.observable(self.myMethods()[0]);
+
     self.myMethodHtml = ko.computed(function() {
-        return self.method_html.at([self.myFamilyId()[1], self.myFamilyId()[0], self.myMethod()]);
+        return self.method_html.at([self.myFamilyId.peek()[1], self.myFamilyId.peek()[0], self.myMethod()]);
     });
 
     self.myMethodResults = ko.computed(function () {
-        return self.method_results.at([self.myFamilyId()[1], self.myFamilyId()[0], self.myMethod()])();
+        return self.method_results.at([self.myFamilyId.peek()[1], self.myFamilyId.peek()[0], self.myMethod()])();
     });
 
     self.myMethodParamsNF = ko.computed(function () {
-        return self.method_params.at([self.myFamilyId()[1], self.myFamilyId()[0], self.myMethod()])();
-    });
-    self.myMethodParamsNF = ko.computed({
-        read: function () { return self.method_params.at([self.myFamilyId()[1], self.myFamilyId()[0], self.myMethod()])(); },
-        write: function (x) { self.method_params.set([self.myFamilyId()[1], self.myFamilyId()[0], self.myMethod()], x); }
+        //console.log('method results updated: ' + self.myMethod());
+        return self.method_params.at([self.myFamilyId.peek()[1], self.myFamilyId.peek()[0], self.myMethod()])();
     });
 
     self.myMethodParams = ko.computed(function () {
@@ -635,7 +634,7 @@ function ModelView() {
     self.currentState = ko.computed(function(){
         return [
             [self.myAsset(), self.myModel(), serialized(self.myModelParamsNF())],
-            [self.myFamilyId()[0], self.myOption(), serialized(self.myOptionParamsNF())],
+            [self.myFamilyId()[0], self.myOption()[0], serialized(self.myOptionParamsNF())],
             [self.myMethod(), serialized(self.myMethodParamsNF())]
         ];        
     })
@@ -732,7 +731,14 @@ function ModelView() {
                         position : 'se',            // Position the legend 'south-east'.
                         backgroundColor : '#D2E8FF' // A light blue background color.
                     },
-                    HtmlText : false
+                    HtmlText : false,
+                    spreadsheet: {
+                      show: true,
+                      tickFormatter: function(e) {
+                          return e + "";
+                      }
+                    }
+
                 });
             }
         }
