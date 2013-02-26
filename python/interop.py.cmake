@@ -1,3 +1,5 @@
 from libpypremia import *
 
-init(r"@PREMIA_DATA_DIR@")
+data_dir = r"@PREMIA_DATA_DIR@" 
+
+init(data_dir)

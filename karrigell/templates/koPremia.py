@@ -1,4 +1,7 @@
 from HTMLTags import *
+Include('../import.py')
+
+from premia import interop
 
 def js_include(filename):
    return SCRIPT(type="text/javascript", src=filename)
@@ -17,6 +20,8 @@ print """
 Include("shaders.py")
 Include("param_table.html")
 Include("current.html")
+
+print SCRIPT("var data_dir = '" + interop.data_dir + "';")
 
 if len(REQUEST):
    request = REQUEST.iterkeys().__iter__().next()

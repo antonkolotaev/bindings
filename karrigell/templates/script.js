@@ -283,10 +283,12 @@ function FilenameField(label, value) {
     self.type = 3;
     self.label = label;
     self.value = value;
+    self.url = value.replace(data_dir, "/dat");
+    self.torender = value.replace(data_dir + "/", "");
     self.renderer = 'filename-row-template';
-    self.getFields = function () { return []; }
+    self.getFields = function () { return [self]; }
     self.serialized = function () { return [self.value]; }
-    self.asHistory = function() { return []; }
+    self.asHistory = function() { return [[self.label, self.torender]]; }
 }
 
 function allequal(arr) {

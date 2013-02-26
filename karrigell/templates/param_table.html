@@ -48,6 +48,18 @@
 </script>
 
 <script type="text/html" id="filename-row-template">
+  <tr data-bind="css: { even: index%2==0 }">
+    <td class="keys">
+      <span data-bind="text: label"></span>      
+    </td>
+    <td>
+    </td>
+    <td>
+      <a target="_blank" data-bind="text: torender, attr: { href: url }"></a>
+    </td>
+    <td>
+    </td>
+  </tr>
 </script>
 
 <script type="text/html" id="enum-row-template">
