@@ -15,7 +15,6 @@ function map(elements, f) {
     return res;
 }
 
-
 function CachedMap(getter) {
    var self = this;
    self._storage = {};
