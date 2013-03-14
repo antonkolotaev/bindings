@@ -69,77 +69,79 @@
         </tr>
         <tbody data-bind="template: { name: 'row-template', foreach: myMethodParams }">
         </tbody>
-        <tr data-bind="if: scalarResult()!=undefined, css: { result : true }">
-          <th>Result:</th>
-          <th></th>
-          <th></th>
-          <th></th>
-        </tr>
-        <!-- ko foreach: scalarResult() -->
-          <!-- ko if: typeof($data[1])=="number" -->
-            <tr data-bind="css: { result_even: $index()%2==0 }">
-              <td colspan="2" class="keys" data-bind="text: $data[0]"></td>
-              <td colspan="2" class="values" data-bind="text: $data[1].toFixed(3)"></td>
-            </tr>
-          <!-- /ko -->
-          <!-- ko notif: typeof($data[1])=="number" -->
-            <!-- ko foreach: $data[1] -->
-              <tr data-bind="css: { result_even: $parentContext.$index()%2==0 }">
-                <!-- ko ifnot: $index -->
-                  <td colspan="2" class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
-                <!-- /ko -->
-              <td colspan="2" class="values" data-bind="text: $data.toFixed(3)"></td>
-              </tr>
-            <!-- /ko -->
-          <!-- /ko -->
-        <!-- /ko -->
-        <!-- ko if: iterationRang()  -->
-          <tr>
-            <th colspan="4">Graph visualisation options</th>
-          </tr>
-          <tr class="even">
-            <td>Graph size X</td>
-            <td></td>
-            <td><input data-bind="value: graphSizeX"></input></td>
-            <td></td>
-          </tr>
-          <tr class="odd">
-            <td>Graph size Y</td>
-            <td></td>
-            <td><input data-bind="value: graphSizeY"></input></td>
-            <td></td>
-          </tr>
-          <tr class="even">
-            <td>Inherit last by default</td>
-            <td></td>
-            <td><input type="checkbox" data-bind="checked: inheritByDefault"></input></td>
-            <td></td>
-          </tr>
-          <tr class="odd">
-            <td>Suffix</td>
-            <td><input type="checkBox" data-bind="checked: trackSuffix"></input></td>
-            <td><input data-bind="value: suffix, valueUpdate: 'afterkeydown'"></input></td>
-            <td></td>
-          </tr>
-          <!-- ko foreach: myMethodResults -->
-            <tr data-bind="css: { even: $index()%2==0 }">
-              <td></td>
-              <td>
-                <input type="checkbox" data-bind="checked: visible"></input>
-              </td>
-              <td>
-                <input data-bind="value: label"></input>
-              </td>
-              <td></td>
-            </tr>
-          <!-- /ko -->
-        <!-- /ko -->
         <tr>
           <td></td>
           <td></td>
           <td><button id="Compute" data-bind="enable: paramsAreOk, text: (computing() ? 'Computing...' : 'Compute')"></button></td>
           <td></td>
         </tr>
+      </table>
+      <table data-bind="if: scalarResult" class="result">
+        <tr>
+          <th>Result:</th>
+          <th></th>
+          <th></th>
+          <th></th>
+        </tr>
+        <!-- ko foreach: scalarResult -->
+          <!-- ko if: typeof($data[1])=="number" -->
+            <tr data-bind="css: { even: $index()%2==0 }">
+              <td colspan="2" class="keys" data-bind="text: $data[0]"></td>
+              <td colspan="2" class="values" data-bind="text: $data[1].toFixed(6)"></td>
+            </tr>
+          <!-- /ko -->
+          <!-- ko notif: typeof($data[1])=="number" -->
+            <!-- ko foreach: $data[1] -->
+              <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+                <!-- ko ifnot: $index -->
+                  <td colspan="2" class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
+                <!-- /ko -->
+              <td colspan="2" class="values" data-bind="text: $data.toFixed(6)"></td>
+              </tr>
+            <!-- /ko -->
+          <!-- /ko -->
+        <!-- /ko -->
+      </table>
+      <table data-bind="if: iterationRang" class="result">
+              <tr>
+                <th colspan="4">Graph visualisation options</th>
+              </tr>
+              <tr class="even">
+                <td>Graph size X</td>
+                <td></td>
+                <td><input data-bind="value: graphSizeX"></input></td>
+                <td></td>
+              </tr>
+              <tr class="odd">
+                <td>Graph size Y</td>
+                <td></td>
+                <td><input data-bind="value: graphSizeY"></input></td>
+                <td></td>
+              </tr>
+              <tr class="even">
+                <td>Inherit last by default</td>
+                <td></td>
+                <td><input type="checkbox" data-bind="checked: inheritByDefault"></input></td>
+                <td></td>
+              </tr>
+              <tr class="odd">
+                <td>Suffix</td>
+                <td><input type="checkBox" data-bind="checked: trackSuffix"></input></td>
+                <td><input data-bind="value: suffix, valueUpdate: 'afterkeydown'"></input></td>
+                <td></td>
+              </tr>
+              <!-- ko foreach: myMethodResults -->
+                <tr data-bind="css: { even: $index()%2==0 }">
+                  <td></td>
+                  <td>
+                    <input type="checkbox" data-bind="checked: visible"></input>
+                  </td>
+                  <td>
+                    <input data-bind="value: label"></input>
+                  </td>
+                  <td></td>
+                </tr>
+              <!-- /ko -->
       </table>
     </td>
   </tr>
@@ -267,28 +269,28 @@ of Marne la Vall&eacute;e.</a><br>
             <a target="_blank" data-bind="attr: { href: 'koPremia?'+query }">Make current</a>
           </td> 
         </tr> -->
-        <tr data-bind="if: iterationRang==0, css: { result : true }">
+      </table>
+      <table data-bind="if: iterationRang==0" class="result">
+        <tr>
           <th>Result:</th>
           <th></th>
           <th></th>
         </tr>
-        <!-- ko if: iterationRang==0 -->
-          <!-- ko foreach: scalarResult -->
-            <!-- ko if: typeof($data[1])=="number" -->
-              <tr data-bind="css: { result_even: $index()%2==0 }">
-                <td             class="keys" data-bind="text: $data[0]"></td>
-                <td colspan="2" class="values" data-bind="text: $data[1].toFixed(3)"></td>
+        <!-- ko foreach: scalarResult -->
+          <!-- ko if: typeof($data[1])=="number" -->
+            <tr data-bind="css: { even: $index()%2==0 }">
+              <td             class="keys" data-bind="text: $data[0]"></td>
+              <td colspan="2" class="values" data-bind="text: $data[1].toFixed(6)"></td>
+            </tr>
+          <!-- /ko -->
+          <!-- ko notif: typeof($data[1])=="number" -->
+            <!-- ko foreach: $data[1] -->
+              <tr data-bind="css: { even: $parentContext.$index()%2==0 }">
+                <!-- ko ifnot: $index -->
+                  <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
+                <!-- /ko -->
+              <td colspan="2" class="values" data-bind="text: $data.toFixed(6)"></td>
               </tr>
-            <!-- /ko -->
-            <!-- ko notif: typeof($data[1])=="number" -->
-              <!-- ko foreach: $data[1] -->
-                <tr data-bind="css: { result_even: $parentContext.$index()%2==0 }">
-                  <!-- ko ifnot: $index -->
-                    <td class="keys" data-bind="text: $parentContext.$data[0], attr: { rowspan: $parentContext.$data[1].length }"></td>
-                  <!-- /ko -->
-                <td colspan="2" class="values" data-bind="text: $data.toFixed(3)"></td>
-                </tr>
-              <!-- /ko -->
             <!-- /ko -->
           <!-- /ko -->
         <!-- /ko -->

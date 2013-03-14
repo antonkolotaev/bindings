@@ -135,11 +135,15 @@ th {
    background-color: #E0C2FF;
 }
 
+.result {
+   border:1px solid #009999;
+}
+
 .result th {
    background-color:#009999;
 }
 
-.result_even {
+.result .even {
    background-color: #B2E0E0;
 }
 
