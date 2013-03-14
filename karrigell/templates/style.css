@@ -135,6 +135,14 @@ th {
    background-color: #E0C2FF;
 }
 
+.result th {
+   background-color:#009999;
+}
+
+.result_even {
+   background-color: #B2E0E0;
+}
+
 .even_scalar  {
    background-color: lightgrey;
 }
